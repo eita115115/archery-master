@@ -6,6 +6,56 @@ const FORM_LM = Object.freeze({
   LEFT_ELBOW: 13, RIGHT_ELBOW: 14, LEFT_WRIST: 15, RIGHT_WRIST: 16,
   LEFT_HIP: 23, RIGHT_HIP: 24,
 });
+
+// Elite recurve reference (Kim Woojin / An San / Brady Ellison class).
+// Sources: World Archery technique, James Park draw-force-line, Folkard-Kuhr bow-arm stability.
+const ELITE_FORM_REFERENCE = Object.freeze({
+  bowArmAngle: { ideal: 172, sigma: 9, min: 155, max: 182 },
+  drawArmAngle: { ideal: 152, sigma: 14, min: 125, max: 175 },
+  shoulderDrop: { ideal: 0.018, sigma: 0.014, min: 0, max: 0.05 },
+  anchorDist: { ideal: 0.10, sigma: 0.028, min: 0.05, max: 0.18 },
+  headOffset: { ideal: 0.022, sigma: 0.018, min: 0, max: 0.07 },
+  torsoLean: { ideal: 0.21, sigma: 0.045, min: 0.12, max: 0.30 },
+  drawForceLine: { ideal: 0.018, sigma: 0.016, min: 0, max: 0.07 },
+});
+
+let formMetricsEma = null;
+const FORM_EMA_ALPHA = 0.38;
+
+function gaussianScore(value, ideal, sigma) {
+  const z = (value - ideal) / Math.max(0.0001, sigma);
+  return Math.round(Math.max(0, Math.min(100, 100 * Math.exp(-0.5 * z * z))));
+}
+
+function lineDistance2d(p, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy);
+  if (len < 0.0001) return Math.hypot(p.x - a.x, p.y - a.y);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (len * len)));
+  const px = a.x + t * dx;
+  const py = a.y + t * dy;
+  return Math.hypot(p.x - px, p.y - py);
+}
+
+function smoothFormMetrics(metrics) {
+  if (!metrics) return null;
+  if (!formMetricsEma) {
+    formMetricsEma = { ...metrics };
+    return metrics;
+  }
+  const keys = ["bowArmAngle", "drawArmAngle", "bowArmScore", "drawElbowScore", "shoulderScore", "headScore", "anchorScore", "leanScore", "forceLineScore", "score", "confidence"];
+  keys.forEach((k) => {
+    if (metrics[k] == null || formMetricsEma[k] == null) return;
+    if (typeof metrics[k] === "number") {
+      formMetricsEma[k] = Math.round(formMetricsEma[k] * (1 - FORM_EMA_ALPHA) + metrics[k] * FORM_EMA_ALPHA);
+    }
+  });
+  formMetricsEma.anchorDist = metrics.anchorDist;
+  formMetricsEma.drawWrist = metrics.drawWrist;
+  formMetricsEma.bowWrist = metrics.bowWrist;
+  return { ...formMetricsEma };
+}
 const FORM_BUNDLE_URL = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs";
 const FORM_WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm";
 const FORM_MODEL_PATH = "./pose_landmarker_lite.task";
@@ -23,7 +73,7 @@ function formAngleDeg(a, b, c) {
 }
 function formDist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 
-function computeFormMetrics(landmarks, handedness) {
+function computeFormMetrics(landmarks, handedness, opts) {
   if (!landmarks || !landmarks.length) return null;
   const l = landmarks[0];
   const righty = handedness !== "left";
@@ -36,41 +86,48 @@ function computeFormMetrics(landmarks, handedness) {
   const nose = l[FORM_LM.NOSE];
   const lHip = l[FORM_LM.LEFT_HIP]; const rHip = l[FORM_LM.RIGHT_HIP];
   if (!bS || !bE || !bW || !dS || !dE || !dW || !nose) return null;
+  const ref = ELITE_FORM_REFERENCE;
   const bowArm = formAngleDeg(bS, bE, bW);
-  let bowScore = Math.max(0, Math.min(100, (bowArm - 135) / 50 * 100));
-  if (bowArm > 185) bowScore = Math.max(0, 100 - (bowArm - 185) * 6);
   const drawArm = formAngleDeg(dS, dE, dW);
-  const drawScore = Math.max(0, Math.min(100, (drawArm - 140) / 50 * 100));
-  const shDiff = Math.abs((dS.y - bS.y) * 100);
-  const shScore = Math.max(0, 100 - shDiff * 3.5);
+  const shoulderDrop = Math.max(0, dS.y - bS.y);
   const midShY = (bS.y + dS.y) / 2;
-  const headScore = Math.max(0, 100 - Math.abs(nose.y - midShY) * 280);
+  const headOffset = Math.abs(nose.y - midShY);
   const ancD = formDist(dW, nose);
-  let ancScore = 100;
-  if (ancD > 0.22) ancScore = 30;
-  else if (ancD > 0.17) ancScore = 70;
-  else if (ancD < 0.05) ancScore = 55;
-  const leanScore = Math.max(0, 100 - Math.abs(midShY - (lHip.y + rHip.y) / 2) * 100 * 2.8);
+  const torsoLean = Math.abs(midShY - (lHip.y + rHip.y) / 2);
+  const forceLineDist = lineDistance2d(dE, dS, dW);
+  const bowScore = gaussianScore(bowArm, ref.bowArmAngle.ideal, ref.bowArmAngle.sigma);
+  const drawScore = gaussianScore(drawArm, ref.drawArmAngle.ideal, ref.drawArmAngle.sigma);
+  const shScore = gaussianScore(shoulderDrop, ref.shoulderDrop.ideal, ref.shoulderDrop.sigma);
+  const headScore = gaussianScore(headOffset, ref.headOffset.ideal, ref.headOffset.sigma);
+  const ancScore = gaussianScore(ancD, ref.anchorDist.ideal, ref.anchorDist.sigma);
+  const leanScore = gaussianScore(torsoLean, ref.torsoLean.ideal, ref.torsoLean.sigma);
+  const forceLineScore = gaussianScore(forceLineDist, ref.drawForceLine.ideal, ref.drawForceLine.sigma);
   const vis = [FORM_LM.LEFT_SHOULDER, FORM_LM.RIGHT_SHOULDER, FORM_LM.LEFT_ELBOW, FORM_LM.RIGHT_ELBOW, FORM_LM.LEFT_WRIST, FORM_LM.RIGHT_WRIST, FORM_LM.NOSE]
     .map((i) => (l[i] && l[i].visibility != null ? l[i].visibility : 0.55));
   const confidence = Math.round((vis.reduce((a, x) => a + x, 0) / vis.length) * 100);
-  const score = Math.round((bowScore * 0.22 + drawScore * 0.2 + shScore * 0.18 + headScore * 0.14 + ancScore * 0.16 + leanScore * 0.1));
-  return {
-    bowArmAngle: Math.round(bowArm), bowArmScore: Math.round(bowScore),
-    drawArmAngle: Math.round(drawArm), drawElbowScore: Math.round(drawScore),
-    shoulderScore: Math.round(shScore), headScore: Math.round(headScore),
-    anchorScore: Math.round(ancScore), leanScore: Math.round(leanScore),
-    anchorDist: ancD.toFixed(3), confidence, score,
+  const score = Math.round(
+    bowScore * 0.2 + drawScore * 0.16 + forceLineScore * 0.18 + shScore * 0.14
+    + headScore * 0.12 + ancScore * 0.12 + leanScore * 0.08
+  );
+  const raw = {
+    bowArmAngle: Math.round(bowArm), bowArmScore: bowScore,
+    drawArmAngle: Math.round(drawArm), drawElbowScore: drawScore,
+    shoulderScore: shScore, headScore, anchorScore: ancScore, leanScore,
+    forceLineScore, anchorDist: ancD.toFixed(3), confidence, score,
     drawWrist: dW, bowWrist: bW,
   };
+  if (opts && opts.raw) return raw;
+  return smoothFormMetrics(raw);
 }
 
 function detectFormPhase(metrics, history, releaseSensitivity) {
   if (!metrics) return { phase: "IDLE", released: false };
   const now = Date.now();
-  const close = parseFloat(metrics.anchorDist) < 0.19;
+  const anc = parseFloat(metrics.anchorDist);
+  const close = anc < 0.19;
+  const anchored = close && metrics.drawArmAngle > 132 && metrics.forceLineScore > 45;
   const speed = history.length > 1 ? (history[history.length - 1].vel || 0) : 0;
-  let phase = close && metrics.drawArmAngle > 145 ? "FULL_DRAW" : speed > 12 && !close ? "DRAWING" : close ? "ANCHORING" : "SETUP";
+  let phase = anchored && metrics.bowArmScore > 50 ? "FULL_DRAW" : speed > 10 && !close ? "DRAWING" : close ? "ANCHORING" : "SETUP";
   let released = false;
   const prev = history.length > 1 ? history[history.length - 2].metrics : null;
   if (history.length > 3 && prev) {
@@ -91,15 +148,16 @@ function detectFormPhase(metrics, history, releaseSensitivity) {
 function generateFormAdvice(m, phase) {
   if (!m) return [];
   const out = [];
-  if (m.bowArmScore < 55) out.push({ type: "bad", text: "弓腕が大きく曲がっています。肘を軽く伸ばしましょう。" });
-  else if (m.bowArmScore < 78) out.push({ type: "warn", text: "弓腕の伸びがやや不足です。" });
-  else out.push({ type: "good", text: "弓腕が良く伸びています。" });
-  if (m.drawElbowScore < 50) out.push({ type: "bad", text: "引き肘の位置を見直しましょう。" });
-  else if (m.drawElbowScore < 75) out.push({ type: "warn", text: "肩・肘・手首を一直線に意識してください。" });
-  if (m.shoulderScore < 55) out.push({ type: "bad", text: "肩のラインが崩れています。" });
-  if ((phase === "FULL_DRAW" || phase === "ANCHORING") && m.anchorScore < 55) out.push({ type: "bad", text: "アンカー位置を固定しましょう。" });
+  if (m.bowArmScore < 55) out.push({ type: "bad", text: "弓腕が曲がっています。肘を内旋させ、肩〜肘〜手首を一直線に。" });
+  else if (m.bowArmScore < 78) out.push({ type: "warn", text: "弓腕の伸びをもう少し。トップ選手はリリースまで肘を固定します。" });
+  else out.push({ type: "good", text: "弓腕の安定性は良好です。" });
+  if (m.forceLineScore < 50) out.push({ type: "bad", text: "引き肘が力のラインから外れています。肘を弓弦側へ。" });
+  else if (m.forceLineScore < 75) out.push({ type: "warn", text: "引き肘を肩〜手首のライン上に微調整してください。" });
+  else out.push({ type: "good", text: "引き肘は力のライン上にあります。" });
+  if (m.shoulderScore < 55) out.push({ type: "bad", text: "肩の高さが揃っていません。弓肩を下げ、引き肩をわずかに低く。" });
+  if ((phase === "FULL_DRAW" || phase === "ANCHORING") && m.anchorScore < 55) out.push({ type: "bad", text: "アンカー位置を顎の横に固定しましょう。" });
   if (phase === "RELEASE") out.push({ type: "good", text: "リリースを検知しました。" });
-  return out.slice(0, 4);
+  return out.slice(0, 5);
 }
 
 function drawFormOverlay(canvas, landmarks, metrics, phase, opts) {
@@ -153,6 +211,7 @@ function stopFormCoach() {
   if (formSession.stream) formSession.stream.getTracks().forEach((t) => t.stop());
   if (formSession.videoUrl) URL.revokeObjectURL(formSession.videoUrl);
   formSession = null;
+  formMetricsEma = null;
   ui.formBound = false;
 }
 
@@ -205,8 +264,8 @@ async function startFormCoachLoop(root) {
         const metricsEl = root.querySelector("#formMetrics");
         if (metricsEl && metrics) {
           metricsEl.innerHTML = [
-            ["弓腕", metrics.bowArmScore], ["引き肘", metrics.drawElbowScore], ["肩", metrics.shoulderScore],
-            ["頭", metrics.headScore], ["アンカー", metrics.anchorScore], ["総合", metrics.score],
+            ["弓腕", metrics.bowArmScore], ["力のライン", metrics.forceLineScore], ["引き肘", metrics.drawElbowScore],
+            ["肩", metrics.shoulderScore], ["アンカー", metrics.anchorScore], ["総合", metrics.score],
           ].map(([k, v]) => `<div class="formMetric"><div class="k">${k}</div><b>${v}</b></div>`).join("");
         }
         if (released && metrics) {
@@ -290,6 +349,7 @@ function formContextForSession(session) {
 
 if (typeof window !== "undefined") {
   window.ArcherForm = {
+    ELITE_FORM_REFERENCE,
     loadFormLandmarker,
     computeFormMetrics,
     detectFormPhase,

@@ -1,0 +1,13 @@
+{
+  "baselineScore": 0.585092175781248,
+  "tunedScore": 0.6002236048268791,
+  "improved": true,
+  "recommended": {
+    "darkExcess": 42,
+    "minimumAngularScore": 600,
+    "impactRefineDarkness": 200,
+    "minimumAngleSeparation": 12,
+    "impactRefineRadiusPx": 4,
+    "minimumRunLength": 3
+  }
+}

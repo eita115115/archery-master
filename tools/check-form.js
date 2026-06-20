@@ -11,6 +11,8 @@ function assert(ok, msg) {
 
 assert(source.includes("window.ArcherForm"), "ArcherForm export missing");
 assert(source.includes("computeFormMetrics"), "computeFormMetrics missing");
+assert(source.includes("ELITE_FORM_REFERENCE"), "ELITE_FORM_REFERENCE missing");
+assert(source.includes("forceLineScore"), "draw-force-line metric missing");
 assert(source.includes("formContextForSession"), "formContextForSession missing");
 
 const stripped = source
@@ -53,8 +55,9 @@ pose[16] = pt(0.72, 0.38);
 pose[23] = pt(0.42, 0.55);
 pose[24] = pt(0.58, 0.55);
 const fakeLm = [pose];
-const m = computeFormMetrics(fakeLm, "right");
+const m = computeFormMetrics(fakeLm, "right", { raw: true });
 assert(m && m.score >= 0 && m.score <= 100, "form metrics score range");
+assert(m.forceLineScore >= 0 && m.forceLineScore <= 100, "force line score range");
 const phase = detectFormPhase(m, []);
 assert(phase && phase.phase, "detectFormPhase returns phase");
 const advice = generateFormAdvice(m, "FULL_DRAW");

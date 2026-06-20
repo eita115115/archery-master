@@ -8,15 +8,12 @@ const ANGLE_SAMPLES = 360;
 // Kept in one place so the simulation harness can compare detector settings
 // without giving the UI a different scoring rule.
 const DETECTOR_DEFAULTS = Object.freeze({
-  // The primary path matches an evenly lit standard face. A separate
-  // ring-signature recovery path handles damaged or unevenly lit photos.
+  // Tuned via tools/simulate-vision.js (synthetic WA faces + grid search).
   colouredOuterRingRatio: 0.578,
   colourRadiusPercentile: 0.93,
   lowLightColourRadiusPercentile: 0.93,
   lowLightColouredOuterRingRatio: 0.578,
   maximumRadiusTailRatio: Infinity,
-  // Geometry is inferred from red and blue only. Gold is too easily confused
-  // with straw, timber, and warm sunlight around an outdoor boss.
   strongColoursOnly: false,
   minimumColourValue: 70,
   minimumColourChroma: 0,
@@ -25,16 +22,16 @@ const DETECTOR_DEFAULTS = Object.freeze({
   minimumBlueSamples: 0,
   redOnlyOuterRingRatio: 0.394,
   minimumRingSignature: 0.22,
-  darkExcess: 48,
-  minimumAngularScore: 720,
-  medianScoreMultiplier: 1.8,
+  darkExcess: 42,
+  minimumAngularScore: 600,
+  medianScoreMultiplier: 1.65,
   minimumAngleSeparation: 15,
   minimumRunLength: 2,
   minimumLongestRun: 0,
   impactOffsetPx: 0,
-  impactRefineRadiusPx: 5,
-  impactRefineDarkness: 185,
-  maximumCandidates: 12,
+  impactRefineRadiusPx: 4,
+  impactRefineDarkness: 200,
+  maximumCandidates: 14,
 });
 
 const ROBUST_RECOVERY_OPTIONS = Object.freeze({
@@ -152,6 +149,92 @@ function detectRingSignatureTarget(imageData, width, height, config) {
     confidence: Math.max(0.42, Math.min(0.84, 0.34 + best.score * 0.48)),
     method: "ring-signature",
   };
+}
+
+function normalizeImageContrast(imageData, width, height) {
+  const { data } = imageData;
+  let minL = 255;
+  let maxL = 0;
+  const step = Math.max(2, Math.floor(Math.min(width, height) / 120));
+  for (let y = 0; y < height; y += step) {
+    for (let x = 0; x < width; x += step) {
+      const i = (y * width + x) * 4;
+      const l = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
+      if (l < minL) minL = l;
+      if (l > maxL) maxL = l;
+    }
+  }
+  const span = Math.max(18, maxL - minL);
+  const out = new Uint8ClampedArray(data.length);
+  for (let i = 0; i < data.length; i += 4) {
+    const l = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
+    const stretch = Math.max(0, Math.min(255, ((l - minL) / span) * 255));
+    const gain = stretch / Math.max(1, l);
+    out[i] = Math.max(0, Math.min(255, data[i] * gain));
+    out[i + 1] = Math.max(0, Math.min(255, data[i + 1] * gain));
+    out[i + 2] = Math.max(0, Math.min(255, data[i + 2] * gain));
+    out[i + 3] = data[i + 3];
+  }
+  return { data: out, width, height };
+}
+
+function frameSharpnessScore(imageData, width, height) {
+  const { data } = imageData;
+  let sum = 0;
+  let n = 0;
+  const step = Math.max(2, Math.floor(Math.min(width, height) / 100));
+  for (let y = step; y < height - step; y += step) {
+    for (let x = step; x < width - step; x += step) {
+      const i = (y * width + x) * 4;
+      const c = data[i] * 0.2126 + data[i + 1] * 0.7152 + data[i + 2] * 0.0722;
+      const iR = ((y) * width + (x + step)) * 4;
+      const iD = ((y + step) * width + x) * 4;
+      const r = data[iR] * 0.2126 + data[iR + 1] * 0.7152 + data[iR + 2] * 0.0722;
+      const d = data[iD] * 0.2126 + data[iD + 1] * 0.7152 + data[iD + 2] * 0.0722;
+      sum += Math.abs(2 * c - r - d);
+      n += 1;
+    }
+  }
+  return n ? sum / n : 0;
+}
+
+function clusterArrowHits(arrows, mergeRadiusPct) {
+  if (!arrows || !arrows.length) return [];
+  const r = mergeRadiusPct || 2.8;
+  const sorted = [...arrows].sort((a, b) => (b.quality || b.score || 0) - (a.quality || a.score || 0));
+  const kept = [];
+  for (const hit of sorted) {
+    const dup = kept.find((k) => Math.hypot(k.x - hit.x, k.y - hit.y) < r);
+    if (!dup) kept.push({ ...hit });
+    else {
+      dup.x = (dup.x + hit.x) / 2;
+      dup.y = (dup.y + hit.y) / 2;
+      dup.quality = Math.max(dup.quality || 0, hit.quality || 0);
+      dup.votes = (dup.votes || 1) + 1;
+    }
+  }
+  return kept;
+}
+
+function fuseDetectionResults(results) {
+  const valid = (results || []).filter((r) => r && r.arrows && r.arrows.length && r.target);
+  if (!valid.length) return null;
+  const weights = valid.map((r) => (r.sharpness || 1) * (r.confidence || 50) / 100);
+  const wSum = weights.reduce((a, x) => a + x, 0) || 1;
+  const tcx = valid.reduce((a, r, i) => a + r.target.x * weights[i], 0) / wSum;
+  const tcy = valid.reduce((a, r, i) => a + r.target.y * weights[i], 0) / wSum;
+  const tr = valid.reduce((a, r, i) => a + r.target.radius * weights[i], 0) / wSum;
+  const pooled = [];
+  valid.forEach((r, i) => {
+    r.arrows.forEach((ar) => pooled.push({ ...ar, quality: (ar.score || 5) * weights[i] }));
+  });
+  const arrows = clusterArrowHits(pooled, tr * 0.14).map((ar) => ({
+    x: ar.x,
+    y: ar.y,
+    score: ar.score || 0,
+  }));
+  const confidence = Math.round(Math.min(96, valid.reduce((a, r, i) => a + (r.confidence || 0) * weights[i], 0) / wSum + Math.min(8, arrows.length)));
+  return { arrows, target: { x: tcx, y: tcy, radius: tr }, confidence, method: "temporal-fusion" };
 }
 
 function refineImpactPoint(data, width, height, point, config) {
@@ -365,6 +448,9 @@ function scoreImpact(point, target, faceCm) {
  */
 function analyzeImageData(imageData, width, height, faceCm, options = {}) {
   const config = { ...DETECTOR_DEFAULTS, ...options };
+  if (options.normalizeContrast) {
+    imageData = normalizeImageContrast(imageData, width, height);
+  }
   const robustConfig = { ...config, ...ROBUST_RECOVERY_OPTIONS };
   const primaryTarget = detectColourTarget(imageData, width, height, config);
   const robustTarget = detectColourTarget(imageData, width, height, robustConfig);
@@ -447,7 +533,9 @@ function analyzeVideoFrame(video, faceCm, options = {}) {
     throw error;
   }
   const imageData = frame.context.getImageData(0, 0, frame.width, frame.height);
-  return analyzeImageData(imageData, frame.width, frame.height, faceCm, options);
+  const result = analyzeImageData(imageData, frame.width, frame.height, faceCm, { normalizeContrast: true, ...options });
+  result.sharpness = frameSharpnessScore(imageData, frame.width, frame.height);
+  return result;
 }
 
 function seekVideo(video, timeSec) {
@@ -463,7 +551,7 @@ function seekVideo(video, timeSec) {
 }
 
 async function scanVideoFile(file, faceCm, options = {}) {
-  const intervalSec = options.intervalSec ?? 0.35;
+  const intervalSec = options.intervalSec ?? 0.28;
   const onProgress = options.onProgress ?? (() => {});
   const url = URL.createObjectURL(file);
   const video = document.createElement("video");
@@ -478,25 +566,28 @@ async function scanVideoFile(file, faceCm, options = {}) {
     });
     const duration = video.duration;
     if (!Number.isFinite(duration) || duration <= 0) throw new Error("動画の長さを取得できません");
-    let best = null;
+    const frameResults = [];
     const samples = Math.max(1, Math.ceil(duration / intervalSec));
     for (let i = 0; i < samples; i += 1) {
       const t = Math.min(Math.max(0, duration - 0.05), i * intervalSec);
       await seekVideo(video, t);
       onProgress(Math.round(((i + 1) / samples) * 100));
       try {
-        const result = analyzeVideoFrame(video, faceCm);
-        if (!best || result.confidence > best.confidence
-          || (result.confidence === best.confidence && result.arrows.length > best.arrows.length)) {
-          best = result;
-        }
+        const result = analyzeVideoFrame(video, faceCm, options);
+        const frameScore = (result.sharpness || 0) * 0.55 + (result.confidence || 0) * 0.45;
+        frameResults.push({ result, frameScore });
       } catch (_) { /* skip unusable frames */ }
     }
-    if (!best) {
+    if (!frameResults.length) {
       const error = new Error("動画から矢を検出できませんでした");
       error.code = "no-detection";
       throw error;
     }
+    frameResults.sort((a, b) => b.frameScore - a.frameScore);
+    const top = frameResults.slice(0, Math.min(5, frameResults.length)).map((f) => f.result);
+    const fused = fuseDetectionResults(top);
+    if (fused && fused.arrows.length) return fused;
+    const best = frameResults[0].result;
     return best;
   } finally {
     URL.revokeObjectURL(url);
@@ -505,19 +596,30 @@ async function scanVideoFile(file, faceCm, options = {}) {
   }
 }
 
-function createLiveScanner({ video, faceCm, intervalMs = 900, onResult, onError }) {
+function createLiveScanner({ video, faceCm, intervalMs = 650, onResult, onError, stabilityFrames = 3 }) {
   let timer = null;
   let busy = false;
   let lastSignature = "";
+  const recent = [];
+  const needStable = Math.max(2, stabilityFrames || 3);
   async function tick() {
     if (busy || !video) return;
     busy = true;
     try {
       const result = analyzeVideoFrame(video, faceCm);
+      recent.push(result);
+      if (recent.length > needStable + 1) recent.shift();
       const sig = result.arrows.map((arrow) => `${Math.round(arrow.x)}:${Math.round(arrow.y)}`).join("|");
-      if (sig !== lastSignature) {
+      const stable = recent.length >= needStable && recent.slice(-needStable).every((r) => {
+        const s = r.arrows.map((arrow) => `${Math.round(arrow.x)}:${Math.round(arrow.y)}`).join("|");
+        return s === sig;
+      });
+      const emit = stable ? fuseDetectionResults(recent.slice(-needStable)) || result : null;
+      if (emit && sig !== lastSignature) {
         lastSignature = sig;
-        if (onResult) onResult(result);
+        if (onResult) onResult(emit);
+      } else if (!stable && onError) {
+        onError({ code: "stabilizing", message: "検出を安定化中…" });
       }
     } catch (error) {
       if (onError) onError(error);
@@ -535,6 +637,8 @@ function createLiveScanner({ video, faceCm, intervalMs = 900, onResult, onError 
         clearInterval(timer);
         timer = null;
       }
+      recent.length = 0;
+      lastSignature = "";
     },
     analyzeNow: tick,
   };
@@ -549,5 +653,7 @@ if (typeof window !== "undefined") {
     scanVideoFile,
     createLiveScanner,
     scoreImpact,
+    fuseDetectionResults,
+    frameSharpnessScore,
   };
 }

@@ -13,6 +13,7 @@ const source = fs.readFileSync(visionPath, "utf8");
 assert(source.includes('"use strict"'), "35-photo-vision.js must use strict mode");
 assert(source.includes("的ノート: target vision"), "35-photo-vision.js header comment missing");
 assert(source.includes("analyzeVideoFrame") && source.includes("scanVideoFile") && source.includes("createLiveScanner"), "video/live vision API missing");
+assert(source.includes("fuseDetectionResults") && source.includes("frameSharpnessScore"), "temporal fusion API missing");
 assert(source.includes("window.ArcherVision"), "35-photo-vision.js must expose window.ArcherVision");
 assert(!/\bexport\b/.test(source), "35-photo-vision.js must not use export keywords");
 

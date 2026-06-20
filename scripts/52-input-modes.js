@@ -139,7 +139,10 @@ async function bindLiveScanMode(s) {
         ]);
       },
       onError(err) {
-        if (err && err.code === "no-frame") return;
+        if (err && (err.code === "no-frame" || err.code === "stabilizing")) {
+          if (err.code === "stabilizing") setPanelStatus("#scanStatus", "検出を安定化中… 的を固定してください");
+          return;
+        }
         setPanelStatus("#scanStatus", err && err.message ? err.message : "検出を続けています…");
       },
     });
