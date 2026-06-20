@@ -86,6 +86,9 @@ function aggregateSessionStats(arrows){
   const hitCount=all.filter(a=>(a.s||0)>0).length;
   return {total,xCount,tenCount,hitCount,avg:all.length?total/all.length:0,count:all.length};
 }
+function sessionArrows(sess){
+  return [...((sess&&sess.ends)||[]).flat(), ...((sess&&sess.cur)||[])];
+}
 function scoreLabel(a){ return a.s===0?"M":(a.X?"X":String(a.s)); }
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 function median(vals){

@@ -399,6 +399,7 @@ function openSettings(){
       <button class="btn sec" id="dImp">⬆ 読み込み</button>
     </div>
     <div class="btnrow"><button class="btn sec" id="dCsv">CSV出力</button></div>
+    <div class="btnrow"><button class="btn sec" id="dAiPrep">AIオフライン準備（OCR・射形）</button></div>
     <input type="file" id="dFile" accept=".json" style="display:none">
     <h3 style="margin-top:18px;font-size:14px">自動バックアップ</h3>
     ${snaps.length?`<label class="f">復元候補</label><select class="inp" id="dSnapSel">${snaps.map((s,i)=>`<option value="${i}">${esc(snapshotLabel(s))}</option>`).join("")}</select>`:`<div class="empty">自動バックアップはまだありません。保存操作を行うと端末内に復元用バックアップが残ります。</div>`}
@@ -426,6 +427,18 @@ function openSettings(){
     shareOrDownloadText(`matonote-${today()}.json`,JSON.stringify(db,null,1),"application/json","的ノート Backup");
   };
   ovl.querySelector("#dCsv").onclick=()=>exportSessionsCsv();
+  const aiBtn=ovl.querySelector("#dAiPrep");
+  if(aiBtn) aiBtn.onclick=async()=>{
+    aiBtn.disabled=true; aiBtn.textContent="準備中…";
+    try{
+      await prepareOfflineAI((pct)=>{ aiBtn.textContent=`準備中… ${pct}%`; });
+      toast("AIモジュールのオフライン準備が完了しました");
+    }catch(e){
+      toast(e&&e.message?e.message:"準備に失敗しました");
+    }
+    aiBtn.disabled=false; aiBtn.textContent="AIオフライン準備（OCR・射形）";
+    ovl.remove(); openSettings();
+  };
   ovl.querySelector("#dSnapNow").onclick=()=>{ writeSafetySnapshot("manual",true); toast("現在のデータをバックアップしました"); ovl.remove(); openSettings(); };
   ovl.querySelector("#dSnapRestore").onclick=()=>{
     const sel=ovl.querySelector("#dSnapSel");

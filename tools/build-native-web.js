@@ -3,25 +3,14 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const outDir = path.join(root, "dist", "native");
-const appScripts = [
-  "scripts/00-compat.js",
-  "scripts/10-storage-native.js",
-  "scripts/20-scoring.js",
-  "scripts/30-target-svg.js",
-  "scripts/40-analysis-physics.js",
-  "scripts/50-record-view.js",
-  "scripts/60-history-sight-view.js",
-  "scripts/70-gear-settings.js",
-  "scripts/90-init.js",
-];
+const manifest = JSON.parse(fs.readFileSync(path.join(root, "app-scripts.json"), "utf8"));
 const files = [
   "index.html",
   "style.css",
-  ...appScripts,
-  "manifest.json",
+  "app-scripts.json",
+  ...manifest.scripts,
+  ...manifest.staticAssets,
   "sw.js",
-  "icon.svg",
-  "apple-touch-icon.png",
   "version.json",
 ];
 
@@ -60,13 +49,14 @@ function main() {
   fs.writeFileSync(
     path.join(outDir, "native-readiness.json"),
     JSON.stringify({
-      app: "Archery Note",
+      app: "的ノート",
       version,
       generatedAt: new Date().toISOString(),
       runtime: "capacitor-web-assets",
+      scripts: manifest.scripts.length,
       notes: [
         "Web assets are isolated for Capacitor webDir.",
-        "Native storage and platform plugins can be added without changing scoring data shape.",
+        "AI modules (vision, OCR, form) ship with offline model asset.",
         "The PWA remains the fastest preview and fallback channel.",
       ],
     }, null, 2) + "\n"

@@ -1,0 +1,50 @@
+"use strict";
+/* 的ノート: tab routing and main render shell */
+
+let view = "home";
+let ui = {
+  selArrow: -1,
+  sightSel: { setupId: null, dist: 70 },
+  histOpen: null,
+  histFilter: { setupId: "", dist: "", round: "" },
+  statsFilter: null,
+  zoom: 1,
+  recordMode: "practice",
+  freshArrow: -1,
+  freshTimer: 0,
+  inputMode: "grid",
+  scanBound: false,
+  scanResult: null,
+  gridCell: -1,
+  ocrBound: false,
+  formBound: false,
+};
+
+function showView(v) {
+  if (db.active && v === "home") v = "record";
+  if (view === v) return;
+  view = v;
+  ui.selArrow = -1;
+  nativePulse("light");
+  render();
+}
+document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => showView(b.dataset.v)));
+
+function render() {
+  updateAppChrome();
+  if (typeof syncUpdateBarVisibility === "function") syncUpdateBarVisibility();
+  const tabs = Array.prototype.slice.call(document.querySelectorAll("#tabs button"));
+  const effectiveView = db.active ? "record" : view;
+  const activeIndex = Math.max(0, tabs.findIndex((b) => b.dataset.v === effectiveView));
+  const tabBar = $("#tabs");
+  if (tabBar) tabBar.style.setProperty("--active-tab", activeIndex);
+  tabs.forEach((b) => b.classList.toggle("on", b.dataset.v === effectiveView));
+  if (db.active) tabs.forEach((b) => b.classList.toggle("live", b.dataset.v === "record"));
+  const m = $("#main");
+  if (effectiveView === "record") {
+    if (db.active) renderActive(m);
+    else renderRecordIdle(m);
+  } else if (effectiveView === "history") renderHistory(m);
+  else if (effectiveView === "stats") renderStats(m);
+  else renderHome(m);
+}

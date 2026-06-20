@@ -1,0 +1,37 @@
+{
+  "scripts": [
+    "scripts/00-compat.js",
+    "scripts/05-app-core.js",
+    "scripts/10-storage-native.js",
+    "scripts/20-scoring.js",
+    "scripts/30-target-svg.js",
+    "scripts/35-photo-vision.js",
+    "scripts/36-score-ocr.js",
+    "scripts/37-form-coach.js",
+    "scripts/40-analysis-physics.js",
+    "scripts/46-decision-engine.js",
+    "scripts/45-stats-engine.js",
+    "scripts/47-view-router.js",
+    "scripts/51-record-setup.js",
+    "scripts/48-home-view.js",
+    "scripts/53-page-heroes.js",
+    "scripts/52-input-modes.js",
+    "scripts/50-record-view.js",
+    "scripts/55-stats-view.js",
+    "scripts/60-history-sight-view.js",
+    "scripts/70-gear-settings.js",
+    "scripts/90-init.js"
+  ],
+  "staticAssets": [
+    "index.html",
+    "style.css",
+    "manifest.json",
+    "icon.svg",
+    "apple-touch-icon.png",
+    "pose_landmarker_lite.task"
+  ],
+  "offlineUrls": [
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/vision_bundle.mjs",
+    "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"
+  ]
+}

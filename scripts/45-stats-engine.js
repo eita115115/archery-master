@@ -210,6 +210,68 @@ function barChartSvg(bars, opts) {
   </svg>`;
 }
 
+function buildMovingAverageSeries(sessions, filter, windowSize) {
+  const rows = filterSessionsByStatsFilter(sessions, filter).map(sessionSummaryRow).reverse();
+  const totals = rows.map((r) => r.total);
+  const ma = movingAverage(totals, windowSize || 3);
+  return rows.map((r, i) => ({ label: r.date, value: r.total, ma: ma[i] }));
+}
+
+function buildBowTypeBarData(sessions, filter) {
+  const rows = filterSessionsByStatsFilter(sessions, filter).map(sessionSummaryRow);
+  const by = {};
+  rows.forEach((r) => {
+    const key = r.bowType || "unknown";
+    if (!by[key]) by[key] = { bowType: key, totals: [], count: 0 };
+    by[key].totals.push(r.total);
+    by[key].count += 1;
+  });
+  return Object.values(by).map((g) => ({
+    label: bowTypeLabel(g.bowType),
+    value: g.totals.reduce((a, x) => a + x, 0) / g.totals.length,
+    sessions: g.count,
+    color: "var(--mint)",
+  })).sort((a, b) => b.value - a.value);
+}
+
+function buildPeriodComparison(sessions) {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  const iso = (dt) => `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  const thisStart = iso(new Date(now.getFullYear(), now.getMonth(), 1));
+  const lastStart = iso(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+  const lastEnd = iso(new Date(now.getFullYear(), now.getMonth(), 0));
+  const cur = sessions.filter((s) => (s.date || "") >= thisStart);
+  const prev = sessions.filter((s) => (s.date || "") >= lastStart && (s.date || "") <= lastEnd);
+  const curAvg = cur.length ? cur.map(sessionSummaryRow).reduce((a, r) => a + r.total, 0) / cur.length : 0;
+  const prevAvg = prev.length ? prev.map(sessionSummaryRow).reduce((a, r) => a + r.total, 0) / prev.length : 0;
+  const delta = curAvg - prevAvg;
+  return { cur: { sessions: cur.length, avg: curAvg }, prev: { sessions: prev.length, avg: prevAvg }, delta };
+}
+
+function dualLineChartSvg(series, opts) {
+  opts = opts || {};
+  const primary = (series || []).map((p) => ({ label: p.label, value: p.value }));
+  const secondary = (series || []).filter((p) => p.ma != null).map((p) => ({ label: p.label, value: p.ma }));
+  if (!secondary.length) return lineChartSvg(primary, opts);
+  const W = opts.width || 320;
+  const H = opts.height || 150;
+  const base = lineChartSvg(primary, { ...opts, height: H });
+  const values = [...primary, ...secondary].map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const pad = { l: 34, r: 10, t: 12, b: 28 };
+  const innerW = W - pad.l - pad.r;
+  const innerH = H - pad.t - pad.b;
+  const span = (max - min) || 1;
+  const maPath = secondary.map((p, i) => {
+    const x = pad.l + (secondary.length === 1 ? innerW / 2 : (i / (secondary.length - 1)) * innerW);
+    const y = pad.t + innerH - ((p.value - min) / span) * innerH;
+    return `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join("");
+  return base.replace("</svg>", `<path d="${maPath}" fill="none" stroke="var(--teal)" stroke-width="2" stroke-dasharray="5 4" opacity=".85"/><text x="${W - 8}" y="14" text-anchor="end" font-size="9" fill="var(--teal)">移動平均</text></svg>`);
+}
+
 function scoreHistogramHtml(hist) {
   const max = Math.max(...hist.keys.map((k) => hist.cnt[k]), 1);
   return hist.keys.filter((k) => hist.cnt[k] > 0 || ["X", "10", "9", "8", "7", "M"].includes(k)).map((k) => {
@@ -236,5 +298,9 @@ if (typeof window !== "undefined") {
     barChartSvg,
     scoreHistogramHtml,
     sessionSummaryRow,
+    buildMovingAverageSeries,
+    buildBowTypeBarData,
+    buildPeriodComparison,
+    dualLineChartSvg,
   };
 }

@@ -4,7 +4,7 @@
 const KEY="archeryNote.v1";
 const SNAP_KEY="archeryNote.snapshots.v1";
 const SCHEMA_VER=3;
-const APP_VER=58;
+const APP_VER=59;
 const TRASH_LIMIT=50;
 const STORAGE_ADAPTER_VER="storage-adapter v32";
 const ENGINE_VER="RK4-3D JS core v32";
@@ -28,7 +28,7 @@ function envLabel(id){
   const row=ENV_TYPES.find(x=>x.id===id);
   return row?row.label:id||"—";
 }
-function blankDb(){ return {schema:SCHEMA_VER,setups:[],sightMarks:[],sessions:[],trash:[],settings:{eyeSight:850,theme:"auto",lastBackupAt:null,activeGuideSeen:false,defaultBowType:"recurve",defaultDistance:70,lastSelectedDistance:70,defaultEnvironment:"outdoor"},active:null}; }
+function blankDb(){ return {schema:SCHEMA_VER,setups:[],sightMarks:[],sessions:[],trash:[],settings:{eyeSight:850,theme:"auto",lastBackupAt:null,activeGuideSeen:false,defaultBowType:"recurve",defaultDistance:70,lastSelectedDistance:70,defaultEnvironment:"outdoor",aiOfflinePreparedAt:null},active:null}; }
 function normalizeDb(d){
   const base=blankDb(), src=(d&&typeof d==="object")?d:{};
   const out=Object.assign(base,src);
@@ -175,6 +175,7 @@ function nativeReadinessHtml(){
       <div class="nativePill"><div class="k">配布</div><b>${pct(p.shellScore)}</b><span>${NATIVE_CHANNEL}</span></div>
     </div>
     <div class="note">次に整える材料: ${p.next.map(esc).join("・")}</div>
+    ${typeof cameraCapabilityProfile==="function"?`<div class="note">カメラ: ${esc(cameraCapabilityProfile().label)} / AIオフライン: ${db.settings.aiOfflinePreparedAt?fmtD(db.settings.aiOfflinePreparedAt.slice(0,10))+" 準備済":"未準備"}</div>`:""}
     </div>
   </details>`;
 }

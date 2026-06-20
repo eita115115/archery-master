@@ -5,22 +5,8 @@ const root = path.resolve(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const cssPath = path.join(root, "style.css");
 const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, "utf8") : "";
-const appScripts = [
-  "scripts/00-compat.js",
-  "scripts/10-storage-native.js",
-  "scripts/20-scoring.js",
-  "scripts/30-target-svg.js",
-  "scripts/35-photo-vision.js",
-  "scripts/36-score-ocr.js",
-  "scripts/37-form-coach.js",
-  "scripts/40-analysis-physics.js",
-  "scripts/45-stats-engine.js",
-  "scripts/50-record-view.js",
-  "scripts/55-stats-view.js",
-  "scripts/60-history-sight-view.js",
-  "scripts/70-gear-settings.js",
-  "scripts/90-init.js",
-];
+const appManifest = JSON.parse(fs.readFileSync(path.join(root, "app-scripts.json"), "utf8"));
+const appScripts = appManifest.scripts;
 const appJs = appScripts.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
 const surface = `${html}\n${css}\n${appJs}`;
 const inlineScripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
@@ -50,8 +36,10 @@ assert(html.includes('name="description"') && html.includes('property="og:descri
 assert(/maximum-scale\s*=\s*1/.test(html) && /user-scalable\s*=\s*no/.test(html), "Viewport must suppress accidental zoom during scoring");
 assert(css.includes("touch-action:manipulation") && css.includes("--chrome-bg") && css.includes("min-height:48px"), "Native-feel touch/chrome styling missing");
 assert(surface.includes("@keyframes appRise") && !surface.includes("primaryPulse") && surface.includes("scorePop") && surface.includes("markPop") && surface.includes("impactFlash") && surface.includes("shotNew") && surface.includes("freshArrow") && surface.includes("prefers-reduced-motion") && surface.includes("ic-record") && surface.includes("ic-home") && html.includes('data-v="home"'), "Minimal recording feedback, tab icons, and reduced-motion guard missing");
-assert(surface.includes("renderHome") && surface.includes("homeDashboardHtml") && surface.includes("bindGridInput") && surface.includes("scoreGridHtml") && surface.includes("aggregateSessionStats") && surface.includes("renderStats") && surface.includes("openToolSheet") && surface.includes("visionHitsToArrows") && surface.includes("bindLiveScanMode") && surface.includes("bindVideoScanMode") && surface.includes("bindOcrScanMode") && surface.includes("window.ArcherVision") && surface.includes("window.ArcherOCR") && surface.includes("window.ArcherForm") && surface.includes("window.ArcherStats"), "Unified home/grid/stats/AI/tool-sheet layer missing");
-assert(surface.includes("BOW_TYPES") && surface.includes("lastSelectedDistance") && surface.includes("scoreGridReadOnlyHtml") && surface.includes("renderFormCoachPanel") && surface.includes("formContextForSession"), "MVP metadata, history grid, and form integration missing");
+assert(surface.includes("renderHome") && surface.includes("homeDashboardHtml") && surface.includes("bindActiveInputMode") && surface.includes("stopAllInputModes") && surface.includes("scoreGridHtml") && surface.includes("aggregateSessionStats") && surface.includes("renderStats") && surface.includes("openToolSheet") && surface.includes("visionHitsToArrows") && surface.includes("window.ArcherVision") && surface.includes("window.ArcherOCR") && surface.includes("window.ArcherForm") && surface.includes("window.ArcherStats") && surface.includes("window.ArcherCore") && surface.includes("window.ArcherDecision"), "Unified modular app layers missing");
+assert(surface.includes("BOW_TYPES") && surface.includes("lastSelectedDistance") && surface.includes("scoreGridReadOnlyHtml") && surface.includes("renderFormCoachPanel") && surface.includes("formContextForSession") && surface.includes("nextShotBriefHtml") && surface.includes("dualLineChartSvg") && surface.includes("prepareOfflineAI"), "Metadata, stats advanced, decision, and offline prep missing");
+assert(fs.existsSync(path.join(root, "app-scripts.json")), "app-scripts.json manifest missing");
+assert(appManifest.staticAssets.every((f) => fs.existsSync(path.join(root, f.split("/").pop() === f ? f : f)) || fs.existsSync(path.join(root, f))), "static asset missing from manifest");
 assert(/data-v=["']stats["']/.test(html), "index.html missing stats tab");
 assert(fs.existsSync(path.join(root, "pose_landmarker_lite.task")), "pose_landmarker_lite.task missing");
 assert(html.includes("的ノート") && !html.includes("Archery Note"), "Matonote branding missing");
@@ -69,12 +57,12 @@ assert(surface.includes("createSVGPoint()"), "SVG coordinate fallback missing");
 assert(surface.includes("Array.prototype.flat") && surface.includes("Object.values") && surface.includes("Math.hypot"), "Compatibility polyfills missing");
 const sw = fs.readFileSync(path.join(root, "sw.js"), "utf8");
 new Function(sw);
-assert(sw.includes('e.request.mode === "navigate"') && sw.includes('caches.match("./index.html")') && sw.includes("./style.css") && appScripts.every(file => sw.includes(`./${file}`)), "Service worker navigation fallback missing");
+assert(sw.includes("app-scripts.json") && sw.includes("buildAssetList") && sw.includes('e.request.mode === "navigate"') && sw.includes('caches.match("./index.html")') && sw.includes("./style.css"), "Service worker manifest-driven cache missing");
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const packageLock = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8"));
 const cap = JSON.parse(fs.readFileSync(path.join(root, "capacitor.config.json"), "utf8"));
-const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
-assert(manifest.description && manifest.description.includes("サイト調整"), "Manifest description missing");
+const webManifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
+assert(webManifest.description && webManifest.description.includes("サイト調整"), "Manifest description missing");
 assert(pkg.version === `0.${version}.0` && packageLock.version === pkg.version && packageLock.packages[""].version === pkg.version, "Package version mismatch");
 assert(pkg.scripts["build:native-web"] && pkg.scripts["native:sync"], "Native build scripts missing");
 assert(pkg.scripts["version:bump"], "Version bump script missing");

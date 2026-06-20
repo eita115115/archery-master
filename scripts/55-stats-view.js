@@ -13,7 +13,10 @@ function renderStats(m) {
   const overview = statsOverview(all, sf);
   const dists = [...new Set(all.map((s) => s.dist).filter(Boolean))].sort((a, b) => b - a);
   const timeSeries = filterSessionsByStatsFilter(all, sf).map(sessionSummaryRow).reverse();
-  const lineData = timeSeries.map((r) => ({ label: r.date, value: r.total }));
+  const maSeries = buildMovingAverageSeries(all, sf, 3);
+  const lineData = maSeries.map((r) => ({ label: r.date, value: r.total, ma: r.ma }));
+  const bowBars = buildBowTypeBarData(all, sf);
+  const periodCmp = buildPeriodComparison(all);
   const barData = buildDistanceBarData(all, sf).map((b) => ({
     label: b.label,
     value: b.avgTotal,
@@ -50,10 +53,19 @@ function renderStats(m) {
       ${heroMetricHtml("X率", overview.arrows ? `${Math.round(overview.xRate * 100)}%` : "—", `Hits ${overview.arrows ? Math.round(overview.hitRate * 100) : 0}%`)}
     </div>
   </section>
-  <section class="card chartCard">
-    <h2>スコア推移 <span class="mini">${filtered.length}回</span></h2>
-    <div class="chartWrap">${lineChartSvg(lineData, { title: "スコア推移", color: "var(--green)" })}</div>
+  <section class="card statsCompare">
+    <h2>今月 vs 先月</h2>
+    <div class="heroMetrics">
+      ${heroMetricHtml("今月", periodCmp.cur.sessions ? periodCmp.cur.avg.toFixed(1) : "—", `${periodCmp.cur.sessions}回`)}
+      ${heroMetricHtml("先月", periodCmp.prev.sessions ? periodCmp.prev.avg.toFixed(1) : "—", `${periodCmp.prev.sessions}回`)}
+      ${heroMetricHtml("差分", periodCmp.cur.sessions && periodCmp.prev.sessions ? `${periodCmp.delta >= 0 ? "+" : ""}${periodCmp.delta.toFixed(1)}` : "—", "セッション平均")}
+    </div>
   </section>
+  <section class="card chartCard">
+    <h2>スコア推移 <span class="mini">${filtered.length}回 · 3回移動平均</span></h2>
+    <div class="chartWrap">${dualLineChartSvg(lineData, { title: "スコア推移", color: "var(--green)" })}</div>
+  </section>
+  ${bowBars.length ? `<section class="card chartCard"><h2>弓種別平均</h2><div class="chartWrap">${barChartSvg(bowBars, { title: "弓種別" })}</div></section>` : ""}
   <section class="card chartCard">
     <h2>距離別平均 <span class="mini">セッション合計点</span></h2>
     <div class="chartWrap">${barChartSvg(barData, { title: "距離別平均" })}</div>

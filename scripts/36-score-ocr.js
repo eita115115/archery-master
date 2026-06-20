@@ -1,24 +1,7 @@
 "use strict";
-/* 的ノート: paper score sheet OCR (Phase 4) */
+/* 的ノート: paper score sheet OCR with grid preprocessing */
 
-const OCR_SCORE_TOKENS = new Set(["X", "x", "10", "9", "8", "7", "6", "5", "4", "3", "2", "1", "M", "m"]);
 const TESSERACT_CDN = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
-
-function loadScriptOnce(src) {
-  return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[data-src="${src}"]`)) {
-      resolve();
-      return;
-    }
-    const s = document.createElement("script");
-    s.src = src;
-    s.async = true;
-    s.dataset.src = src;
-    s.onload = () => resolve();
-    s.onerror = () => reject(new Error("OCRライブラリを読み込めませんでした"));
-    document.head.appendChild(s);
-  });
-}
 
 async function ensureTesseract() {
   if (window.Tesseract) return window.Tesseract;
@@ -42,10 +25,8 @@ function normalizeOcrToken(raw) {
 function parseOcrLines(text) {
   const ends = [];
   let current = [];
-  const lines = String(text || "").split(/\r?\n/);
-  lines.forEach((line) => {
-    const tokens = line.split(/[\s,|/・]+/).map(normalizeOcrToken).filter(Boolean);
-    tokens.forEach((tok) => {
+  String(text || "").split(/\r?\n/).forEach((line) => {
+    line.split(/[\s,|/・]+/).map(normalizeOcrToken).filter(Boolean).forEach((tok) => {
       current.push(tok);
       if (current.length >= 6) {
         ends.push(current.slice(0, 6));
@@ -58,48 +39,121 @@ function parseOcrLines(text) {
 }
 
 function ocrEndsToArrows(ends, s) {
-  const shaft = lineCutRadius(s.faceD, s.faceType);
-  const room = Math.max(0, (s.perEnd || 6) - (s.cur || []).length);
-  const flat = ends.flat().slice(0, room);
-  return flat.map((tok) => arrowFromGridValue(tok));
+  const room = roomInCurrentEnd(s);
+  return ends.flat().slice(0, room).map((tok) => arrowFromGridValue(tok));
 }
 
-async function loadOcrImage(source) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error("画像を読み込めませんでした"));
-    img.src = source;
+function imageToCanvas(img, maxEdge) {
+  const scale = Math.min(1, (maxEdge || 1100) / Math.max(img.naturalWidth, img.naturalHeight));
+  const width = Math.max(1, Math.round(img.naturalWidth * scale));
+  const height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, width, height);
+  return { canvas, ctx, width, height };
+}
+
+function estimateGridLayout(width, height, cols) {
+  const c = cols || 6;
+  const headerH = Math.round(height * 0.1);
+  const bodyH = height - headerH;
+  const cellW = width / c;
+  const cellH = Math.max(18, cellW * 0.82);
+  const rows = Math.min(12, Math.max(1, Math.floor(bodyH / cellH)));
+  return { cols: c, rows, headerH, cellW, cellH };
+}
+
+function cropCell(ctx, width, layout, row, col) {
+  const x = Math.round(col * layout.cellW);
+  const y = Math.round(layout.headerH + row * layout.cellH);
+  const w = Math.round(layout.cellW);
+  const h = Math.round(layout.cellH);
+  const data = ctx.getImageData(Math.max(0, x), Math.max(0, y), Math.min(w, width - x), Math.min(h, width));
+  const cell = document.createElement("canvas");
+  cell.width = data.width;
+  cell.height = data.height;
+  cell.getContext("2d").putImageData(data, 0, 0);
+  return cell;
+}
+
+async function recognizeGridCells(source, Tesseract, onProgress) {
+  const img = await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("画像を読み込めませんでした"));
+    image.src = source;
   });
+  const { canvas, ctx, width, height } = imageToCanvas(img, 1100);
+  const layout = estimateGridLayout(width, height, 6);
+  const ends = [];
+  let current = [];
+  const total = layout.rows * layout.cols;
+  let idx = 0;
+  for (let r = 0; r < layout.rows; r += 1) {
+    for (let c = 0; c < layout.cols; c += 1) {
+      idx += 1;
+      if (onProgress) onProgress(10 + Math.round((idx / total) * 75));
+      const cell = cropCell(ctx, width, layout, r, c);
+      try {
+        const res = await Tesseract.recognize(cell, "eng", { tessedit_char_whitelist: "XxMm0123456789" });
+        const tok = normalizeOcrToken((res.data.text || "").replace(/\s/g, ""));
+        if (tok) {
+          current.push(tok);
+          if (current.length >= 6) {
+            ends.push(current.slice(0, 6));
+            current = [];
+          }
+        }
+      } catch (_) { /* skip cell */ }
+    }
+  }
+  if (current.length) ends.push(current);
+  return { ends, layout, canvas };
 }
 
-async function recognizeScoreSheet(source, options = {}) {
+async function recognizeScoreSheet(source, options) {
+  options = options || {};
   const onProgress = options.onProgress || (() => {});
-  onProgress(5);
+  onProgress(3);
   const Tesseract = await ensureTesseract();
-  onProgress(15);
-  const result = await Tesseract.recognize(source, "eng", {
-    logger: (m) => {
-      if (m.status === "recognizing text" && m.progress != null) {
-        onProgress(15 + Math.round(m.progress * 70));
-      }
-    },
-  });
-  onProgress(90);
-  const text = result && result.data && result.data.text ? result.data.text : "";
-  const ends = parseOcrLines(text);
-  const confidence = Math.round(Math.min(92, Math.max(25, (result.data.confidence || 40) * 0.85 + Math.min(ends.length * 8, 24))));
+  onProgress(8);
+  let ends = [];
+  let method = "grid";
+  let rawText = "";
+  try {
+    const grid = await recognizeGridCells(source, Tesseract, onProgress);
+    ends = grid.ends;
+    rawText = `grid:${ends.length}ends`;
+  } catch (_) {
+    method = "full";
+  }
+  if (!ends.length) {
+    onProgress(88);
+    const result = await Tesseract.recognize(source, "eng", {
+      logger: (m) => {
+        if (m.status === "recognizing text" && m.progress != null) {
+          onProgress(15 + Math.round(m.progress * 70));
+        }
+      },
+    });
+    rawText = result.data.text || "";
+    ends = parseOcrLines(rawText);
+    method = "tesseract-full";
+  }
+  const confidence = Math.round(Math.min(94, Math.max(28, Math.min(ends.length * 10, 40) + (ends.flat().length * 2) + (method === "grid" ? 18 : 8))));
   onProgress(100);
   if (!ends.length) {
     const error = new Error("スコア表から得点を読み取れませんでした");
     error.code = "no-scores";
-    error.rawText = text;
+    error.rawText = rawText;
     throw error;
   }
-  return { ends, confidence, rawText: text };
+  return { ends, confidence, rawText, method };
 }
 
-async function recognizeScoreSheetFile(file, options = {}) {
+async function recognizeScoreSheetFile(file, options) {
   const url = URL.createObjectURL(file);
   try {
     return await recognizeScoreSheet(url, options);
@@ -115,5 +169,6 @@ if (typeof window !== "undefined") {
     parseOcrLines,
     ocrEndsToArrows,
     normalizeOcrToken,
+    estimateGridLayout,
   };
 }
