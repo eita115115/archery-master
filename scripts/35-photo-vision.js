@@ -25,12 +25,12 @@ const DETECTOR_DEFAULTS = Object.freeze({
   darkExcess: 42,
   minimumAngularScore: 600,
   medianScoreMultiplier: 1.65,
-  minimumAngleSeparation: 15,
+  minimumAngleSeparation: 12,
   minimumRunLength: 2,
   minimumLongestRun: 0,
   impactOffsetPx: 0,
   impactRefineRadiusPx: 4,
-  impactRefineDarkness: 200,
+  impactRefineDarkness: 185,
   maximumCandidates: 14,
 });
 

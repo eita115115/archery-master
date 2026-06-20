@@ -27,6 +27,16 @@ __exports.scoreImpact = scoreImpact;
 
 const { analyzeImageData, DETECTOR_DEFAULTS, scoreImpact } = sandbox.__exports;
 
+function mulberry32(seed) {
+  let t = seed >>> 0;
+  return () => {
+    t += 0x6d2b79f5;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 function ringRgb(normalizedRadius) {
   if (normalizedRadius < 0.1) return [255, 220, 40];
   if (normalizedRadius < 0.2) return [210, 40, 40];
@@ -44,7 +54,9 @@ function makeSyntheticTarget(size, spec) {
     lighting = 1,
     noise = 0,
     warmth = 0,
+    seed = 42,
   } = spec;
+  const rand = mulberry32(seed);
   const data = new Uint8ClampedArray(size * size * 4);
   const paint = (x, y, rgb) => {
     const i = (y * size + x) * 4;
@@ -60,7 +72,7 @@ function makeSyntheticTarget(size, spec) {
       let rgb = ringRgb(r);
       rgb = rgb.map((c) => Math.max(0, Math.min(255, Math.round(c * lighting + warmth * 18))));
       if (noise) {
-        const n = (Math.random() - 0.5) * noise;
+        const n = (rand() - 0.5) * noise;
         rgb = rgb.map((c) => Math.max(0, Math.min(255, c + n)));
       }
       paint(x, y, rgb);
@@ -103,6 +115,7 @@ const SCENARIOS = [
       ],
       lighting: 1,
       noise: 6,
+      seed: 101,
     },
   },
   {
@@ -113,6 +126,7 @@ const SCENARIOS = [
       lighting: 0.62,
       noise: 14,
       warmth: 0.4,
+      seed: 202,
       arrows: [
         { angleDeg: 30, normR: 0.1, score: 10 },
         { angleDeg: 140, normR: 0.2, score: 9 },
@@ -136,6 +150,7 @@ const SCENARIOS = [
       ],
       lighting: 0.9,
       noise: 10,
+      seed: 303,
     },
   },
   {
@@ -152,6 +167,7 @@ const SCENARIOS = [
       ],
       lighting: 1.05,
       noise: 8,
+      seed: 404,
     },
   },
 ];
@@ -252,10 +268,21 @@ function gridSearch() {
     }
   }
   walk(0, {});
+  function betterCandidate(next, prev, nextConfig, prevConfig) {
+    if (next.score > prev.score + 1e-9) return true;
+    if (Math.abs(next.score - prev.score) > 1e-9) return false;
+    if (next.fails < prev.fails) return true;
+    if (next.fails > prev.fails) return false;
+    if ((nextConfig.minimumRunLength || 2) < (prevConfig.minimumRunLength || 2)) return true;
+    if ((nextConfig.minimumRunLength || 2) > (prevConfig.minimumRunLength || 2)) return false;
+    if ((nextConfig.minimumAngleSeparation || 12) < (prevConfig.minimumAngleSeparation || 12)) return true;
+    if ((nextConfig.minimumAngleSeparation || 12) > (prevConfig.minimumAngleSeparation || 12)) return false;
+    return JSON.stringify(nextConfig) < JSON.stringify(prevConfig);
+  }
   for (const combo of combos) {
     const merged = { ...base, ...combo };
     const result = evaluateConfig(merged);
-    if (result.score > best.score || (result.score === best.score && result.fails < best.fails)) {
+    if (betterCandidate(result, best, merged, best.config)) {
       best = { ...result, config: merged };
     }
   }
