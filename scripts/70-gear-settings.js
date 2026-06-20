@@ -361,10 +361,10 @@ function openToolSheet(kind){
   document.body.appendChild(ovl);
   const main=$("#toolSheetMain");
   if(kind==="form"){
-    main.innerHTML=`<section class="card"><h2>射形コーチ</h2>
-      <p>カメラで射形をリアルタイム分析する別アプリです。記録と併用すると効果的です。</p>
-      <div class="btnrow"><a class="btn startPrimary" href="https://eita115115.github.io/archery-form-pwa/" target="_blank" rel="noopener">射形コーチを開く</a></div>
-    </section>`;
+    if(typeof renderFormCoachPanel==="function") renderFormCoachPanel(main);
+    else main.innerHTML=`<section class="card"><h2>射形コーチ</h2><div class="empty">射形モジュールを読み込めませんでした</div></section>`;
+    ovl.querySelector("#toolClose").onclick=()=>{ if(typeof stopFormCoach==="function") stopFormCoach(); ovl.remove(); render(); };
+    return;
   }else if(kind==="sight") renderSight(main);
   else renderGear(main);
   ovl.querySelector("#toolClose").onclick=()=>{ ovl.remove(); render(); };

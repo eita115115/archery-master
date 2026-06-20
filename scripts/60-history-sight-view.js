@@ -187,6 +187,7 @@ function openHistDetail(id){
       <div class="stat"><b>${st.hitCount}</b><span>Hits</span></div>`; })()}
     </div>
     <div class="readOnlyGrid">${scoreGridReadOnlyHtml(sess)}</div>
+    ${(sess.formAnalyses&&sess.formAnalyses.length)?`<div class="advice" style="background:var(--card);border-color:var(--line)"><div class="note"><b>射形分析</b> — 最新 ${sess.formAnalyses[sess.formAnalyses.length-1].score}点 / ${sess.formAnalyses.length}回記録</div></div>`:""}
     <div id="hPlot" style="margin-top:10px"></div>
     ${groupSummaryHtml(st)}
     ${trustHtml(sess,setup,st)}

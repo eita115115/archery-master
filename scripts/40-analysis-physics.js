@@ -443,7 +443,11 @@ function judgementFor(adv,sess){
   if(!hasMove) return {label:"維持",tone:"ok",text:"サイトは触らず、この基準で本数を重ねて確認できます。"};
   if(adv.personal && adv.personal.state==="今回だけの可能性" && (adv.personal.stability||0)>.45) return {label:"保留",tone:"hold",text:"過去の同条件傾向と今回の中心が逆方向です。まず追加エンドで再現性を確認します。"};
   if(st.n<6 || (adv.confidence||0)<.45) return {label:"保留",tone:"hold",text:"まだ判断材料が少ないため、同じ狙いで1〜2エンド追加してから動かすのが安全です。"};
-  if(st.rr>w*2.8) return {label:"射形優先",tone:"warn",text:"中心は読めますが散りが大きめです。サイト調整は半分以下に抑え、リリース・押し手・照準の再現性を先に見ます。"};
+  if(st.rr>w*2.8){
+    const formCtx=typeof formContextForSession==="function"?formContextForSession(sess):null;
+    const formNote=formCtx&&formCtx.score<65?` 直近の射形分析は${formCtx.score}点（${formCtx.phase||"—"}）です。`:"";
+    return {label:"射形優先",tone:"warn",text:`中心は読めますが散りが大きめです。サイト調整は半分以下に抑え、リリース・押し手・照準の再現性を先に見ます。${formNote}`};
+  }
   if(isWindy(sess) && st.sx>st.sy*1.15) return {label:"風を考慮",tone:"hold",text:"横方向の偏りに風の影響が混ざりやすい状況です。無風または風待ちで再確認すると精度が上がります。"};
   if(adv.personal && adv.personal.state==="過去と一致" && (adv.confidence||0)>=.62) return {label:"動かす",tone:"ok",text:"今回の中心と過去の同条件傾向が一致しています。提案量を目安に動かす根拠があります。"};
   if((adv.confidence||0)>=.72 && st.rr<=w*2.2) return {label:"動かす",tone:"ok",text:"グルーピング中心と信頼度が揃っています。提案量を目安にサイトを動かす価値があります。"};

@@ -2,7 +2,7 @@
 /* 的ノート: record and active-session views */
 /* ============ views ============ */
 let view="home";
-let ui={ selArrow:-1, sightSel:{setupId:null, dist:70}, histOpen:null, histFilter:{setupId:"",dist:"",round:""}, zoom:1, recordMode:"practice", freshArrow:-1, freshTimer:0, inputMode:"grid", scanBound:false, scanResult:null, gridCell:-1 };
+let ui={ selArrow:-1, sightSel:{setupId:null, dist:70}, histOpen:null, histFilter:{setupId:"",dist:"",round:""}, statsFilter:null, zoom:1, recordMode:"practice", freshArrow:-1, freshTimer:0, inputMode:"grid", scanBound:false, scanResult:null, gridCell:-1, ocrBound:false, formBound:false };
 let scanSession=null;
 function showView(v){
   if(db.active && v==="home") v="record";
@@ -24,6 +24,7 @@ function render(){
   const m=$("#main");
   if(effectiveView==="record"){ if(db.active) renderActive(m); else renderRecordIdle(m); }
   else if(effectiveView==="history") renderHistory(m);
+  else if(effectiveView==="stats") renderStats(m);
   else renderHome(m);
 }
 
@@ -573,6 +574,7 @@ function renderActive(m){
         <button class="modeBtn ${ui.inputMode==="tap"?"on":""}" data-mode="tap" type="button">タップ</button>
         <button class="modeBtn ${ui.inputMode==="live"?"on":""}" data-mode="live" type="button">ライブ</button>
         <button class="modeBtn ${ui.inputMode==="video"?"on":""}" data-mode="video" type="button">動画</button>
+        <button class="modeBtn ${ui.inputMode==="ocr"?"on":""}" data-mode="ocr" type="button">OCR</button>
       </div>
       ${s._edit?`<div class="editMetaBar">
         <label class="f">距離</label><input class="inp sm" id="editDist" type="number" min="5" max="90" value="${s.dist}">
@@ -600,7 +602,13 @@ function renderActive(m){
       <div class="lens" id="lens"><svg id="lensSvg" width="122" height="122"><use href="#tgmain"/><g id="lensCross"></g></svg></div>
       <div class="lensTag" id="lensTag">微調整モード</div>
     </div>
-    <div class="targetHint" id="targetHint">${ui.inputMode==="grid"?"ボタンで次のセルに入力。セルタップで修正。":ui.inputMode==="live"?"カメラで的を映すと自動検出。取り込み後はタップで微調整。":ui.inputMode==="video"?"動画のフレームを解析して一括取り込み。タップは微調整用。":"タップで記録。矢チップで修正。"}</div>
+    <div class="ocrPanel ${ui.inputMode==="ocr"?"on":""}" id="ocrPanel">
+      <input type="file" id="ocrCapture" accept="image/*" capture="environment" hidden>
+      <div class="scanStatus" id="ocrStatus">紙のスコア表を撮影すると OCR で読み取ります</div>
+      <div class="scanActions" id="ocrActions"></div>
+      <img class="ocrPreview" id="ocrPreview" hidden alt="">
+    </div>
+    <div class="targetHint" id="targetHint">${ui.inputMode==="grid"?"ボタンで次のセルに入力。セルタップで修正。":ui.inputMode==="ocr"?"紙シートを撮影して一括取り込み。取り込み後はグリッドで修正。":ui.inputMode==="live"?"カメラで的を映すと自動検出。取り込み後はタップで微調整。":ui.inputMode==="video"?"動画のフレームを解析して一括取り込み。タップは微調整用。":"タップで記録。矢チップで修正。"}</div>
     ${activeGuideHtml()}
     <div class="scoreChips" id="curChips"></div>
     <div class="nudge" id="nudge">
@@ -630,6 +638,7 @@ function renderActive(m){
   });
   if(ui.inputMode==="live") bindLiveScanMode(s);
   else if(ui.inputMode==="video") bindVideoScanMode(s);
+  else if(ui.inputMode==="ocr") bindOcrScanMode(s);
   if(ui.inputMode==="grid") bindGridInput(s);
   if(s._edit){
     const editDist=$("#editDist"), editBow=$("#editBow"), editEnv=$("#editEnv");
@@ -977,6 +986,58 @@ async function bindLiveScanMode(s){
     updateScanStatus(err&&err.message?err.message:"カメラを起動できませんでした");
     toast(err&&err.message?err.message:"カメラを起動できませんでした");
   }
+}
+function bindOcrScanMode(s){
+  if(!window.ArcherOCR || ui.ocrBound) return;
+  ui.ocrBound=true;
+  const panel=$("#ocrPanel");
+  const input=$("#ocrCapture");
+  if(!panel || !input) return;
+  panel.classList.add("on");
+  const openPicker=()=>{
+    if(s.cur.length>=(s.perEnd||6)){ toast("このエンドは満杯です。確定してから次へ"); return; }
+    input.value=""; input.click();
+  };
+  renderScanActions([
+    {id:"ocrPickBtn",kind:"sec",label:"スコア表を撮影",onclick:openPicker},
+    {id:"ocrImportBtn",kind:"ghost",label:"結果を取り込む",onclick:()=>{
+      if(!ui.ocrResult){ toast("先に OCR を実行してください"); return; }
+      const hits=ocrEndsToArrows(ui.ocrResult.ends,s);
+      if(!hits.length){ toast("取り込める得点がありません"); return; }
+      hits.forEach(hit=>{ if(s.cur.length<(s.perEnd||6)) s.cur.push(hit); });
+      nativePulse("success"); save(); refreshActive();
+      toast(`${hits.length}本を取り込み（信頼度 ${ui.ocrResult.confidence}%）`);
+    }}
+  ]);
+  input.onchange=async e=>{
+    const file=e.target.files&&e.target.files[0];
+    if(!file) return;
+    const preview=$("#ocrPreview");
+    const status=$("#ocrStatus");
+    if(preview){ preview.hidden=false; preview.src=URL.createObjectURL(file); }
+    if(status) status.textContent="OCR 解析中… 0%";
+    toast("スコア表を読み取り中…");
+    try{
+      const result=await window.ArcherOCR.recognizeScoreSheetFile(file,{
+        onProgress(pct){ if(status) status.textContent=`OCR 解析中… ${pct}%`; }
+      });
+      ui.ocrResult=result;
+      const count=result.ends.flat().length;
+      if(status) status.textContent=`${count}本を検出（信頼度 ${result.confidence}%）`;
+      renderScanActions([
+        {id:"ocrPickBtn",kind:"sec",label:"別の写真",onclick:openPicker},
+        {id:"ocrImportBtn",kind:"sec",label:`${count}本を取り込む`,onclick:()=>{
+          const hits=ocrEndsToArrows(result.ends,s);
+          hits.forEach(hit=>{ if(s.cur.length<(s.perEnd||6)) s.cur.push(hit); });
+          nativePulse("success"); save(); refreshActive();
+          toast(`${hits.length}本を取り込み`);
+        }}
+      ]);
+    }catch(err){
+      if(status) status.textContent=err&&err.message?err.message:"OCR に失敗しました";
+      toast(err&&err.message?err.message:"OCR に失敗しました");
+    }
+  };
 }
 function bindVideoScanMode(s){
   if(!window.ArcherVision || ui.scanBound) return;

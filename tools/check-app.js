@@ -11,8 +11,12 @@ const appScripts = [
   "scripts/20-scoring.js",
   "scripts/30-target-svg.js",
   "scripts/35-photo-vision.js",
+  "scripts/36-score-ocr.js",
+  "scripts/37-form-coach.js",
   "scripts/40-analysis-physics.js",
+  "scripts/45-stats-engine.js",
   "scripts/50-record-view.js",
+  "scripts/55-stats-view.js",
   "scripts/60-history-sight-view.js",
   "scripts/70-gear-settings.js",
   "scripts/90-init.js",
@@ -46,8 +50,10 @@ assert(html.includes('name="description"') && html.includes('property="og:descri
 assert(/maximum-scale\s*=\s*1/.test(html) && /user-scalable\s*=\s*no/.test(html), "Viewport must suppress accidental zoom during scoring");
 assert(css.includes("touch-action:manipulation") && css.includes("--chrome-bg") && css.includes("min-height:48px"), "Native-feel touch/chrome styling missing");
 assert(surface.includes("@keyframes appRise") && !surface.includes("primaryPulse") && surface.includes("scorePop") && surface.includes("markPop") && surface.includes("impactFlash") && surface.includes("shotNew") && surface.includes("freshArrow") && surface.includes("prefers-reduced-motion") && surface.includes("ic-record") && surface.includes("ic-home") && html.includes('data-v="home"'), "Minimal recording feedback, tab icons, and reduced-motion guard missing");
-assert(surface.includes("renderHome") && surface.includes("homeDashboardHtml") && surface.includes("bindGridInput") && surface.includes("scoreGridHtml") && surface.includes("aggregateSessionStats") && surface.includes("openToolSheet") && surface.includes("visionHitsToArrows") && surface.includes("bindLiveScanMode") && surface.includes("bindVideoScanMode") && surface.includes("window.ArcherVision"), "Unified home/grid/scan/tool-sheet layer missing");
-assert(surface.includes("BOW_TYPES") && surface.includes("lastSelectedDistance") && surface.includes("scoreGridReadOnlyHtml"), "MVP bow type, distance memory, and history grid missing");
+assert(surface.includes("renderHome") && surface.includes("homeDashboardHtml") && surface.includes("bindGridInput") && surface.includes("scoreGridHtml") && surface.includes("aggregateSessionStats") && surface.includes("renderStats") && surface.includes("openToolSheet") && surface.includes("visionHitsToArrows") && surface.includes("bindLiveScanMode") && surface.includes("bindVideoScanMode") && surface.includes("bindOcrScanMode") && surface.includes("window.ArcherVision") && surface.includes("window.ArcherOCR") && surface.includes("window.ArcherForm") && surface.includes("window.ArcherStats"), "Unified home/grid/stats/AI/tool-sheet layer missing");
+assert(surface.includes("BOW_TYPES") && surface.includes("lastSelectedDistance") && surface.includes("scoreGridReadOnlyHtml") && surface.includes("renderFormCoachPanel") && surface.includes("formContextForSession"), "MVP metadata, history grid, and form integration missing");
+assert(/data-v=["']stats["']/.test(html), "index.html missing stats tab");
+assert(fs.existsSync(path.join(root, "pose_landmarker_lite.task")), "pose_landmarker_lite.task missing");
 assert(html.includes("的ノート") && !html.includes("Archery Note"), "Matonote branding missing");
 assert(surface.includes("--active-tab") && surface.includes("nav.tabs::before") && surface.includes('setProperty("--active-tab"'), "Smooth state-following tab motion missing");
 assert(!surface.includes("targetImpact") && !surface.includes("screenIn") && !surface.includes("triggerReleaseMotion") && !surface.includes("arrowFlight"), "Overdone transition/target animation should not return");
