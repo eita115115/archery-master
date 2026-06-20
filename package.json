@@ -1,0 +1,34 @@
+{
+  "name": "archery-master",
+  "version": "0.56.0",
+  "private": true,
+  "description": "Archery scoring, sight adjustment, and equipment notebook with a native-ready shell.",
+  "scripts": {
+    "check:app": "node tools/check-app.js",
+    "check:vision": "node tools/check-vision.js",
+    "check:integration": "node tools/check-integration.js",
+    "check:all": "node tools/check-app.js && node tools/check-vision.js && node tools/check-integration.js",
+    "check:ui": "node tools/check-ui.js",
+    "version:bump": "node tools/bump-version.js",
+    "build:native-web": "node tools/build-native-web.js",
+    "native:sync": "npm run build:native-web && npx cap sync",
+    "native:sync:android": "npm run build:native-web && npx cap sync android",
+    "native:open:android": "npm run native:sync:android && npx cap open android",
+    "native:build:android": "npm run native:sync:android && cd android && gradlew.bat assembleDebug",
+    "native:add:android": "npm run build:native-web && npx cap add android",
+    "native:add:ios": "npm run build:native-web && npx cap add ios"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
+    "@capacitor/ios": "^8.4.0"
+  },
+  "dependencies": {
+    "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/share": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2"
+  }
+}

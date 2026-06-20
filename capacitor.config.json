@@ -1,0 +1,19 @@
+{
+  "appId": "com.eita.archerynote",
+  "appName": "Archery Note",
+  "webDir": "dist/native",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "backgroundColor": "#1a5c3a"
+    },
+    "StatusBar": {
+      "style": "dark",
+      "backgroundColor": "#1a5c3a"
+    }
+  }
+}
