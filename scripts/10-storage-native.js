@@ -4,13 +4,31 @@
 const KEY="archeryNote.v1";
 const SNAP_KEY="archeryNote.snapshots.v1";
 const SCHEMA_VER=3;
-const APP_VER=56;
+const APP_VER=57;
 const TRASH_LIMIT=50;
 const STORAGE_ADAPTER_VER="storage-adapter v32";
 const ENGINE_VER="RK4-3D JS core v32";
 const NATIVE_CHANNEL="PWA + Capacitor-ready";
 let db = load();
-function blankDb(){ return {schema:SCHEMA_VER,setups:[],sightMarks:[],sessions:[],trash:[],settings:{eyeSight:850,theme:"auto",lastBackupAt:null,activeGuideSeen:false},active:null}; }
+const BOW_TYPES=[
+  {id:"recurve",label:"リカーブ"},
+  {id:"compound",label:"コンパウンド"},
+  {id:"barebow",label:"ベアボウ"},
+  {id:"yumi",label:"和弓"}
+];
+const ENV_TYPES=[
+  {id:"outdoor",label:"屋外"},
+  {id:"indoor",label:"屋内"}
+];
+function bowTypeLabel(id){
+  const row=BOW_TYPES.find(x=>x.id===id);
+  return row?row.label:id||"—";
+}
+function envLabel(id){
+  const row=ENV_TYPES.find(x=>x.id===id);
+  return row?row.label:id||"—";
+}
+function blankDb(){ return {schema:SCHEMA_VER,setups:[],sightMarks:[],sessions:[],trash:[],settings:{eyeSight:850,theme:"auto",lastBackupAt:null,activeGuideSeen:false,defaultBowType:"recurve",defaultDistance:70,lastSelectedDistance:70,defaultEnvironment:"outdoor"},active:null}; }
 function normalizeDb(d){
   const base=blankDb(), src=(d&&typeof d==="object")?d:{};
   const out=Object.assign(base,src);

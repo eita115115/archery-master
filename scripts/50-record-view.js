@@ -2,7 +2,7 @@
 /* 的ノート: record and active-session views */
 /* ============ views ============ */
 let view="home";
-let ui={ selArrow:-1, sightSel:{setupId:null, dist:70}, histOpen:null, histFilter:{setupId:"",dist:"",round:""}, zoom:1, recordMode:"practice", freshArrow:-1, freshTimer:0, inputMode:"tap", scanBound:false, scanResult:null };
+let ui={ selArrow:-1, sightSel:{setupId:null, dist:70}, histOpen:null, histFilter:{setupId:"",dist:"",round:""}, zoom:1, recordMode:"practice", freshArrow:-1, freshTimer:0, inputMode:"grid", scanBound:false, scanResult:null, gridCell:-1 };
 let scanSession=null;
 function showView(v){
   if(db.active && v==="home") v="record";
@@ -27,23 +27,49 @@ function render(){
   else renderHome(m);
 }
 
+function homeDashboardHtml(){
+  const today=today();
+  const todaySessions=db.sessions.filter(s=>s.date===today);
+  const todayBest=todaySessions.length?Math.max(...todaySessions.map(s=>aggregateSessionStats(sessionArrows(s)).total)):null;
+  const recent5=[...db.sessions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id<a.id?-1:1)).slice(0,5);
+  const recentTotals=recent5.map(s=>aggregateSessionStats(sessionArrows(s)).total);
+  const avg5=recentTotals.length?recentTotals.reduce((a,x)=>a+x,0)/recentTotals.length:null;
+  const prev5=[...db.sessions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id<a.id?-1:1)).slice(5,10);
+  const prevAvg=prev5.length?prev5.map(s=>aggregateSessionStats(sessionArrows(s)).total).reduce((a,x)=>a+x,0)/prev5.length:null;
+  let deltaHtml="—";
+  if(avg5!=null && prevAvg!=null){
+    const d=avg5-prevAvg;
+    const sign=d>=0?"▲":"▼";
+    deltaHtml=`${sign} ${Math.abs(d).toFixed(1)}`;
+  }else if(avg5!=null){
+    deltaHtml="初回記録";
+  }
+  return `<section class="dashHero card">
+    <div class="dashBest"><div class="k">本日のベスト</div><b>${todayBest!=null?todayBest:"—"}</b><span>点</span></div>
+    <div class="dashAvg"><div class="k">直近5R平均</div><b>${avg5!=null?avg5.toFixed(1):"—"}</b><span class="dashDelta">${deltaHtml}</span></div>
+  </section>`;
+}
 function renderHome(m){
   const last=db.sessions[db.sessions.length-1];
   const defSetup=last?last.setupId:(db.setups[0]?db.setups[0].id:"");
-  const defDist=last?last.dist:70;
+  const defDist=last?last.dist:(db.settings.lastSelectedDistance||db.settings.defaultDistance||70);
   const mode=ui.recordMode||"practice";
   const defFace=suggestedFaceValue(defDist,last);
   const sys=setupSystemSummary(defSetup);
   const recent=db.sessions.slice(-3).reverse();
-  const recentHtml=recent.length?`<section class="card homeRecent"><h2>最近の練習</h2>${recent.map(s=>`
+  const recentHtml=recent.length?`<section class="card homeRecent"><h2>最近の記録</h2>${recent.map(s=>`
     <button class="listItem" type="button" data-open-sess="${esc(s.id)}">
-      <span><b>${fmtD(s.date)}</b> ${s.dist}m / ${faceLabel(s)}</span>
-      <span class="mini">${sessionArrows(s).reduce((a,x)=>a+x.s,0)}点</span>
+      <span><b>${fmtD(s.date)}</b> ${s.dist}m / ${bowTypeLabel(s.bowType)}</span>
+      <span class="mini">${aggregateSessionStats(sessionArrows(s)).total}点</span>
     </button>`).join("")}</section>`:"";
   m.innerHTML=`
-  ${recordIntroHtml(sys,mode)}
+  ${homeDashboardHtml()}
   ${recordFastActionsHtml(last,defDist,defFace)}
   ${recentHtml}
+  <details class="adv homeMore">
+    <summary>詳しく使う</summary>
+    ${recordIntroHtml(sys,mode)}
+  </details>
   <div id="homeLaunchMount"></div>`;
   const mount=$("#homeLaunchMount");
   if(mount) renderRecordSetup(mount,{last,defSetup,defDist,defFace,mode,onStart:()=>showView("record")});
@@ -125,7 +151,7 @@ function recordIntroHtml(sys, mode){
       <div>
         <div class="eyebrow">的ノート</div>
         <h2>${mode==="calibration"?"サイト値も残す":"今日のズレを、次の一射へ。"}</h2>
-        <p>タップ・ライブ・動画で記録。サイトを動かすか・保留するか、データで判断できます。</p>
+        <p>グリッド・タップ・ライブ・動画で記録。サイトを動かすか・保留するか、データで判断できます。</p>
       </div>
       <div class="readinessDial"><b>${scorePct(sys.score)}</b><span>${esc(sys.level)}</span></div>
     </div>
@@ -214,6 +240,8 @@ function renderRecordSetup(m,ctx){
   const mode=ctx.mode||ui.recordMode||"practice";
   const defFace=ctx.defFace!=null?ctx.defFace:suggestedFaceValue(defDist,last);
   const defPerEnd=last&&last.perEnd?last.perEnd:6;
+  const defBow=last&&last.bowType?last.bowType:(db.settings.defaultBowType||"recurve");
+  const defEnv=last&&last.environment?last.environment:(db.settings.defaultEnvironment||"outdoor");
   m.innerHTML=`
   <section class="launchPanel convergeLaunch startFirst">
     <div class="launchHead">
@@ -221,6 +249,10 @@ function renderRecordSetup(m,ctx){
       <button class="tinyAction" id="jumpGear" type="button">用具</button>
     </div>
     <div class="launchBody">
+    <div class="quickSelects">
+      <div><label class="f">弓種</label><select class="inp" id="fBow">${BOW_TYPES.map(b=>`<option value="${b.id}" ${b.id===defBow?"selected":""}>${b.label}</option>`).join("")}</select></div>
+      <div><label class="f">環境</label><select class="inp" id="fEnv">${ENV_TYPES.map(e=>`<option value="${e.id}" ${e.id===defEnv?"selected":""}>${e.label}</option>`).join("")}</select></div>
+    </div>
     <label class="f">距離</label>
     <div class="chips quickDists" id="fDistChips">
       ${[70,50,30,18].map(d=>`<div class="chip ${d===defDist?"on":""}" data-d="${d}">${d}m</div>`).join("")}
@@ -333,9 +365,17 @@ function renderRecordSetup(m,ctx){
     if(!d){ toast("距離を入力してください"); return; }
     const fv=faceSel.value;
     const face=parseFaceChoice(fv);
+    const bowType=$("#fBow").value||db.settings.defaultBowType||"recurve";
+    const environment=$("#fEnv").value||db.settings.defaultEnvironment||"outdoor";
+    db.settings.defaultBowType=bowType;
+    db.settings.defaultDistance=d;
+    db.settings.defaultEnvironment=environment;
+    db.settings.lastSelectedDistance=d;
     db.active={
       id:uid(), date:$("#fDate").value||today(), setupId:$("#fSetup").value||null,
+      bowType, environment,
       dist:d, faceD: face.faceD, faceType: face.faceType, perEnd:+$("#fArrows").value,
+      inputStyle:"grid",
       shaft:+lineCutRadius(face.faceD, face.faceType).toFixed(3),
       sightV:$("#fSightV").value.trim(), sightH:$("#fSightH").value.trim(),
       wx:$("#fWx").value, note:$("#fNote").value.trim(), windDir:$("#fWindDir").value, windSpeed:$("#fWindSpeed").value.trim(),
@@ -343,6 +383,8 @@ function renderRecordSetup(m,ctx){
       purpose:ui.recordMode||"practice",
       ends:[], cur:[]
     };
+    ui.inputMode="grid";
+    ui.gridCell=-1;
     nativePulse("success");
     save();
     if(typeof ctx.onStart==="function") ctx.onStart();
@@ -436,27 +478,82 @@ function pageHeroHtml(type,ctx){
   return "";
 }
 function liveSessionHeroHtml(s,setup){
-  const all=sessionArrows(s);
-  const total=all.reduce((a,x)=>a+x.s,0);
-  const avg=all.length?(total/all.length).toFixed(2):"—";
+  const stats=aggregateSessionStats(sessionArrows(s));
   const remain=Math.max(0,(s.perEnd||6)-(s.cur||[]).length);
   const r=ROUND_TYPES.find(x=>x.id===s.round);
-  const roundRemain=r&&r.arrows?Math.max(0,r.arrows-all.length):null;
+  const roundRemain=r&&r.arrows?Math.max(0,r.arrows-stats.count):null;
   return `<section class="liveHud compactHud">
-    <div class="liveContext">${s._edit?"過去記録の編集":`${s.dist}m / ${faceLabel(s)}`}<span>${setup?esc(setup.name):"用具未指定"}</span></div>
+    <div class="liveContext">${s._edit?"過去記録の編集":`${s.dist}m / ${bowTypeLabel(s.bowType)} / ${envLabel(s.environment)}`}<span>${setup?esc(setup.name):"用具未指定"}</span></div>
     <div class="liveGrid">
-      <div class="liveCell"><div class="k">合計</div><b>${total}</b></div>
-      <div class="liveCell"><div class="k">平均</div><b>${avg}</b></div>
-      <div class="liveCell"><div class="k">現在エンド</div><b>${(s.cur||[]).length}/${s.perEnd||6}</b></div>
+      <div class="liveCell"><div class="k">合計</div><b>${stats.total}</b></div>
+      <div class="liveCell"><div class="k">Xs</div><b>${stats.xCount}</b></div>
+      <div class="liveCell"><div class="k">10s</div><b>${stats.tenCount}</b></div>
+      <div class="liveCell"><div class="k">Hits</div><b>${stats.hitCount}</b></div>
+      <div class="liveCell"><div class="k">現在</div><b>${(s.cur||[]).length}/${s.perEnd||6}</b></div>
       <div class="liveCell"><div class="k">残り</div><b>${roundRemain==null?`${remain}本`:roundRemain+"本"}</b></div>
     </div>
   </section>`;
+}
+function scoreGridReadOnlyHtml(s){
+  const per=s.perEnd||6;
+  return (s.ends||[]).map((end,i)=>{
+    const cells=Array.from({length:per},(_,ci)=>{
+      const a=end[ci];
+      if(!a) return `<div class="gridCell empty">·</div>`;
+      const label=scoreLabel(a);
+      const z=gridZoneStyle(label);
+      return `<div class="gridCell" style="background:${z.bg};color:${z.fg}">${label}</div>`;
+    }).join("");
+    const sum=end.reduce((a,x)=>a+(x.s||0),0);
+    return `<div class="gridRow"><div class="gridRowHead">E${i+1}</div><div class="gridCells">${cells}</div><div class="gridRowSum">${sum}</div></div>`;
+  }).join("")||`<div class="empty">エンドがありません</div>`;
+}
+function scoreGridHtml(s){
+  const per=s.perEnd||6;
+  const rows=[...s.ends.map((end,i)=>({end,i,cur:false})), {end:s.cur||[],i:s.ends.length,cur:true}];
+  return rows.map(row=>{
+    const cells=Array.from({length:per},(_,ci)=>{
+      const a=row.end[ci];
+      const sel=row.cur && ui.gridCell===ci;
+      if(!a) return `<div class="gridCell empty ${sel?"sel":""}" data-end="${row.i}" data-i="${ci}">·</div>`;
+      const label=scoreLabel(a);
+      const z=gridZoneStyle(label);
+      return `<div class="gridCell ${sel?"sel":""}" data-end="${row.i}" data-i="${ci}" style="background:${z.bg};color:${z.fg}">${label}</div>`;
+    }).join("");
+    const sum=row.end.reduce((a,x)=>a+(x.s||0),0);
+    return `<div class="gridRow"><div class="gridRowHead">E${row.i+1}</div><div class="gridCells">${cells}</div><div class="gridRowSum">${sum||"—"}</div></div>`;
+  }).join("");
+}
+function bindGridInput(s){
+  const keys=$("#gridKeys");
+  if(keys) keys.querySelectorAll("button").forEach(btn=>btn.onclick=()=>{
+    const value=btn.dataset.v;
+    if(ui.gridCell>=0 && s.cur[ui.gridCell]){
+      Object.assign(s.cur[ui.gridCell], arrowFromGridValue(value));
+      nativePulse("light"); save(); refreshActive(); return;
+    }
+    if(s.cur.length>=(s.perEnd||6)){ toast(`1エンド${s.perEnd}本です。「次のエンド」で確定してください`); return; }
+    s.cur.push(arrowFromGridValue(value));
+    ui.freshArrow=s.cur.length-1;
+    ui.gridCell=s.cur.length-1;
+    nativePulse("light"); save(); refreshActive();
+  });
+  const grid=$("#scoreGrid");
+  if(grid) grid.querySelectorAll(".gridCell").forEach(cell=>cell.onclick=()=>{
+    const endIdx=+cell.dataset.end, idx=+cell.dataset.i;
+    if(endIdx!==s.ends.length) return;
+    if(!s.cur[idx] && cell.classList.contains("empty")) return;
+    ui.gridCell=idx; ui.selArrow=-1; refreshActive();
+  });
+  const memo=$("#gridMemo");
+  if(memo) memo.oninput=e=>{ s.note=e.target.value.trim(); save("grid-memo"); };
 }
 function activeGuideHtml(){
   if(db.settings.activeGuideSeen) return "";
   return `<details class="adv activeGuide" open>
     <summary>初回の操作ガイド</summary>
-    <div class="guideLine"><b>記録</b><span>的をタップすると、その場所に1本入ります。少しずれたら矢チップを選びます。</span></div>
+    <div class="guideLine"><b>グリッド</b><span>X/10/9…ボタンで素早く入力。セルをタップすると修正できます。</span></div>
+    <div class="guideLine"><b>タップ</b><span>的をタップすると、その場所に1本入ります。少しずれたら矢チップを選びます。</span></div>
     <div class="guideLine"><b>微調整</b><span>選んだ矢だけ下の矢印で動かせます。押したままでも細かく合わせられます。</span></div>
     <div class="guideLine"><b>進行</b><span>${db.active&&db.active.perEnd?db.active.perEnd:6}本入れたらエンド確定。最後はセッション終了で結果を見ます。</span></div>
     <button class="btn sm ghost activeGuideDone" id="activeGuideDone">次から表示しない</button>
@@ -472,10 +569,16 @@ function renderActive(m){
     <div class="targetTools">
       <h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>
       <div class="inputModeBar" id="inputModeBar">
+        <button class="modeBtn ${ui.inputMode==="grid"?"on":""}" data-mode="grid" type="button">グリッド</button>
         <button class="modeBtn ${ui.inputMode==="tap"?"on":""}" data-mode="tap" type="button">タップ</button>
         <button class="modeBtn ${ui.inputMode==="live"?"on":""}" data-mode="live" type="button">ライブ</button>
         <button class="modeBtn ${ui.inputMode==="video"?"on":""}" data-mode="video" type="button">動画</button>
       </div>
+      ${s._edit?`<div class="editMetaBar">
+        <label class="f">距離</label><input class="inp sm" id="editDist" type="number" min="5" max="90" value="${s.dist}">
+        <label class="f">弓種</label><select class="inp sm" id="editBow">${BOW_TYPES.map(b=>`<option value="${b.id}" ${s.bowType===b.id?"selected":""}>${b.label}</option>`).join("")}</select>
+        <label class="f">環境</label><select class="inp sm" id="editEnv">${ENV_TYPES.map(e=>`<option value="${e.id}" ${s.environment===e.id?"selected":""}>${e.label}</option>`).join("")}</select>
+      </div>`:""}
       ${s.faceType==="triple"?"":`<div class="chips" id="zoomChips">
         ${[[1,"全体"],[2,"×2"],[3,"×3"]].map(([z,lb])=>`<div class="chip ${(ui.zoom||1)===z?"on":""}" data-z="${z}">${lb}</div>`).join("")}
       </div>`}
@@ -486,12 +589,18 @@ function renderActive(m){
       <div class="scanActions" id="scanActions"></div>
       <input type="file" id="videoCapture" accept="video/*" hidden>
     </div>
-    <div class="tgWrap" id="tgWrap">
+    <div class="gridSheet ${ui.inputMode==="grid"?"on":""}" id="gridSheet">
+      <div class="gridHeader">エンド ${s.ends.length+1} <span>合計 ${aggregateSessionStats(sessionArrows(s)).total}点</span></div>
+      <div class="scoreGrid" id="scoreGrid">${scoreGridHtml(s)}</div>
+      <div class="gridKeys" id="gridKeys">${GRID_SCORE_KEYS.map(v=>{ const z=gridZoneStyle(v); return `<button type="button" data-v="${v}" style="background:${z.bg};color:${z.fg}">${v}</button>`; }).join("")}</div>
+      <label class="f">メモ</label><input class="inp" id="gridMemo" placeholder="任意" value="${esc(s.note||"")}">
+    </div>
+    <div class="tgWrap ${ui.inputMode==="grid"?"off":""}" id="tgWrap">
       ${targetMarkup(s.faceD,"tg",s.faceType)}
       <div class="lens" id="lens"><svg id="lensSvg" width="122" height="122"><use href="#tgmain"/><g id="lensCross"></g></svg></div>
       <div class="lensTag" id="lensTag">微調整モード</div>
     </div>
-    <div class="targetHint" id="targetHint">${ui.inputMode==="live"?"カメラで的を映すと自動検出。取り込み後はタップで微調整。":ui.inputMode==="video"?"動画のフレームを解析して一括取り込み。タップは微調整用。":"タップで記録。矢チップで修正。"}</div>
+    <div class="targetHint" id="targetHint">${ui.inputMode==="grid"?"ボタンで次のセルに入力。セルタップで修正。":ui.inputMode==="live"?"カメラで的を映すと自動検出。取り込み後はタップで微調整。":ui.inputMode==="video"?"動画のフレームを解析して一括取り込み。タップは微調整用。":"タップで記録。矢チップで修正。"}</div>
     ${activeGuideHtml()}
     <div class="scoreChips" id="curChips"></div>
     <div class="nudge" id="nudge">
@@ -512,7 +621,7 @@ function renderActive(m){
     <div class="btnrow"><button class="btn danger" id="bFinish">セッション終了</button></div>
   </div>
   <div class="card"><h2>エンド一覧</h2><div id="endsTbl"></div></div>`;
-  attachTargetInput(s);
+  if(ui.inputMode!=="grid") attachTargetInput(s);
   document.querySelectorAll("#inputModeBar .modeBtn").forEach(btn=>btn.onclick=()=>{
     if(ui.inputMode===btn.dataset.mode) return;
     ui.inputMode=btn.dataset.mode;
@@ -521,6 +630,13 @@ function renderActive(m){
   });
   if(ui.inputMode==="live") bindLiveScanMode(s);
   else if(ui.inputMode==="video") bindVideoScanMode(s);
+  if(ui.inputMode==="grid") bindGridInput(s);
+  if(s._edit){
+    const editDist=$("#editDist"), editBow=$("#editBow"), editEnv=$("#editEnv");
+    if(editDist) editDist.onchange=()=>{ s.dist=+editDist.value||s.dist; db.settings.lastSelectedDistance=s.dist; save("edit-meta"); refreshActive(); };
+    if(editBow) editBow.onchange=()=>{ s.bowType=editBow.value; save("edit-meta"); refreshActive(); };
+    if(editEnv) editEnv.onchange=()=>{ s.environment=editEnv.value; save("edit-meta"); refreshActive(); };
+  }
   function applyZoom(){ if(s.faceType==="triple") return; const M=s.faceD/2*1.18/(ui.zoom||1); $("#tgsvg").setAttribute("viewBox", `${-M} ${-M} ${2*M} ${2*M}`); }
   document.querySelectorAll("#zoomChips .chip").forEach(c=>c.onclick=()=>{
     ui.zoom=+c.dataset.z;
@@ -531,6 +647,7 @@ function renderActive(m){
   $("#bUndo").onclick=()=>{ if(s.cur.length){ s.cur.pop(); ui.selArrow=-1; nativePulse("light"); save(); refreshActive(); } else toast("このエンドに矢がありません"); };
   $("#bEnd").onclick=()=>{
     if(!s.cur.length){ toast("矢を記録してください"); return; }
+    ui.gridCell=-1;
     if(s.editIndex!=null){
       const at=Math.min(s.editIndex, s.ends.length);
       s.ends.splice(at,0,s.cur); toast(`エンド${at+1}を更新しました`); s.editIndex=null;
@@ -578,6 +695,13 @@ function bindShotMeta(){
 }
 function refreshActive(){
   const s=db.active; if(!s) return;
+  if(ui.inputMode==="grid"){
+    const grid=$("#scoreGrid");
+    if(grid) grid.innerHTML=scoreGridHtml(s);
+    const header=document.querySelector(".gridHeader span");
+    if(header) header.textContent=`合計 ${aggregateSessionStats(sessionArrows(s)).total}点`;
+    bindGridInput(s);
+  }
   // markers
   let html="";
   const gp=a=> s.faceType==="triple" ? {x:a.x, y:a.y+SPOT_Y[a.spot||0]} : a;

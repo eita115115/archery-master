@@ -2,7 +2,8 @@
 /* Archery Note: history and sight-adjustment views */
 function renderHistory(m){
   const allSs=[...db.sessions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id<a.id?-1:1));
-  const hf=ui.histFilter||{setupId:"",dist:"",round:""};
+  if(!ui.histFilter) ui.histFilter={setupId:"",dist:db.settings.lastSelectedDistance?String(db.settings.lastSelectedDistance):"",round:""};
+  const hf=ui.histFilter;
   const dists=[...new Set(allSs.map(s=>s.dist).filter(Boolean))].sort((a,b)=>b-a);
   const rounds=[...new Set(allSs.map(s=>s.round||"free"))];
   const ss=allSs.filter(s=>
@@ -22,18 +23,18 @@ function renderHistory(m){
     </div>
     <div id="histList">
     ${ss.length? ss.map(s=>{
-      const all=s.ends.flat(); const total=all.reduce((a,x)=>a+x.s,0);
+      const all=s.ends.flat();
       const setup=db.setups.find(x=>x.id===s.setupId);
-      const q=sessionQuality(s,setup);
+      const stats=aggregateSessionStats(all);
       return `<div class="listItem" data-id="${s.id}">
-        <div><div class="t">${fmtD(s.date)} ・ ${s.dist}m</div>
-        <div class="d"><span class="badge">${faceLabel(s)}</span>${setup?`<span class="badge">${esc(setup.name)}</span>`:""}<span class="badge">信頼 ${q.label}</span>${s.round&&s.round!=="free"?`<span class="badge">${roundLabel(s.round)}</span>`:""}${s.wx?`<span class="badge">${esc(s.wx)}</span>`:""}${all.length}本</div></div>
-        <div class="big">${total}<small> / 平均${(total/all.length).toFixed(2)}</small></div></div>`;
+        <div><div class="t">${fmtD(s.date)} ・ ${s.dist}m ・ ${bowTypeLabel(s.bowType)}</div>
+        <div class="d"><span class="badge">${envLabel(s.environment)}</span><span class="badge">${faceLabel(s)}</span>${setup?`<span class="badge">${esc(setup.name)}</span>`:""}<span class="badge">X${stats.xCount} / 10${stats.tenCount}</span>${s.round&&s.round!=="free"?`<span class="badge">${roundLabel(s.round)}</span>`:""}${all.length}本</div></div>
+        <div class="big">${stats.total}<small> / Hits ${stats.hitCount}</small></div></div>`;
     }).join(""):`<div class="empty">まだ記録がありません。「記録」タブから始めましょう。</div>`}
   </div></div>
   ${groupingTrendCard(ss)}${distTrendCard(ss)}${scoreDistCard(ss)}${monthlyCard(ss)}`;
   $("#histSetup").onchange=e=>{ ui.histFilter.setupId=e.target.value; render(); };
-  $("#histDist").onchange=e=>{ ui.histFilter.dist=e.target.value; render(); };
+  $("#histDist").onchange=e=>{ ui.histFilter.dist=e.target.value; if(e.target.value) db.settings.lastSelectedDistance=+e.target.value; save("hist-filter"); render(); };
   $("#histRound").onchange=e=>{ ui.histFilter.round=e.target.value; render(); };
   $("#histClear").onclick=()=>{ ui.histFilter={setupId:"",dist:"",round:""}; render(); };
   document.querySelectorAll("#histList .listItem").forEach(li=>li.onclick=()=>openHistDetail(li.dataset.id));
@@ -179,11 +180,13 @@ function openHistDetail(id){
     <h3>${fmtD(sess.date)} ・ ${sess.dist}m ・ ${faceLabel(sess)}</h3>
     <div style="font-size:12px;color:var(--sub)">${setup?esc(setup.name):"セッティング未指定"}${sess.round&&sess.round!=="free"?" ・ "+roundLabel(sess.round):""}${windText(sess)?" ・ "+esc(windText(sess)):""}${sess.note?" ・ "+esc(sess.note):""}</div>
     <div class="statbar">
-      <div class="stat"><b>${total}</b><span>合計 (${all.length}本)</span></div>
-      <div class="stat"><b>${(total/all.length).toFixed(2)}</b><span>平均/本</span></div>
-      <div class="stat"><b>${perfectScoreCount(all,sess)}</b><span>${perfectScoreLabel(sess)}</span></div>
-      <div class="stat"><b>${secondaryScoreCount(all,sess)}</b><span>${secondaryScoreLabel(sess)}</span></div>
+      ${(()=>{ const st=aggregateSessionStats(all); return `
+      <div class="stat"><b>${st.total}</b><span>合計 (${st.count}本)</span></div>
+      <div class="stat"><b>${st.xCount}</b><span>Xs</span></div>
+      <div class="stat"><b>${st.tenCount}</b><span>10s</span></div>
+      <div class="stat"><b>${st.hitCount}</b><span>Hits</span></div>`; })()}
     </div>
+    <div class="readOnlyGrid">${scoreGridReadOnlyHtml(sess)}</div>
     <div id="hPlot" style="margin-top:10px"></div>
     ${groupSummaryHtml(st)}
     ${trustHtml(sess,setup,st)}

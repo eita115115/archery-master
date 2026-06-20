@@ -23,7 +23,7 @@ assert(/data-v=["']record["']/.test(html), "index.html missing record tab");
 assert(/data-v=["']history["']/.test(html), "index.html missing history tab");
 assert(html.includes("35-photo-vision.js"), "index.html missing 35-photo-vision.js script tag");
 assert(html.includes("的ノート"), 'index.html missing branding "的ノート"');
-assert(scripts.includes("bindLiveScanMode") && scripts.includes("bindVideoScanMode") && scripts.includes("visionHitsToArrows"), "live/video scan layer missing from scripts");
+assert(scripts.includes("bindLiveScanMode") && scripts.includes("bindVideoScanMode") && scripts.includes("visionHitsToArrows") && scripts.includes("bindGridInput") && scripts.includes("homeDashboardHtml"), "grid/scan/dashboard layer missing from scripts");
 assert(scripts.includes("openToolSheet"), "openToolSheet missing from scripts");
 assert(scripts.includes("renderHome"), "renderHome missing from scripts");
 

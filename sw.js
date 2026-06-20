@@ -1,4 +1,4 @@
-const CACHE = "matonote-v56";
+const CACHE = "matonote-v57";
 const APP_SCRIPTS = [
   "./scripts/00-compat.js",
   "./scripts/10-storage-native.js",

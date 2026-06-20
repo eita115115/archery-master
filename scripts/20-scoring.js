@@ -61,6 +61,31 @@ function zoneStyle(s,X,faceType){
   if(s>=1) return {bg:"#fff",fg:"#1c1e1c"};
   return {bg:"#c9cec6",fg:"#555"};
 }
+const GRID_SCORE_KEYS=["X","10","9","8","7","6","M"];
+function gridZoneStyle(label){
+  if(label==="X") return {bg:"#e6b800",fg:"#1c1e1c"};
+  if(label==="10") return {bg:"#ffeb3b",fg:"#1c1e1c"};
+  if(label==="9") return {bg:"#c8e650",fg:"#1c1e1c"};
+  if(label==="8") return {bg:"#4caf50",fg:"#fff"};
+  if(label==="7") return {bg:"#26a69a",fg:"#fff"};
+  if(label==="6") return {bg:"#9e9e9e",fg:"#fff"};
+  if(label==="M") return {bg:"#e53935",fg:"#fff"};
+  return {bg:"#bdbdbd",fg:"#333"};
+}
+function arrowFromGridValue(value){
+  if(value==="X") return {s:10,X:true,x:0,y:0};
+  if(value==="M") return {s:0,X:false,x:0,y:0};
+  const n=+value;
+  return {s:Number.isFinite(n)?Math.max(0,Math.min(10,n)):0,X:false,x:0,y:0};
+}
+function aggregateSessionStats(arrows){
+  const all=arrows||[];
+  const total=all.reduce((sum,a)=>sum+(a.s||0),0);
+  const xCount=all.filter(a=>a.X).length;
+  const tenCount=all.filter(a=>a.s===10).length;
+  const hitCount=all.filter(a=>(a.s||0)>0).length;
+  return {total,xCount,tenCount,hitCount,avg:all.length?total/all.length:0,count:all.length};
+}
 function scoreLabel(a){ return a.s===0?"M":(a.X?"X":String(a.s)); }
 function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
 function median(vals){
