@@ -1,5 +1,71 @@
 /* Archery Note–style patterns (html.ui-refresh). Reference UI clone layer. */
 
+/* ── Analysis tab (flagship) ── */
+html.ui-refresh .an-analysisHero{
+  margin:0 0 var(--ui-space-3);
+  padding:var(--ui-space-4);
+  border-left:4px solid var(--ui-accent);
+}
+html.ui-refresh .an-analysisHero--ok{border-left-color:#0F9D58;}
+html.ui-refresh .an-analysisHero--warn{border-left-color:var(--ui-danger);}
+html.ui-refresh .an-analysisHeroK{
+  margin:0 0 var(--ui-space-1);
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-analysisHeroV{
+  margin:0 0 var(--ui-space-1);
+  font-size:var(--ui-font-headline);
+  font-weight:700;
+  color:var(--ui-label);
+}
+html.ui-refresh .an-analysisHeroSub{
+  margin:0;
+  font-size:var(--ui-font-body);
+  line-height:1.45;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-analysisSubTabs{
+  margin-bottom:var(--ui-space-3);
+}
+html.ui-refresh .an-analysisPill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:38px;
+  padding:0 16px;
+  font-weight:700;
+}
+html.ui-refresh .an-analysisPill.on{
+  background:var(--an-blue);
+}
+html.ui-refresh .an-analysisPillIcon{
+  font-size:12px;
+  opacity:.9;
+}
+html.ui-refresh .an-analysisMount .card{
+  margin-bottom:var(--ui-space-3);
+}
+html.ui-refresh nav.tabs button[data-v="analysis"] .ic-svg{
+  opacity:.88;
+}
+html.ui-refresh nav.tabs button[data-v="analysis"].on{
+  color:var(--an-blue);
+  border-top-color:var(--an-blue);
+}
+html.ui-refresh nav.tabs button[data-v="analysis"].on .ic-svg{
+  color:var(--an-blue);
+}
+html.ui-refresh nav.tabs{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+}
+html.ui-refresh nav.tabs button{
+  font-size:10px;
+  padding:4px 0 2px;
+  min-width:0;
+}
+
 html.ui-refresh{
   --an-blue:#3B82F6;
   --an-blue-soft:rgba(59,130,246,.1);

@@ -25,6 +25,8 @@ assert(html.includes("35-photo-vision.js"), "index.html missing 35-photo-vision.
 assert(html.includes("Archery-master"), 'index.html missing branding "Archery-master"');
 assert(scripts.includes("bindLiveScanMode") && scripts.includes("bindVideoScanMode") && scripts.includes("bindOcrScanMode") && scripts.includes("visionHitsToArrows") && scripts.includes("bindGridInput") && scripts.includes("homeDashboardHtml") && scripts.includes("renderStats") && scripts.includes("renderFormCoachPanel"), "grid/stats/AI layers missing from scripts");
 assert(html.includes("data-v=\"stats\""), "index.html missing stats tab");
+assert(html.includes("data-v=\"analysis\""), "index.html missing analysis tab");
+assert(scripts.includes("renderAnalysis"), "analysis view script missing");
 assert(scripts.includes("openToolSheet"), "openToolSheet missing from scripts");
 assert(scripts.includes("renderHome"), "renderHome missing from scripts");
 assert(scripts.includes("stats-filter-reset") && scripts.includes("db.settings.statsFilter"), "statsFilter reset persistence missing");

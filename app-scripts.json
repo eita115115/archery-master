@@ -26,6 +26,7 @@
     "scripts/50-record-view.js",
     "scripts/55-stats-view.js",
     "scripts/60-history-sight-view.js",
+    "scripts/61-analysis-view.js",
     "scripts/70-gear-settings.js",
     "scripts/58-beta-boot.js",
     "scripts/90-init.js"

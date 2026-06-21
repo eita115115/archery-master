@@ -21,11 +21,13 @@ let ui = {
   pairCell: -1,
   hudSnap: null,
   pendingBestCelebrate: null,
+  analysisSub: "sight",
 };
 
 function showView(v) {
   if (db.active && v === "home") v = "record";
   const prev = view;
+  if (prev === "analysis" && v !== "analysis" && typeof stopFormCoach === "function") stopFormCoach();
   view = v;
   ui.selArrow = -1;
   if (prev !== v) nativePulse("light");
@@ -54,7 +56,8 @@ function render() {
   if (effectiveView === "record") {
     if (db.active) renderActive(m);
     else renderRecordIdle(m);
-  } else if (effectiveView === "history") renderHistory(m);
+  } else if (effectiveView === "analysis") renderAnalysis(m);
+  else if (effectiveView === "history") renderHistory(m);
   else if (effectiveView === "stats") renderStats(m);
   else renderHome(m);
   if(typeof enterViewMotion==="function") enterViewMotion(m);

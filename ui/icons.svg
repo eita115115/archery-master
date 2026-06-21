@@ -13,6 +13,11 @@
     <path d="M5.5 6.8A7.5 7.5 0 1 1 5 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
     <path d="M5 4.5v3.5H8.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>
+  <symbol id="ic-analysis" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="7.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M12 8v4l2.5 1.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M7 17l2-2 2 2 4-4 2 2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
   <symbol id="ic-stats" viewBox="0 0 24 24">
     <path d="M6 18V11" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
     <path d="M12 18V7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>

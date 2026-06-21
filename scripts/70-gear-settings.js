@@ -367,13 +367,14 @@ function openToolSheet(kind,fromSettings){
     if(fromSettings) openSettings();
     else render();
   };
-  if(kind==="form"){
-    if(typeof renderFormCoachPanel==="function") renderFormCoachPanel(main);
-    else main.innerHTML=`<section class="card"><h2>射形の確認</h2><div class="empty">射形モジュールを読み込めませんでした</div></section>`;
-    ovl.querySelector("#toolClose").onclick=closeTool;
+  if(kind==="sight"||kind==="form"){
+    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
+    ovl.remove();
+    if(typeof openAnalysisTab==="function") openAnalysisTab(kind==="form"?"form":"sight");
+    else showView("analysis");
     return;
-  }else if(kind==="sight") renderSight(main);
-  else renderGear(main);
+  }
+  renderGear(main);
   ovl.querySelector("#toolClose").onclick=closeTool;
 }
 
@@ -393,9 +394,9 @@ function openSettings(){
     <div class="an-settingsSection">
       <p class="an-settingsHdr">ツール</p>
       <div class="an-settingsGroup settingsNav">
-        <button class="an-settingsRow" type="button" data-tool="sight"><span class="an-rowIcon">🎯</span><span class="an-rowBody">サイト調整</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="sight"><span class="an-rowIcon">◎</span><span class="an-rowBody">サイト調整（分析タブ）</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="form"><span class="an-rowIcon">▶</span><span class="an-rowBody">射形トラッキング（分析タブ）</span><span class="an-rowChevron">›</span></button>
         <button class="an-settingsRow" type="button" data-tool="gear"><span class="an-rowIcon">🏹</span><span class="an-rowBody">用具セッティング</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow" type="button" data-tool="form"><span class="an-rowIcon">📹</span><span class="an-rowBody">射形の確認</span><span class="an-rowChevron">›</span></button>
       </div>
       <p class="formFpDisclaimer formFpDisclaimerCompact settingsDisclaimer">練習用計測 — コーチ・審判の代替ではありません。無マーカー時は弓追跡を保証しません。</p>
     </div>

@@ -103,8 +103,9 @@ function staticUiChecks() {
   assert(!fs.existsSync(path.join(root, "app.js")), "Legacy app.js should not remain after script split");
   assert(/<nav class="tabs" id="tabs"[^>]*>/.test(html), "Tab bar missing");
   const tabMatches = [...html.matchAll(/<button data-v="([^"]+)"[^>]*>[\s\S]*?<\/button>/g)].map((m) => m[1]);
-  assert(tabMatches.join(",") === "home,record,history,stats", `Unexpected tabs: ${tabMatches.join(",")}`);
-  assert(surface.includes("記録") && surface.includes("履歴") && surface.includes("統計") && surface.includes("ホーム"), "Tab labels missing");
+  assert(tabMatches.join(",") === "home,record,analysis,history,stats", `Unexpected tabs: ${tabMatches.join(",")}`);
+  assert(surface.includes("記録") && surface.includes("分析") && surface.includes("履歴") && surface.includes("統計") && surface.includes("ホーム"), "Tab labels missing");
+  assert(surface.includes("renderAnalysis") && surface.includes("openAnalysisTab") && surface.includes("ic-analysis"), "Analysis tab missing");
   assert(css.includes("touch-action:manipulation") && css.includes("min-height:48px"), "Touch/chrome styling missing");
   assert(uiCss.includes("html.ui-refresh"), "ui layer CSS must scope to html.ui-refresh");
   assert(surface.includes("@keyframes appRise") && surface.includes("scorePop") && surface.includes("prefers-reduced-motion") && surface.includes("ic-home"), "Motion primitives missing");
