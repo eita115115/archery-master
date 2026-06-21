@@ -1,6 +1,63 @@
 "use strict";
 /* 的ノート: home tab */
 
+const HOME_WEEKDAYS=["日","月","火","水","木","金","土"];
+
+function fmtDShort(iso){
+  if(!iso) return "";
+  const [y,m,d]=iso.split("-");
+  const dt=new Date(+y,+m-1,+d);
+  const wk=HOME_WEEKDAYS[dt.getDay()]||"";
+  return `${+m}/${+d} (${wk})`;
+}
+function homeScoreBarPct(sess){
+  if(!sess||sess.purpose==="volume") return 0;
+  const st=sessionStats(sess);
+  if(!st.count||!st.avg) return 0;
+  return Math.min(1,Math.max(0,st.avg/10));
+}
+function homeLocalNoticeHtml(){
+  return `<div class="homeLocalNotice" role="status">
+    <span class="homeLocalNoticeIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-cloud"/></svg></span>
+    <p class="homeLocalNoticeText">記録は端末内に保存されます。バックアップは設定から行えます。</p>
+  </div>`;
+}
+function homeSessionCardHtml(sess,opts){
+  opts=opts||{};
+  const hero=!!opts.hero;
+  const st=sessionStats(sess);
+  const arrows=sessionArrowCount(sess);
+  const isVolume=sess.purpose==="volume";
+  const badgeMain=isVolume?String(arrows):String(st.total);
+  const badgeSub=isVolume?"本":"点";
+  const barPct=homeScoreBarPct(sess);
+  const avgLabel=isVolume?"":`${st.avg.toFixed(2)} / 射`;
+  const scoreLabel=isVolume?`${arrows}本`:`${st.total}点`;
+  return `<button class="homeSessionCard${hero?" homeSessionCard--hero":""}" type="button" data-open-sess="${esc(sess.id)}" aria-label="${esc(fmtD(sess.date))} ${sess.dist}m ${scoreLabel}">
+    <span class="homeScoreBadge" aria-hidden="true">
+      <span class="homeScoreBadgeNum">${badgeMain}</span>
+      <span class="homeScoreBadgeUnit">${badgeSub}</span>
+    </span>
+    <span class="homeSessionBody">
+      <span class="homeSessionTop">
+        <span class="homeSessionDate">${fmtDShort(sess.date)}</span>
+        <span class="homeSessionPills">
+          <span class="homePill">${sess.dist}m</span>
+          <span class="homePill">${arrows}射</span>
+        </span>
+        <span class="homeSessionChevron" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-chevron-right"/></svg></span>
+      </span>
+      ${isVolume?"":`<span class="homeScoreTrack" aria-hidden="true"><span class="homeScoreTrackFill" style="width:${Math.round(barPct*100)}%"></span></span>`}
+      ${avgLabel?`<span class="homeSessionAvg">${avgLabel}</span>`:""}
+    </span>
+  </button>`;
+}
+function homeEmptyCardHtml(){
+  return `<section class="homeSessionCard homeSessionCard--empty card" aria-label="記録なし">
+    <p class="homeEmptyLead">まだ記録がありません</p>
+    <p class="homeEmptyHint">右下の＋から、今日の記録を始められます</p>
+  </section>`;
+}
 function weekArrowCount(){
   if(typeof periodDateRange!=="function") return 0;
   const range=periodDateRange("week");
@@ -18,7 +75,7 @@ function dashCompactHtml(){
   const weekVal=weekArrows||null;
   const avgVal=avg5!=null?avg5.toFixed(1):null;
   const bestVal=condBest!=null?condBest:null;
-  return `<section class="dashBoard dashCompact card" aria-label="練習の概況">
+  return `<section class="dashBoard dashCompact homeWeekStrip" aria-label="練習の概況">
     <div class="dashHero">
       <p class="dashHeroLabel">今週</p>
       <p class="dashHeroValue">${weekVal??"—"}${weekVal?`<span class="dashHeroUnit">本</span>`:""}</p>
@@ -46,29 +103,35 @@ function maybeAnimateHomeBest(){
 function homeDashboardHtml(){
   return dashCompactHtml();
 }
+function homeFeedHtml(){
+  const sorted=[...db.sessions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id<a.id?-1:1));
+  const hero=sorted[0];
+  const rest=sorted.slice(1,4);
+  if(!hero) return homeEmptyCardHtml();
+  const cards=[homeSessionCardHtml(hero,{hero:true}),...rest.map(s=>homeSessionCardHtml(s))];
+  return `<section class="homeFeed" aria-label="最近の記録">${cards.join("")}</section>`;
+}
 function renderHome(m){
   const last=db.sessions[db.sessions.length-1];
   const defSetup=last?last.setupId:(db.setups[0]?db.setups[0].id:"");
   const defDist=last?last.dist:(db.settings.lastSelectedDistance||db.settings.defaultDistance||70);
   const mode=ui.recordMode||"practice";
   const defFace=suggestedFaceValue(defDist,last);
-  const recent=db.sessions.slice(-3).reverse();
-  const recentHtml=recent.length?`<section class="card homeRecent"><h2>最近の記録</h2>${recent.map(s=>`
-    <button class="listItem" type="button" data-open-sess="${esc(s.id)}">
-      <span><b>${fmtD(s.date)}</b> ${s.dist}m / ${bowTypeLabel(s.bowType)}</span>
-      <span class="mini">${s.purpose==="volume"?`${sessionArrowCount(s)}本`:sessionStats(s).total+"点"}</span>
-    </button>`).join("")}</section>`:"";
   const setup=db.setups.find(s=>s.id===defSetup);
   const condPreview=`${defDist}m · ${actionFaceLabel(defFace)}${setup?` · ${setup.name}`:` · 用具未指定`}`;
   const ctx={last,defSetup,defDist,defFace,mode,onStart:()=>showView("record")};
   m.innerHTML=`
+  ${homeLocalNoticeHtml()}
+  ${homeFeedHtml()}
   ${dashCompactHtml()}
   ${recordFastActionsHtml(last,defDist,defFace,setup)}
-  ${recentHtml}
+  <button class="homeFab" id="quickStart" type="button" aria-label="今日の記録を始める">
+    <span class="homeFabIcon" aria-hidden="true">+</span>
+  </button>
   <button class="listItem homeConditions ds-conditions" type="button" id="openConditions">
     <span class="ds-conditionsBody">
       <span class="ds-conditionsLabel">条件を変える</span>
-      <span class="ds-conditionsMeta ds-truncate">${esc(condPreview)}</span>
+      <span class="ds-conditionsMeta ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
     </span>
   </button>`;
   $("#quickStart").onclick=()=>quickStartSession(ctx);

@@ -1,10 +1,12 @@
 /* 的ノート UI layer — taste tokens. html.ui-refresh only. */
 html.ui-refresh{
   --ui-font-sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
-  --ui-bg:#F2F0EB;
-  --ui-bg-deep:#E8E5DE;
-  --ui-surface:#FDFCFA;
+  --ui-bg:#F4F6F8;
+  --ui-bg-deep:#ECEEF2;
+  --ui-surface:#FFFFFF;
   --ui-surface-elevated:#FFFFFF;
+  --ui-score-badge:#1B3152;
+  --ui-score-track:linear-gradient(90deg,#F2C94C 0%,#F2994A 52%,#EB5757 100%);
   --ui-surface-deep:#F5F3EE;
   --ui-separator:rgba(26,31,28,.12);
   --ui-label:#1A1F1C;

@@ -250,11 +250,8 @@ function launchQuadJpPreset(ctx){
 function recordFastActionsHtml(last,dist,faceValue,setup){
   const setupName=setup&&setup.name?setup.name:"用具未指定";
   const currentLabel=`${dist}m · ${actionFaceLabel(faceValue)} · ${setupName}`;
-  return `<section class="homeActions" aria-label="すぐ使う">
-    <button class="homeAction primary ds-cta" id="quickStart" type="button">
-      <span class="ds-ctaLead">今日の記録を始める</span>
-      <span class="ds-ctaMeta ds-truncate" id="quickStartMeta">${esc(currentLabel)}</span>
-    </button>
+  return `<section class="homeActions homeActions--compact" aria-label="すぐ使う">
+    <p class="homeActionsLead">今日の記録を始める</p>
     <div class="homeActionRow">
       <button class="homeAction sec" id="quickRepeat" type="button" ${last?"":"disabled"}>
         <span class="ds-ctaLead">前回と同じ</span>
@@ -262,6 +259,7 @@ function recordFastActionsHtml(last,dist,faceValue,setup){
       </button>
       <button class="homeAction sec" id="quickHistory" type="button"><span class="ds-ctaLead">履歴</span></button>
     </div>
+    <span class="homeActionsMeta ds-truncate" id="quickStartMeta">${esc(currentLabel)}</span>
   </section>`;
 }
 function quickStartSession(ctx){
