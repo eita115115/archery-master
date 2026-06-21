@@ -46,10 +46,13 @@ function showRenderFallback(){
 function bootApp(){
   window.__booted=true;
   const run=()=>{
-    try{ render(); }
-    catch(e){
-      console.error(e);
-      showRenderFallback();
+    if(typeof safeRender==="function") safeRender();
+    else{
+      try{ render(); }
+      catch(e){
+        console.error(e);
+        showRenderFallback();
+      }
     }
   };
   if(typeof maybeRunOnboard==="function"&&maybeRunOnboard(run)) return;
@@ -76,7 +79,10 @@ const bootStartup=matonoteStartup().then(()=>bootApp()).catch(()=>bootApp());
 const bootWatchdog=setTimeout(()=>{
   if(!window.__booted){
     if(typeof bootApp==="function") bootApp();
-    else if(typeof render==="function"){
+    else if(typeof safeRender==="function"){
+      window.__booted=true;
+      safeRender();
+    }else if(typeof render==="function"){
       window.__booted=true;
       try{ render(); }catch(e){ showRenderFallback(); }
     }else showRenderFallback();

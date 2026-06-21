@@ -24,6 +24,19 @@ let ui = {
   analysisSub: "sight",
 };
 
+function safeRender(){
+  try{ render(); }
+  catch(e){
+    console.error(e);
+    if(db&&db.active){
+      db.active=null;
+      if(typeof save==="function") save("render-recover-active");
+      view="home";
+      try{ render(); return; }catch(e2){ console.error(e2); }
+    }
+    if(typeof showRenderFallback==="function") showRenderFallback();
+  }
+}
 function showView(v) {
   if (db.active && v === "home") v = "record";
   const prev = view;
@@ -31,7 +44,7 @@ function showView(v) {
   view = v;
   ui.selArrow = -1;
   if (prev !== v) nativePulse("light");
-  render();
+  safeRender();
 }
 document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => showView(b.dataset.v)));
 

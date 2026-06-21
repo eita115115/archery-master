@@ -17,11 +17,6 @@ const GREEN_BADGE_PROFILES = [
   { id: "field_cp", label: "フィールドグリーン CP", match: (s) => s.faceType === "field" && s.bowType === "compound", min: 60 },
 ];
 
-function sessionTotalPoints(sess) {
-  if (typeof sessionStats === "function") return sessionStats(sess).total;
-  return (sess.ends || []).flat().reduce((a, x) => a + (x.s || 0), 0);
-}
-
 function starBadgeLevel(total, thresholds) {
   let level = 0;
   thresholds.forEach((t, i) => { if (total >= t) level = i + 1; });

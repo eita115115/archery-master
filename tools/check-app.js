@@ -227,6 +227,16 @@ const tripleDup=[{spot:0,s:8,X:false},{spot:0,s:10,X:true},{spot:1,s:9,X:false}]
 assert(scoreApi.effectiveTripleEndScore(tripleDup)===17, "effectiveTripleEndScore should keep lower duplicate spot");
 const volSess={purpose:"volume",ends:[[{s:10},{s:9}]],cur:[{s:8}],faceType:"single"};
 assert(scoreApi.sessionStats(volSess).count===3 && scoreApi.sessionStats(volSess).volume===true, "volume sessionStats failed");
+const badgeJs=fs.readFileSync(path.join(root,"scripts","38-badge-engine.js"),"utf8");
+assert(!/function sessionTotalPoints\s*\(/.test(badgeJs), "38-badge-engine must not shadow sessionTotalPoints");
+const scoringJs=fs.readFileSync(path.join(root,"scripts","20-scoring.js"),"utf8");
+const stackedScoreApi=new Function(scoringJs+"\n"+badgeJs+"\nreturn {sessionStats,sessionTotalPoints,badgeProgressForSession};")();
+const activeSess={id:"t",purpose:"practice",dist:70,ends:[],cur:[],faceType:"full",bowType:"recurve",environment:"outdoor",perEnd:6};
+let stackErr=null;
+try{ stackedScoreApi.sessionStats(activeSess); }catch(e){ stackErr=e; }
+assert(!stackErr, `sessionStats must not recurse after badge-engine loads: ${stackErr&&stackErr.message}`);
+assert(stackedScoreApi.sessionStats(activeSess).total===0, "empty active session total should be 0");
+assert(typeof stackedScoreApi.badgeProgressForSession(activeSess,[])==="object"||stackedScoreApi.badgeProgressForSession(activeSess,[])===null, "badge engine should load after scoring");
 assert(scoreApi.defaultTimerSeconds({round:"30m36",perEnd:3})===120, "30m36 timer should be 120s");
 assert(scoreApi.formatTimerSec(125)==="2:05", "formatTimerSec failed");
 assert(surface.includes('id:"volume"') && surface.includes("本数練"), "volume mode missing");
