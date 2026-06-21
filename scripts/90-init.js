@@ -31,8 +31,27 @@ function freshReload(){
     reload();
   }
 }
+function showRenderFallback(){
+  const m=$("#main");
+  if(!m) return;
+  m.innerHTML=`<section class="bootFallback" id="bootFallback" aria-live="polite" style="opacity:1;visibility:visible;pointer-events:auto">
+    <img class="bootIcon" src="icon.svg" width="48" height="48" alt="">
+    <h2>読み込みに時間がかかっています</h2>
+    <p>通信が不安定な場合は再読み込みしてください。記録は端末内に保存されます。</p>
+    <button class="btn bootReload" type="button" id="bootRetry">再読み込み</button>
+  </section>`;
+  const btn=$("#bootRetry");
+  if(btn) btn.onclick=()=>location.reload();
+}
 function bootApp(){
-  const run=()=>render();
+  window.__booted=true;
+  const run=()=>{
+    try{ render(); }
+    catch(e){
+      console.error(e);
+      showRenderFallback();
+    }
+  };
   if(typeof maybeRunOnboard==="function"&&maybeRunOnboard(run)) return;
   run();
 }
@@ -47,10 +66,20 @@ async function matonoteStartup(){
   applyTheme();
   if(typeof syncUiRefreshClass==="function") syncUiRefreshClass();
   if(typeof ensureUiDepth==="function") ensureUiDepth(db.settings);
-  $("#btnSettings").onclick=openSettings;
+  if(typeof openSettings==="function") $("#btnSettings").onclick=openSettings;
   $("#updBar").onclick=freshReload;
   document.addEventListener("visibilitychange",()=>{ if(document.hidden) flushSafetySnapshot(); else checkUpdate(); });
   window.addEventListener("pagehide",()=>flushSafetySnapshot());
   checkUpdate();
 }
-matonoteStartup().then(()=>bootApp()).catch(()=>bootApp());
+const bootStartup=matonoteStartup().then(()=>bootApp()).catch(()=>bootApp());
+const bootWatchdog=setTimeout(()=>{
+  if(!window.__booted){
+    if(typeof bootApp==="function") bootApp();
+    else if(typeof render==="function"){
+      window.__booted=true;
+      try{ render(); }catch(e){ showRenderFallback(); }
+    }else showRenderFallback();
+  }
+},5000);
+bootStartup.finally(()=>clearTimeout(bootWatchdog));

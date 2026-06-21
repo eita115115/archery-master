@@ -43,7 +43,10 @@ function render() {
   const effectiveView = db.active ? "record" : view;
   const activeIndex = Math.max(0, tabs.findIndex((b) => b.dataset.v === effectiveView));
   const tabBar = $("#tabs");
-  if (tabBar) tabBar.style.setProperty("--active-tab", activeIndex);
+  if (tabBar) {
+    tabBar.style.setProperty("--active-tab", activeIndex);
+    tabBar.style.setProperty("--tab-count", tabs.length);
+  }
   tabs.forEach((b) => {
     const on=b.dataset.v === effectiveView;
     b.classList.toggle("on", on);
@@ -56,7 +59,12 @@ function render() {
   if (effectiveView === "record") {
     if (db.active) renderActive(m);
     else renderRecordIdle(m);
-  } else if (effectiveView === "analysis") renderAnalysis(m);
+  } else if (effectiveView === "analysis") {
+    if (typeof renderAnalysis === "function") renderAnalysis(m);
+    else m.innerHTML=`<section class="an-emptyState card"><p class="an-emptyTitle">分析画面を読み込めませんでした</p><p class="an-emptyHint">再読み込みしてください。</p><button class="btn an-emptyCta" type="button" id="analysisReload">再読み込み</button></section>`;
+    const reloadBtn=$("#analysisReload");
+    if(reloadBtn) reloadBtn.onclick=()=>location.reload();
+  }
   else if (effectiveView === "history") renderHistory(m);
   else if (effectiveView === "stats") renderStats(m);
   else renderHome(m);

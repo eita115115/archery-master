@@ -202,5 +202,7 @@ html.ui-refresh .badgeRingLabel{
   html.ui-refresh .onboardStep.ui-onboard-step-enter,
   html.ui-refresh .onboardLead.ui-onboard-step-enter,
   html.ui-refresh .onboardSheet .startPrimary.ui-onboard-step-enter,
-  html.ui-refresh .badgeRingFill.ui-ring-draw,
+  html.ui-refresh .badgeRingFill.ui-ring-draw{
+    animation:none;
+  }
 }

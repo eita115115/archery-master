@@ -58,12 +58,15 @@ html.ui-refresh nav.tabs button[data-v="analysis"].on .ic-svg{
 }
 html.ui-refresh nav.tabs{
   display:grid;
-  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-columns:repeat(var(--tab-count,5),minmax(0,1fr));
+  box-sizing:border-box;
+  padding-inline:1px;
 }
 html.ui-refresh nav.tabs button{
   font-size:10px;
   padding:4px 0 2px;
   min-width:0;
+  overflow:hidden;
 }
 
 html.ui-refresh{

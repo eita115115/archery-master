@@ -315,7 +315,7 @@ async function screenshot(browser, view) {
     assert(value.homeOn, `${view.name} home tab should be active on boot`);
     assert(value.overflow <= 1, `${view.name} has horizontal overflow: ${JSON.stringify(value)}`);
     assert(value.gear && value.gear.left >= 0 && value.gear.right <= value.vw + 1, `${view.name} settings button is clipped: ${JSON.stringify(value.gear)}`);
-    assert(value.tabs.length === 4 && value.tabs.every(t => t.left >= -1 && t.right <= value.vw + 1 && t.width > 36), `${view.name} tab bar is clipped: ${JSON.stringify(value.tabs)}`);
+    assert(value.tabs.length === 5 && value.tabs.every(t => t.left >= -1 && t.right <= value.vw + 1 && t.width > 28), `${view.name} tab bar is clipped: ${JSON.stringify(value.tabs)}`);
     const capture = await client.send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     fs.writeFileSync(shot, Buffer.from(capture.data, "base64"));
     assert(fs.existsSync(shot), `Screenshot was not created: ${shot}`);

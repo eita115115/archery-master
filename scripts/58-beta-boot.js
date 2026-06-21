@@ -79,7 +79,10 @@ async function fetchBetaProfile(){
     return betaOptIn()?betaFallbackProfile():null;
   }
   try{
-    const res=await fetch("beta.json?ts="+Date.now(),{cache:"no-store"});
+    const ctrl=new AbortController();
+    const tm=setTimeout(()=>ctrl.abort(),4000);
+    const res=await fetch("beta.json?ts="+Date.now(),{cache:"no-store",signal:ctrl.signal});
+    clearTimeout(tm);
     if(!res.ok) return betaOptIn()?betaFallbackProfile():null;
     return await res.json();
   }catch(e){
