@@ -13,7 +13,7 @@ function onboardSheetHtml(){
   return `<div class="sheet onboardSheet">
     <h3>Archery-master へようこそ</h3>
     <div class="onboardSteps">
-      <div class="onboardStep"><img src="icon.svg" width="40" height="40" alt=""><div><b>数字で入力</b><span>ボタンで素早く記録</span></div></div>
+      <div class="onboardStep"><img src="icon-512.png" width="40" height="40" alt=""><div><b>数字で入力</b><span>ボタンで素早く記録</span></div></div>
       <div class="onboardStep"><span class="onboardGlyph" aria-hidden="true">◎</span><div><b>的をタップ</b><span>着弾位置も残せます</span></div></div>
       <div class="onboardStep"><span class="onboardGlyph" aria-hidden="true">↩</span><div><b>あとから直せます</b><span>矢を選んで微調整</span></div></div>
     </div>

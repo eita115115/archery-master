@@ -53,9 +53,9 @@ function homeSessionCardHtml(sess,opts){
   </button>`;
 }
 function homeEmptyCardHtml(){
-  return `<section class="homeSessionCard homeSessionCard--empty card" aria-label="記録なし">
-    <p class="homeEmptyLead">まだ記録がありません</p>
-    <p class="homeEmptyHint">右下の＋から、今日の記録を始められます</p>
+  return `<section class="homeRecentStatus" aria-label="記録なし">
+    <span class="homeRecentIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-history"/></svg></span>
+    <p class="homeEmptyLead">まだ記録はありません</p>
   </section>`;
 }
 function weekArrowCount(){
@@ -121,22 +121,26 @@ function renderHome(m){
   const condPreview=`${defDist}m · ${actionFaceLabel(defFace)}${setup?` · ${setup.name}`:` · 用具未指定`}`;
   const ctx={last,defSetup,defDist,defFace,mode,onStart:()=>showView("record")};
   m.innerHTML=`
-  ${homeLocalNoticeHtml()}
+  <section class="homeSightPanel" aria-labelledby="homeSightTitle">
+    <p class="homeSightEyebrow">TODAY / SESSION</p>
+    <h2 id="homeSightTitle">今日の練習</h2>
+    <button class="homeSightConditions" id="openConditions" type="button" aria-label="条件を変える ${esc(condPreview)}">
+      <span class="homeSightConditionIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+      <span class="homeSightConditionText ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
+      <span class="homeSightConditionArrow" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-chevron-right"/></svg></span>
+    </button>
+    <button class="homeSightStart" id="quickStart" type="button" aria-label="記録を始める">
+      <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+      <span class="homeSightStartLabel">記録を始める</span>
+    </button>
+  </section>
   ${homeFeedHtml()}
-  <details class="an-advancedStats">
+  ${last?recordFastActionsHtml(last,defDist,defFace,setup):""}
+  ${last?`<details class="an-advancedStats">
     <summary>週間サマリー</summary>
     ${dashCompactHtml()}
-  </details>
-  ${recordFastActionsHtml(last,defDist,defFace,setup)}
-  <button class="homeFab" id="quickStart" type="button" aria-label="今日の記録を始める">
-    <span class="homeFabIcon" aria-hidden="true">+</span>
-  </button>
-  <button class="listItem homeConditions ds-conditions" type="button" id="openConditions">
-    <span class="ds-conditionsBody">
-      <span class="ds-conditionsLabel">条件を変える</span>
-      <span class="ds-conditionsMeta ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
-    </span>
-  </button>`;
+  </details>`:""}
+  ${homeLocalNoticeHtml()}`;
   $("#quickStart").onclick=()=>quickStartSession(ctx);
   $("#openConditions").onclick=()=>openLaunchSheet(ctx);
   const quickHistory=$("#quickHistory");
@@ -151,10 +155,9 @@ function renderHome(m){
 function renderRecordIdle(m){
   m.innerHTML=`<section class="an-emptyState card idlePrompt">
     <span class="an-emptyIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
-    <p class="an-emptyTitle">スコア記録を始める</p>
-    <p class="an-emptyHint">右下の＋ボタンから新しいセッションを作成し、練習のスコアを記録しましょう</p>
-    <button class="btn an-emptyCta" id="goHome" type="button">新規作成</button>
-    <p class="idleLead" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">ホームの「今日の記録を始める」から開始できます</p>
+    <p class="an-emptyTitle">記録を始める</p>
+    <p class="an-emptyHint">ホームで距離と的を確認して開始します。</p>
+    <button class="btn an-emptyCta" id="goHome" type="button">ホームへ</button>
   </section>`;
   $("#goHome").onclick=()=>{ view="home"; render(); };
 }

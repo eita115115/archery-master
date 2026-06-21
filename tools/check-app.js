@@ -73,9 +73,9 @@ assert(fs.existsSync(path.join(root, "pose_landmarker_lite.task")), "pose_landma
 assert(html.includes("Archery-master") && !html.includes("的ノート") && !html.includes("Archery Note"), "Archery-master branding missing");
 assert(surface.includes("--active-tab") && surface.includes("nav.tabs::before") && surface.includes('setProperty("--active-tab"'), "Smooth state-following tab motion missing");
 assert(!surface.includes("targetImpact") && !surface.includes("screenIn") && !surface.includes("triggerReleaseMotion") && !surface.includes("arrowFlight"), "Overdone transition/target animation should not return");
-assert(surface.includes("今日のズレを、次の一射へ") && surface.includes("点取りから調整提案へ") && surface.includes("足りないデータを見る"), "onboarding UI missing");
+assert(surface.includes("記録方法を選ぶ") && surface.includes("点取りから調整提案へ") && surface.includes("足りないデータを見る"), "onboarding UI missing");
 assert(surface.includes("読み込みに時間がかかっています") && surface.includes("bootFallback") && surface.includes("bootFallbackDelay") && html.includes('id="updBar" hidden'), "startup/update fallback should be calm and initially hidden");
-assert(surface.includes("dashCompact") && surface.includes("dashBoard") && surface.includes("今日の記録を始める") && surface.includes("前回と同じ") && surface.includes("homeActions") && surface.includes("quickStartMeta") && surface.includes("quickStartSession") && surface.includes("openLaunchSheet") && surface.includes("条件を変える") && surface.includes("ds-conditionsMeta") && surface.includes("actionFaceLabel") && !surface.includes("今の条件で開始") && surface.includes("quickSelects") && surface.includes("recordSetupSnapshot") && surface.includes("inputModeBarHtml") && surface.includes("openInputMoreSheet") && surface.includes("写真で読み取り") && surface.includes("今日の記録を始める」から開始"), "UI-P2 home/record launch missing");
+assert(surface.includes("dashCompact") && surface.includes("dashBoard") && surface.includes("記録を始める") && surface.includes("前回と同じ") && surface.includes("homeActions") && surface.includes("quickStartMeta") && surface.includes("quickStartSession") && surface.includes("openLaunchSheet") && surface.includes("条件を変える") && surface.includes("homeSightConditions") && surface.includes("actionFaceLabel") && !surface.includes("今の条件で開始") && surface.includes("quickSelects") && surface.includes("recordSetupSnapshot") && surface.includes("inputModeBarHtml") && surface.includes("openInputMoreSheet") && surface.includes("写真で読み取り") && surface.includes("ホームで距離と的を確認して開始します。"), "UI-P2 home/record launch missing");
 assert(surface.includes("recordIntroHtml") && surface.includes("missionPanel") && surface.includes("convergeMission"), "record intro helpers retained for depth/tools");
 assert(html.includes("練習ノート") && !html.includes("アーチェリー練習ノート"), "Header subtitle should be shortened");
 assert(surface.includes("compactHud") && !surface.includes("まず今日の記録を始める。詳しい材料") && !surface.includes("距離・的サイズはこの画面で変更できます") && !surface.includes("タップ＆ドラッグで確定"), "Record screen should stay compact and low-noise");
@@ -92,7 +92,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"))
 const packageLock = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8"));
 const cap = JSON.parse(fs.readFileSync(path.join(root, "capacitor.config.json"), "utf8"));
 const webManifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
-assert(webManifest.description && webManifest.description.includes("サイト調整"), "Manifest description missing");
+assert(webManifest.description && webManifest.description.includes("端末に記録"), "Manifest description missing");
 assert(pkg.version === `0.${version}.0` && packageLock.version === pkg.version && packageLock.packages[""].version === pkg.version, "Package version mismatch");
 assert(pkg.scripts["build:native-web"] && pkg.scripts["native:sync"], "Native build scripts missing");
 assert(pkg.scripts["version:bump"], "Version bump script missing");

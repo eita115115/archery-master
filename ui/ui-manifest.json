@@ -12,7 +12,8 @@
     "ui/ds-components.css",
     "ui/ds-screens.css",
     "ui/ui-motion.css",
-    "ui/ui-overrides.css"
+    "ui/ui-overrides.css",
+    "ui/neon-sight.css"
   ],
   "scripts": [
     "scripts/54-motion.js",
@@ -28,7 +29,8 @@
     "<link rel=\"stylesheet\" href=\"ui/ds-components.css\">",
     "<link rel=\"stylesheet\" href=\"ui/ds-screens.css\">",
     "<link rel=\"stylesheet\" href=\"ui/ui-motion.css\">",
-    "<link rel=\"stylesheet\" href=\"ui/ui-overrides.css\">"
+    "<link rel=\"stylesheet\" href=\"ui/ui-overrides.css\">",
+    "<link rel=\"stylesheet\" href=\"ui/neon-sight.css\">"
   ],
   "initHooks": [
     "maybeRunOnboard()",

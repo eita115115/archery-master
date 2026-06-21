@@ -3,10 +3,10 @@
     <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
   </symbol>
   <symbol id="ic-record" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
-    <circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".75"/>
-    <circle cx="12" cy="12" r="2.75" fill="none" stroke="currentColor" stroke-width="1.25" opacity=".55"/>
-    <circle cx="12" cy="12" r="1" fill="currentColor"/>
+    <circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="inherit"/>
+    <circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="inherit" opacity=".72"/>
+    <circle cx="12" cy="12" r="2.75" fill="none" stroke="currentColor" stroke-width="inherit" opacity=".5"/>
+    <circle cx="12" cy="12" r=".38" fill="var(--target-core,currentColor)" stroke="none"/>
   </symbol>
   <symbol id="ic-history" viewBox="0 0 24 24">
     <path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>

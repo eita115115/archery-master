@@ -13,8 +13,7 @@ function pageHeroHtml(type,ctx){
     const latest=src[0]||null;
     return `<section class="pageHero">
       <div class="kicker">履歴</div>
-      <h2>分布と偏移を読む</h2>
-      <p>点数だけでなく、同じ用具・同じ距離の中心移動を追います。過去のグルーピングがあるほど、今回のズレが偶然か傾向か見えやすくなります。</p>
+      <h2>練習履歴</h2>
       <div class="heroMetrics">
         ${heroMetricHtml("練習",`${src.length}回`,`${arrows.length}本を集計`)}
         ${heroMetricHtml("平均",arrows.length?(total/arrows.length).toFixed(2):"—","フィルター後の平均点")}
@@ -27,8 +26,7 @@ function pageHeroHtml(type,ctx){
     const cur=marks[0];
     return `<section class="pageHero">
       <div class="kicker">サイト調整</div>
-      <h2>サイト値を整える</h2>
-      <p>距離ごとのサイト値と最新グルーピングから、動かす時・保留する時・射形を優先する時を分けて見ます。</p>
+      <h2>サイト記録</h2>
       <div class="heroMetrics">
         ${heroMetricHtml("対象",setup?setup.name:"用具未指定",dist?`${dist}m`:"距離未指定")}
         ${heroMetricHtml("最新サイト",cur?`上下 ${cur.v||"—"}`:"未登録",cur?`左右 ${cur.h||"—"}`:"台帳へ記録")}
@@ -43,8 +41,7 @@ function pageHeroHtml(type,ctx){
     const best=setups.map(s=>({s,p:gearPrecisionProfile(s),m:modelReadinessProfile(s.id)})).sort((a,b)=>(b.p.score+b.m.score)-(a.p.score+a.m.score))[0];
     return `<section class="pageHero">
       <div class="kicker">用具</div>
-      <h2>いつものセッティングを残す</h2>
-      <p>ハンドル、リム、矢、サイト値をまとめて保存します。分かる範囲だけで始めて、必要な時だけ細かい実測値を足せます。</p>
+      <h2>用具セッティング</h2>
       <div class="heroMetrics">
         ${heroMetricHtml("登録",`${setups.length}件`,`${db.sessions.filter(s=>s.setupId).length}回の練習に接続`)}
         ${heroMetricHtml("入力材料",pct(avg),"用具データの平均充実度")}

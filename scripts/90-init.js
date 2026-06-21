@@ -35,7 +35,7 @@ function showRenderFallback(){
   const m=$("#main");
   if(!m) return;
   m.innerHTML=`<section class="bootFallback" id="bootFallback" aria-live="polite" style="opacity:1;visibility:visible;pointer-events:auto">
-    <img class="bootIcon" src="icon.svg" width="48" height="48" alt="">
+    <img class="bootIcon" src="icon-512.png" width="48" height="48" alt="">
     <h2>読み込みに時間がかかっています</h2>
     <p>通信が不安定な場合は再読み込みしてください。記録は端末内に保存されます。</p>
     <button class="btn bootReload" type="button" id="bootRetry">再読み込み</button>

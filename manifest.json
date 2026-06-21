@@ -1,14 +1,14 @@
 {
   "name": "Archery-master — アーチェリー練習ノート",
   "short_name": "Archery-master",
-  "description": "タップ・写真・数字で記録。サイト調整の判断まで、シンプルに。",
+  "description": "アーチェリーの得点、着弾、用具を端末に記録する練習ノート。",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F2F0EB",
-  "theme_color": "#146356",
+  "background_color": "#05090B",
+  "theme_color": "#05090B",
   "lang": "ja",
   "icons": [
-    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
-    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any maskable" }
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
   ]
 }

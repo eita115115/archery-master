@@ -34,7 +34,7 @@ function statsSummaryHeroHtml(overview, filtered) {
   </section>
   <div class="an-metricGrid" aria-label="概要">
     <div class="an-metricTile"><span class="k">総ラウンド</span><p class="v">${overview.sessions || 0}</p></div>
-    <div class="an-metricTile"><span class="k">総Hit数</span><p class="v">${overview.arrows || 0}</p></div>
+    <div class="an-metricTile"><span class="k">総射数</span><p class="v">${overview.arrows || 0}</p></div>
     <div class="an-metricTile"><span class="k">練習日数</span><p class="v">${statsPracticeDays(filtered)}</p></div>
     <div class="an-metricTile an-metricTile--accent"><span class="k">最高スコア</span><p class="v">${overview.best || "—"}</p></div>
   </div>`;
@@ -44,10 +44,10 @@ function statsTrendCardHtml(filtered, lineData) {
   const ready = filtered.length >= 2;
   return `<section class="an-chartCard">
     <h3>ラウンドごとの推移</h3>
-    <p class="sub">記録が2件以上集まると推移が描かれます</p>
+    ${ready ? `<p class="sub">合計点と移動平均</p>` : ""}
     ${ready
       ? `<div class="chartWrap">${dualLineChartSvg(lineData, { title: "スコア推移", color: "var(--green)" })}</div>`
-      : `<div class="an-chartEmpty">もう1ラウンド記録すると推移が見えます</div>`}
+      : `<div class="an-chartEmpty">${filtered.length ? "もう1ラウンドで表示されます" : "2ラウンド以上で表示されます"}</div>`}
   </section>`;
 }
 

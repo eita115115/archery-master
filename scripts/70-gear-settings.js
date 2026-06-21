@@ -385,6 +385,9 @@ function applyTheme(){
   root.classList.remove("light","dark","auto");
   root.classList.add(t);
 }
+function settingsIconHtml(id){
+  return `<svg class="ic-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="ui/icons.svg#${id}"/></svg>`;
+}
 function openSettings(){
   const ovl=document.createElement("div"); ovl.className="ovl";
   const th=db.settings.theme||"auto";
@@ -394,9 +397,9 @@ function openSettings(){
     <div class="an-settingsSection">
       <p class="an-settingsHdr">ツール</p>
       <div class="an-settingsGroup settingsNav">
-        <button class="an-settingsRow" type="button" data-tool="sight"><span class="an-rowIcon">◎</span><span class="an-rowBody">サイト調整（分析タブ）</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow" type="button" data-tool="form"><span class="an-rowIcon">▶</span><span class="an-rowBody">射形トラッキング（分析タブ）</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow" type="button" data-tool="gear"><span class="an-rowIcon">🏹</span><span class="an-rowBody">用具セッティング</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="sight"><span class="an-rowIcon">${settingsIconHtml("ic-record")}</span><span class="an-rowBody">サイト調整（分析タブ）</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="form"><span class="an-rowIcon">${settingsIconHtml("ic-analysis")}</span><span class="an-rowBody">射形トラッキング（分析タブ）</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="gear"><span class="an-rowIcon">${settingsIconHtml("ic-gear")}</span><span class="an-rowBody">用具セッティング</span><span class="an-rowChevron">›</span></button>
       </div>
       <p class="formFpDisclaimer formFpDisclaimerCompact settingsDisclaimer">練習用計測 — コーチ・審判の代替ではありません。無マーカー時は弓追跡を保証しません。</p>
     </div>
@@ -424,10 +427,10 @@ function openSettings(){
       <p class="an-settingsHdr">データ管理</p>
       ${backupReminderHtml()}
       <div class="an-settingsGroup settingsGroup">
-        <button class="an-settingsRow settingsRow" type="button" id="dExp"><span class="an-rowIcon">💾</span><span class="an-rowBody">バックアップ保存</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow settingsRow" type="button" id="dImp"><span class="an-rowIcon">📂</span><span class="an-rowBody">読み込み</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow settingsRow" type="button" id="dCsv"><span class="an-rowIcon">📊</span><span class="an-rowBody">CSV出力</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow settingsRow" type="button" id="dAiPrep"><span class="an-rowIcon">⬇</span><span class="an-rowBody">オフライン用データをダウンロード</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dExp"><span class="an-rowIcon">${settingsIconHtml("ic-cloud")}</span><span class="an-rowBody">バックアップ保存</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dImp"><span class="an-rowIcon">${settingsIconHtml("ic-history")}</span><span class="an-rowBody">読み込み</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dCsv"><span class="an-rowIcon">${settingsIconHtml("ic-stats")}</span><span class="an-rowBody">CSV出力</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dAiPrep"><span class="an-rowIcon">${settingsIconHtml("ic-cloud")}</span><span class="an-rowBody">オフライン用データをダウンロード</span></button>
       </div>
       <input type="file" id="dFile" accept=".json" style="display:none">
     </div>
@@ -438,14 +441,14 @@ function openSettings(){
           <label class="settingsRowLabel" for="dSnapSel">復元候補</label>
           <select class="inp" id="dSnapSel">${snaps.map((s,i)=>`<option value="${i}">${esc(snapshotLabel(s))}</option>`).join("")}</select>
         </div>`:`<div class="settingsRow settingsRowNote" style="padding:var(--ui-space-3) var(--ui-space-4)">自動バックアップはまだありません。保存操作を行うと端末内に復元用バックアップが残ります。</div>`}
-        <button class="an-settingsRow settingsRow" type="button" id="dSnapNow"><span class="an-rowBody">今すぐバックアップ</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dSnapNow"><span class="an-rowBody">今すぐバックアップ</span></button>
         <button class="an-settingsRow settingsRow settingsRowAction" type="button" id="dSnapRestore" ${snaps.length?"":"disabled"}><span class="an-rowBody">選択したバックアップを復元</span><span class="an-rowChevron">›</span></button>
       </div>
     </div>
     <div class="an-settingsSection">
       <p class="an-settingsHdr">情報</p>
       <div class="an-settingsGroup">
-        <button class="an-settingsRow" type="button" id="setOnboard"><span class="an-rowIcon">📖</span><span class="an-rowBody">オンボーディングを見る</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" id="setOnboard"><span class="an-rowIcon">${settingsIconHtml("ic-home")}</span><span class="an-rowBody">使い方を見る</span><span class="an-rowChevron">›</span></button>
       </div>
     </div>
     <div class="settingsSection">${trashSettingsHtml()}</div>

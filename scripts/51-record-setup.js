@@ -38,7 +38,7 @@ function recordPhaseArcHtml(step, subtitle){
 }
 function recordCoachCardHtml(){
   return `<div class="coachCard">
-    <img src="icon.svg" alt="">
+    <img src="icon-512.png" alt="">
     <div><b>3ステップで使います</b><span>条件を決める → 的でタップ → 結果で次の調整を見る</span></div>
   </div>`;
 }
@@ -49,11 +49,11 @@ function recordIntroHtml(sys, mode){
   const nf=nativeFeatureProfile();
   return `<section class="missionPanel convergeMission">
     <div class="missionTop">
-      <img class="startLogoMark" src="icon.svg" alt="">
+      <img class="startLogoMark" src="icon-512.png" alt="">
       <div>
-        <div class="eyebrow">Archery-master</div>
-        <h2>${mode==="calibration"?"サイト値も残す":"今日のズレを、次の一射へ。"}</h2>
-        <p>グリッド・タップ・ライブ・動画で記録。サイトを動かすか・保留するか、データで判断できます。</p>
+        <div class="eyebrow">記録</div>
+        <h2>${mode==="calibration"?"サイト値を記録":"記録方法を選ぶ"}</h2>
+        <p>条件と入力方法を選んで記録を始めます。</p>
       </div>
       <div class="readinessDial"><b>${scorePct(sys.score)}</b><span>${esc(sys.level)}</span></div>
     </div>
@@ -261,7 +261,7 @@ function roundPresetListHtml(limit){
     ${ids.slice(0,limit||6).map(id=>{
       const m=roundPresetMeta(id);
       return `<button type="button" class="an-roundItem" data-round-preset="${id}">
-        <span class="an-roundIcon ${m.indoor?"an-roundIcon--indoor":"an-roundIcon--outdoor"}" aria-hidden="true">↑</span>
+        <span class="an-roundIcon ${m.indoor?"an-roundIcon--indoor":"an-roundIcon--outdoor"}" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
         <span class="an-roundBody">
           <p class="an-roundTitle">${esc(m.label)}</p>
           <p class="an-roundMeta">${esc(m.detail||"プリセット")}</p>
@@ -272,10 +272,8 @@ function roundPresetListHtml(limit){
   </section>`;
 }
 function recordFastActionsHtml(last,dist,faceValue,setup){
-  const setupName=setup&&setup.name?setup.name:"用具未指定";
-  const currentLabel=`${dist}m · ${actionFaceLabel(faceValue)} · ${setupName}`;
   return `<section class="homeActions homeActions--compact" aria-label="すぐ使う">
-    <p class="homeActionsLead">今日の記録を始める</p>
+    <p class="homeActionsLead">ショートカット</p>
     <div class="homeActionRow">
       <button class="homeAction sec" id="quickRepeat" type="button" ${last?"":"disabled"}>
         <span class="ds-ctaLead">前回と同じ</span>
@@ -283,7 +281,6 @@ function recordFastActionsHtml(last,dist,faceValue,setup){
       </button>
       <button class="homeAction sec" id="quickHistory" type="button"><span class="ds-ctaLead">履歴</span></button>
     </div>
-    <span class="homeActionsMeta ds-truncate" id="quickStartMeta">${esc(currentLabel)}</span>
   </section>`;
 }
 function quickStartSession(ctx){
@@ -357,7 +354,7 @@ function renderRecordSetup(m,ctx){
     <div class="launchBody">
     <div class="an-pillRow an-pillRow--wrap" id="launchEnvPills">
       <button type="button" class="an-pill on" data-launch-env="all">すべて</button>
-      <button type="button" class="an-pill" data-launch-env="indoor">インダア</button>
+      <button type="button" class="an-pill" data-launch-env="indoor">インドア</button>
       <button type="button" class="an-pill" data-launch-env="outdoor">アウトドア</button>
     </div>
     ${roundPresetListHtml(6)}

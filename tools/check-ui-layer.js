@@ -25,6 +25,10 @@ function scriptOrderAfter(scripts, anchor, expected) {
 function main() {
   assert(fs.existsSync(manifestPath), "ui/ui-manifest.json missing");
   const manifest = readJson(manifestPath);
+  const neonPath = path.join(root, "ui", "neon-sight.css");
+  assert(fs.existsSync(neonPath), "ui/neon-sight.css missing");
+  const neon = fs.readFileSync(neonPath, "utf8");
+  assert(neon.includes("--neon-teal") && neon.includes(".homeSightPanel") && neon.includes("prefers-reduced-motion"), "Neon Sight stylesheet incomplete");
 
   for (const rel of manifest.staticAssets) {
     const full = path.join(root, rel.replace(/\//g, path.sep));
@@ -64,6 +68,8 @@ function main() {
   const appScriptsPath = path.join(root, "app-scripts.json");
   assert(fs.existsSync(appScriptsPath), "app-scripts.json missing");
   const app = readJson(appScriptsPath);
+  assert(manifest.staticAssets.includes("ui/neon-sight.css"), "ui manifest missing Neon Sight stylesheet");
+  assert(app.staticAssets.includes("icon-512.png") && app.staticAssets.includes("apple-touch-icon.png"), "PWA icon assets missing");
 
   for (const rel of manifest.scripts) {
     assert(app.scripts && app.scripts.includes(rel), `app-scripts.json missing ${rel} (UI_PARALLEL.md §3 B)`);

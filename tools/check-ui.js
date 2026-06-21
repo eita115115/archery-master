@@ -7,7 +7,7 @@ const root = path.resolve(__dirname, "..");
 const htmlPath = path.join(root, "index.html");
 const html = fs.readFileSync(htmlPath, "utf8");
 const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
-const uiCss = ["ui/ui-tokens.css", "ui/ds-components.css", "ui/ds-screens.css", "ui/ui-motion.css", "ui/ui-overrides.css"]
+const uiCss = ["ui/ui-tokens.css", "ui/ds-components.css", "ui/ds-screens.css", "ui/ui-motion.css", "ui/ui-overrides.css", "ui/ds-archery-note.css", "ui/neon-sight.css"]
   .map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
 const appManifest = JSON.parse(fs.readFileSync(path.join(root, "app-scripts.json"), "utf8"));
 const appScripts = appManifest.scripts;
@@ -109,7 +109,11 @@ function staticUiChecks() {
   assert(css.includes("touch-action:manipulation") && css.includes("min-height:48px"), "Touch/chrome styling missing");
   assert(uiCss.includes("html.ui-refresh"), "ui layer CSS must scope to html.ui-refresh");
   assert(surface.includes("@keyframes appRise") && surface.includes("scorePop") && surface.includes("prefers-reduced-motion") && surface.includes("ic-home"), "Motion primitives missing");
-  assert(surface.includes("dashCompact") && surface.includes("今日の記録を始める") && surface.includes("条件を変える") && surface.includes("quickStartSession"), "UI-P2 home missing");
+  assert(surface.includes("dashCompact") && surface.includes("記録を始める") && surface.includes("条件を変える") && surface.includes("quickStartSession"), "UI-P2 home missing");
+  assert(html.includes("ui/neon-sight.css"), "Neon Sight stylesheet link missing");
+  assert(surface.includes("homeSightPanel") && surface.includes("homeReticle") && surface.includes("記録を始める"), "Neon Sight home missing");
+  assert(!surface.includes("今日のズレを、次の一射へ。"), "Promotional record copy remains");
+  assert(!surface.includes("分布と偏移を読む"), "Promotional history hero remains");
   assert(surface.includes("compactHud") && surface.includes("inputModeBarHtml") && surface.includes("openInputMoreSheet"), "UI-P2 record missing");
   assert(surface.includes("syncLiveHudMetrics") && surface.includes("celebrateBest") && surface.includes("pulseTabSpring"), "UI-P5 motion missing");
   assert(appScripts.includes("scripts/54-motion.js") && appScripts.includes("scripts/56-onboard.js") && appScripts.includes("scripts/57-ui-depth.js"), "UI layer scripts not wired");
@@ -301,7 +305,7 @@ async function screenshot(browser, view) {
           vw,
           overflow,
           uiRefresh: document.documentElement.classList.contains("ui-refresh"),
-          hasHomeCta: /今日の記録を始める/.test(mainText),
+          hasHomeCta: /記録を始める/.test(mainText),
           homeOn: !!homeBtn?.classList.contains("on"),
           gear: gear && { left: gear.left, right: gear.right, width: gear.width },
           tabs: tabs.map(t => ({ left: t.left, right: t.right, width: t.width })),
