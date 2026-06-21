@@ -44,6 +44,7 @@ function bindGridInput(s) {
       Object.assign(s.cur[ui.gridCell], edited);
       if(typeof onArrowScored==="function") onArrowScored(s.cur[ui.gridCell],ui.gridCell);
       else nativePulse("light");
+      ui.gridCell = -1;
       save(); refreshActive();
       return;
     }
@@ -54,7 +55,7 @@ function bindGridInput(s) {
     if (typeof isTeamSetRound === "function" && isTeamSetRound(s) && typeof tagTeamArrow === "function") tagTeamArrow(arrow, s.cur.length);
     s.cur.push(arrow);
     ui.freshArrow = s.cur.length - 1;
-    ui.gridCell = s.cur.length - 1;
+    ui.gridCell = -1;
     if(typeof onArrowScored==="function") onArrowScored(arrow,ui.freshArrow);
     else nativePulse("light");
     save(); refreshActive();

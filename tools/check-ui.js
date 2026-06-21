@@ -326,6 +326,35 @@ async function screenshot(browser, view) {
     const size = pngSize(shot);
     assert(size.width === view.width && size.height === view.height, `Unexpected screenshot size for ${view.name}: ${size.width}x${size.height}`);
     assert(size.bytes > 12000, `Screenshot too small for ${view.name}: ${size.bytes} bytes`);
+    if (view.name === "iphone-390") {
+      const recordInput = await client.send("Runtime.evaluate", {
+        expression: `(async () => {
+          document.querySelector("#quickStart")?.click();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          for (const value of ["10", "9", "8"]) {
+            const button = document.querySelector('#gridKeys button[data-v="' + value + '"]');
+            if (!button) return { error: "missing score button " + value };
+            button.click();
+            await new Promise(resolve => requestAnimationFrame(resolve));
+          }
+          document.querySelector('#scoreGrid .gridCell[data-end="0"][data-i="1"]')?.click();
+          document.querySelector('#gridKeys button[data-v="7"]')?.click();
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          document.querySelector('#gridKeys button[data-v="6"]')?.click();
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          return {
+            scores: (db.active?.cur || []).map(scoreLabel),
+            selectedCell: ui.gridCell,
+          };
+        })()`,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      const inputValue = recordInput.result.value;
+      assert(!inputValue.error, `${view.name} record input failed: ${inputValue.error}`);
+      assert(inputValue.scores.join(",") === "10,7,8,6", `${view.name} score buttons must advance after entry and a cell edit: ${JSON.stringify(inputValue)}`);
+      assert(inputValue.selectedCell === -1, `${view.name} score entry should not leave the last cell in edit mode: ${JSON.stringify(inputValue)}`);
+    }
     return { file: shot, ...size };
   } finally {
     if (client) client.close();

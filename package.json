@@ -1,6 +1,6 @@
 {
   "name": "archery-master",
-  "version": "0.76.0",
+  "version": "0.77.0",
   "private": true,
   "description": "Archery scoring, sight adjustment, and equipment notebook with a native-ready shell.",
   "scripts": {
