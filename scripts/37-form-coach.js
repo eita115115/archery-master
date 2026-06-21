@@ -1503,7 +1503,9 @@ function renderFormCoachPanel(mount) {
   stopFormCoach();
   mount.innerHTML = `
   <section class="card formCoachPanel">
-    <h2>射形の確認</h2>
+    <div class="an-screenHead"><h2 class="an-screenTitle">フォームトラッキング(β)</h2></div>
+    <div class="an-betaBanner"><span class="an-betaTag">BETA</span><span>ベータ版です。フィードバックをいただけると助かります。</span></div>
+    <div class="an-limitBanner"><span aria-hidden="true">⏱</span><span>練習用計測 — コーチ・審判の代替ではありません。</span></div>
     <p>カメラまたは動画でフォームを確認。頭・弓手・引き手の動きとコメントを表示します。</p>
     ${formExpectationsBlockHtml(false)}
     ${formBenchAccuracyBlockHtml()}
@@ -1538,6 +1540,7 @@ function renderFormCoachPanel(mount) {
       <button class="btn sec" id="formCamStart" type="button">カメラ開始</button>
       <button class="btn ghost" id="formCamStop" type="button">停止</button>
     </div>
+    <button class="an-galleryCta" id="formGalleryPick" type="button">ギャラリーから選択</button>
     <div class="formMetrics" id="formMetrics"></div>
     <div class="formCompare" id="formCompare"></div>
     <div class="formAdvice" id="formAdvice"></div>
@@ -1572,6 +1575,11 @@ function renderFormCoachPanel(mount) {
     } catch (err) {
       toast(err && err.message ? err.message : "カメラを起動できませんでした");
     }
+  };
+  const galleryBtn = root.querySelector("#formGalleryPick");
+  if (galleryBtn) galleryBtn.onclick = () => {
+    const fileInput = root.querySelector("#formFile");
+    if (fileInput) fileInput.click();
   };
   root.querySelector("#formCamStop").onclick = () => {
     const precisionMode = formPrecisionModeFromRoot(root);

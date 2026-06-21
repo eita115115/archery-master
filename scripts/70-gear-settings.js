@@ -389,56 +389,72 @@ function openSettings(){
   const th=db.settings.theme||"auto";
   const expert=!!db.settings.expertMode;
   const snaps=readSnapshots();
-  ovl.innerHTML=`<div class="sheet"><h3>設定</h3>
-    <div class="settingsSection">
-      <div class="listGroupHdr">ツール</div>
-      <div class="settingsNav">
-        <button class="settingsLink" type="button" data-tool="sight">サイト調整</button>
-        <button class="settingsLink" type="button" data-tool="gear">用具セッティング</button>
-        <button class="settingsLink" type="button" data-tool="form">射形の確認</button>
+  ovl.innerHTML=`<div class="sheet an-settingsSheet"><h3>設定</h3>
+    <button class="an-promoBanner" type="button" id="setBetaInfo">
+      <h4>Archery-master ベータ</h4>
+      <p>全機能搭載で練習に集中。記録は端末内に保存されます。</p>
+      <div class="an-promoPills">
+        <span class="an-promoPill an-promoPill--green">広告なし</span>
+        <span class="an-promoPill an-promoPill--purple">詳細分析</span>
+        <span class="an-promoPill">新機能を先行利用</span>
+      </div>
+    </button>
+    <div class="an-settingsSection">
+      <p class="an-settingsHdr">ツール</p>
+      <div class="an-settingsGroup settingsNav">
+        <button class="an-settingsRow" type="button" data-tool="sight"><span class="an-rowIcon">🎯</span><span class="an-rowBody">サイト調整</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="gear"><span class="an-rowIcon">🏹</span><span class="an-rowBody">用具セッティング</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow" type="button" data-tool="form"><span class="an-rowIcon">📹</span><span class="an-rowBody">射形の確認</span><span class="an-rowChevron">›</span></button>
       </div>
       <p class="formFpDisclaimer formFpDisclaimerCompact settingsDisclaimer">練習用計測 — コーチ・審判の代替ではありません。無マーカー時は弓追跡を保証しません。</p>
     </div>
-    <div class="settingsSection">
-      <div class="listGroupHdr">表示</div>
-      <div class="settingsGroup">
-        <div class="settingsRow settingsRowStack">
+    <div class="an-settingsSection settingsSection">
+      <p class="an-settingsHdr">表示</p>
+      <div class="an-settingsGroup settingsGroup">
+        <div class="settingsRow settingsRowStack" style="border-bottom:1px solid var(--ui-separator);padding:var(--ui-space-3) var(--ui-space-4)">
           <span class="settingsRowLabel">テーマ</span>
           <div class="chips" id="thChips">
             ${[["auto","自動（端末に合わせる）"],["light","ライト"],["dark","ダーク"]].map(([v,lb])=>`<div class="chip ${th===v?"on":""}" data-th="${v}">${lb}</div>`).join("")}
           </div>
         </div>
-        <div class="settingsRow settingsRowStack">
+        <div class="settingsRow settingsRowStack" style="border-bottom:1px solid var(--ui-separator);padding:var(--ui-space-3) var(--ui-space-4)">
           <label class="settingsRowLabel" for="setEye">アイ〜サイト距離 (mm)</label>
           <input class="inp" id="setEye" inputmode="numeric" value="${db.settings.eyeSight||850}">
           <span class="settingsRowCaption">調整提案の目安計算に使用します</span>
         </div>
-        <label class="settingsRow settingsRowToggle">
+        <label class="settingsRow settingsRowToggle" style="padding:var(--ui-space-3) var(--ui-space-4)">
           <span class="settingsRowLabel">詳しい使い方</span>
           <input type="checkbox" id="setExpert" ${expert?"checked":""}>
         </label>
       </div>
     </div>
-    <div class="settingsSection">
-      <div class="listGroupHdr">データ管理</div>
+    <div class="an-settingsSection">
+      <p class="an-settingsHdr">データ管理</p>
       ${backupReminderHtml()}
-      <div class="settingsGroup">
-        <button class="settingsRow" type="button" id="dExp">バックアップ保存</button>
-        <button class="settingsRow" type="button" id="dImp">読み込み</button>
-        <button class="settingsRow" type="button" id="dCsv">CSV出力</button>
-        <button class="settingsRow" type="button" id="dAiPrep">オフライン用データをダウンロード</button>
+      <div class="an-settingsGroup settingsGroup">
+        <button class="an-settingsRow settingsRow" type="button" id="dExp"><span class="an-rowIcon">💾</span><span class="an-rowBody">バックアップ保存</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dImp"><span class="an-rowIcon">📂</span><span class="an-rowBody">読み込み</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dCsv"><span class="an-rowIcon">📊</span><span class="an-rowBody">CSV出力</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow settingsRow" type="button" id="dAiPrep"><span class="an-rowIcon">⬇</span><span class="an-rowBody">オフライン用データをダウンロード</span><span class="an-rowChevron">›</span></button>
       </div>
       <input type="file" id="dFile" accept=".json" style="display:none">
     </div>
-    <div class="settingsSection">
-      <div class="listGroupHdr">自動バックアップ</div>
-      <div class="settingsGroup">
-        ${snaps.length?`<div class="settingsRow settingsRowStack">
+    <div class="an-settingsSection settingsSection">
+      <p class="an-settingsHdr">自動バックアップ</p>
+      <div class="an-settingsGroup settingsGroup">
+        ${snaps.length?`<div class="settingsRow settingsRowStack" style="padding:var(--ui-space-3) var(--ui-space-4)">
           <label class="settingsRowLabel" for="dSnapSel">復元候補</label>
           <select class="inp" id="dSnapSel">${snaps.map((s,i)=>`<option value="${i}">${esc(snapshotLabel(s))}</option>`).join("")}</select>
-        </div>`:`<div class="settingsRow settingsRowNote">自動バックアップはまだありません。保存操作を行うと端末内に復元用バックアップが残ります。</div>`}
-        <button class="settingsRow" type="button" id="dSnapNow">今すぐバックアップ</button>
-        <button class="settingsRow settingsRowAction" type="button" id="dSnapRestore" ${snaps.length?"":"disabled"}>選択したバックアップを復元</button>
+        </div>`:`<div class="settingsRow settingsRowNote" style="padding:var(--ui-space-3) var(--ui-space-4)">自動バックアップはまだありません。保存操作を行うと端末内に復元用バックアップが残ります。</div>`}
+        <button class="an-settingsRow settingsRow" type="button" id="dSnapNow"><span class="an-rowBody">今すぐバックアップ</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow settingsRow settingsRowAction" type="button" id="dSnapRestore" ${snaps.length?"":"disabled"}><span class="an-rowBody">選択したバックアップを復元</span><span class="an-rowChevron">›</span></button>
+      </div>
+    </div>
+    <div class="an-settingsSection">
+      <p class="an-settingsHdr">情報</p>
+      <div class="an-settingsGroup">
+        <button class="an-settingsRow" type="button" id="setOnboard"><span class="an-rowIcon">📖</span><span class="an-rowBody">オンボーディングを見る</span><span class="an-rowChevron">›</span></button>
+        <button class="an-settingsRow an-settingsRow--locked" type="button" disabled><span class="an-rowIcon">☁</span><span class="an-rowBody">クラウド同期</span><span class="an-rowLock">🔒</span></button>
       </div>
     </div>
     <div class="settingsSection">${trashSettingsHtml()}</div>
@@ -468,6 +484,15 @@ function openSettings(){
   ovl.querySelector("#setEye").onchange=e=>{ db.settings.eyeSight=+e.target.value||850; save(); };
   const expertToggle=ovl.querySelector("#setExpert");
   if(expertToggle) expertToggle.onchange=e=>{ db.settings.expertMode=!!e.target.checked; save(); };
+  const setBetaInfo=ovl.querySelector("#setBetaInfo");
+  if(setBetaInfo) setBetaInfo.onclick=()=>toast("ベータ版 — 全機能が有効です。不具合はバックアップ JSON とあわせて共有してください。");
+  const setOnboard=ovl.querySelector("#setOnboard");
+  if(setOnboard) setOnboard.onclick=()=>{
+    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
+    ovl.remove();
+    if(typeof openOnboard==="function") openOnboard(true);
+    else toast("オンボーディングを読み込めませんでした");
+  };
   ovl.querySelector("#setClose").onclick=()=>{
     if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
     ovl.remove(); render();

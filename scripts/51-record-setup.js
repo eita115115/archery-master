@@ -247,6 +247,30 @@ function launchQuadJpPreset(ctx){
   if(ctx.skipCheckIn) start([]);
   else openCheckInModal({dist:18,faceLabel:"40cm四枚",roundLabel:roundLabel("quad60_jp"),focusPoints:[]},start);
 }
+function roundPresetMeta(roundId){
+  const r=roundMeta(roundId);
+  const indoor=!!(r.indoor||String(roundId).includes("18m")||roundId==="quad60_jp");
+  const arrows=r.arrows?`${r.arrows}射`:"自由";
+  const dist=r.dist?`${r.dist}m`:"";
+  const detail=[dist,arrows].filter(Boolean).join(" · ");
+  return {indoor,arrows,detail,label:r.label};
+}
+function roundPresetListHtml(limit){
+  const ids=["18m60","18m60_jp","quad60_jp","70m72","50m72","30m36","field24","volume"];
+  return `<section class="an-roundList" aria-label="ラウンドプリセット">
+    ${ids.slice(0,limit||6).map(id=>{
+      const m=roundPresetMeta(id);
+      return `<button type="button" class="an-roundItem" data-round-preset="${id}">
+        <span class="an-roundIcon ${m.indoor?"an-roundIcon--indoor":"an-roundIcon--outdoor"}" aria-hidden="true">↑</span>
+        <span class="an-roundBody">
+          <p class="an-roundTitle">${esc(m.label)}</p>
+          <p class="an-roundMeta">${esc(m.detail||"プリセット")}</p>
+        </span>
+        <span class="an-roundTag">プリセット</span>
+      </button>`;
+    }).join("")}
+  </section>`;
+}
 function recordFastActionsHtml(last,dist,faceValue,setup){
   const setupName=setup&&setup.name?setup.name:"用具未指定";
   const currentLabel=`${dist}m · ${actionFaceLabel(faceValue)} · ${setupName}`;
@@ -327,10 +351,16 @@ function renderRecordSetup(m,ctx){
   m.innerHTML=`
   <section class="launchPanel convergeLaunch startFirst">
     <div class="launchHead">
-      <div class="launchTitle"><h2>${mode==="calibration"?"サイト値を残す練習":"条件を選ぶ"}</h2></div>
+      <div class="launchTitle"><h2 class="an-screenTitle" style="font-size:22px">${mode==="calibration"?"サイト値を残す練習":"ラウンド"}</h2></div>
       <button class="tinyAction" id="jumpGear" type="button">用具</button>
     </div>
     <div class="launchBody">
+    <div class="an-pillRow an-pillRow--wrap" id="launchEnvPills">
+      <button type="button" class="an-pill on" data-launch-env="all">すべて</button>
+      <button type="button" class="an-pill" data-launch-env="indoor">インダア</button>
+      <button type="button" class="an-pill" data-launch-env="outdoor">アウトドア</button>
+    </div>
+    ${roundPresetListHtml(6)}
     <div class="quickSelects">
       <div><label class="f">弓種</label><select class="inp" id="fBow">${BOW_TYPES.map(b=>`<option value="${b.id}" ${b.id===defBow?"selected":""}>${b.label}</option>`).join("")}</select></div>
       <div><label class="f">環境</label><select class="inp" id="fEnv">${ENV_TYPES.map(e=>`<option value="${e.id}" ${e.id===defEnv?"selected":""}>${e.label}</option>`).join("")}</select></div>
@@ -464,6 +494,12 @@ function renderRecordSetup(m,ctx){
     updateQuickStartMeta();
   }
   $("#fRound").onchange=e=>applyRoundPreset(e.target.value);
+  document.querySelectorAll("[data-round-preset]").forEach(btn=>{
+    btn.onclick=()=>{
+      const roundId=btn.dataset.roundPreset;
+      if($("#fRound")){ $("#fRound").value=roundId; applyRoundPreset(roundId); }
+    };
+  });
   updateFieldCourseWrap();
   if(mode==="volume") applyRoundPreset("volume");
   document.querySelectorAll("#fLaneSpot .chip").forEach(c=>c.onclick=()=>{

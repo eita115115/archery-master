@@ -13,6 +13,44 @@ function ensureStatsFilter() {
   return ui.statsFilter;
 }
 
+function statsPracticeDays(sessions) {
+  return new Set((sessions || []).map((s) => s.date).filter(Boolean)).size;
+}
+
+function statsPeriodPillsHtml(sf) {
+  return `<div class="an-pillRow" id="statsPeriodPills" role="tablist" aria-label="期間">
+    ${STATS_PERIODS.map((p) => `<button type="button" class="an-pill${sf.period === p.id ? " on" : ""}" data-stats-period="${p.id}" role="tab" aria-selected="${sf.period === p.id}">${p.label}</button>`).join("")}
+    <button type="button" class="an-pill${sf.period === "custom" ? " on" : ""}" data-stats-period="custom" role="tab" aria-selected="${sf.period === "custom"}">カスタム</button>
+  </div>`;
+}
+
+function statsSummaryHeroHtml(overview, filtered) {
+  const avg = overview.arrows ? overview.avg : null;
+  const accumulating = filtered.length < 2;
+  return `<section class="an-heroCard" aria-label="平均スコア">
+    <p class="an-heroLabel">平均 / 1射</p>
+    <p class="an-heroValue">${avg != null ? avg.toFixed(2) : "—"}${avg != null ? `<span class="an-heroSub">/ 10.00</span>` : ""}</p>
+    ${accumulating ? `<span class="an-dataBadge">データ蓄積中</span>` : ""}
+  </section>
+  <div class="an-metricGrid" aria-label="概要">
+    <div class="an-metricTile"><span class="k">総ラウンド</span><p class="v">${overview.sessions || 0}</p></div>
+    <div class="an-metricTile"><span class="k">総Hit数</span><p class="v">${overview.arrows || 0}</p></div>
+    <div class="an-metricTile"><span class="k">練習日数</span><p class="v">${statsPracticeDays(filtered)}</p></div>
+    <div class="an-metricTile an-metricTile--accent"><span class="k">最高スコア</span><p class="v">${overview.best || "—"}</p></div>
+  </div>`;
+}
+
+function statsTrendCardHtml(filtered, lineData) {
+  const ready = filtered.length >= 2;
+  return `<section class="an-chartCard">
+    <h3>ラウンドごとの推移</h3>
+    <p class="sub">記録が2件以上集まると推移が描かれます</p>
+    ${ready
+      ? `<div class="chartWrap">${dualLineChartSvg(lineData, { title: "スコア推移", color: "var(--green)" })}</div>`
+      : `<div class="an-chartEmpty">もう1ラウンド記録すると推移が見えます</div>`}
+  </section>`;
+}
+
 function renderStats(m) {
   const sf = ensureStatsFilter();
   const all = db.sessions || [];
@@ -38,29 +76,27 @@ function renderStats(m) {
   const periodOpts = STATS_PERIODS.map((p) => `<option value="${p.id}" ${sf.period === p.id ? "selected" : ""}>${p.label}</option>`).join("");
 
   m.innerHTML = `
-  <section class="card statsFilters">
-    <div class="row">
-      <div><label class="f">期間</label><select class="inp" id="statsPeriod">${periodOpts}<option value="custom" ${sf.period === "custom" ? "selected" : ""}>カスタム</option></select></div>
-      <div><label class="f">距離</label><select class="inp" id="statsDist"><option value="">すべて</option>${dists.map((d) => `<option value="${d}" ${String(sf.dist) === String(d) ? "selected" : ""}>${d}m</option>`).join("")}</select></div>
-    </div>
-    <div class="row" id="statsCustomRange" style="display:${sf.period === "custom" ? "flex" : "none"}">
-      <div><label class="f">開始</label><input class="inp" type="date" id="statsFrom" value="${esc(sf.dateFrom || "")}"></div>
-      <div><label class="f">終了</label><input class="inp" type="date" id="statsTo" value="${esc(sf.dateTo || "")}"></div>
-    </div>
-    <div class="row">
-      <div><label class="f">弓種</label><select class="inp" id="statsBow"><option value="">すべて</option>${BOW_TYPES.map((b) => `<option value="${b.id}" ${sf.bowType === b.id ? "selected" : ""}>${b.label}</option>`).join("")}</select></div>
-      <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="statsReset" type="button">リセット</button></div>
-    </div>
-  </section>
+  <div class="an-screenHead">
+    <h2 class="an-screenTitle">サマリー</h2>
+    <button class="an-screenAction" id="statsReset" type="button" aria-label="フィルタをリセット"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-history"/></svg></button>
+  </div>
+  ${statsPeriodPillsHtml(sf)}
+  <div class="an-pillRow an-pillRow--wrap" id="statsDistPills" role="tablist" aria-label="距離">
+    <button type="button" class="an-pill${!sf.dist ? " on" : ""}" data-stats-dist="">すべて</button>
+    ${dists.map((d) => `<button type="button" class="an-pill${String(sf.dist) === String(d) ? " on" : ""}" data-stats-dist="${d}">${d}m</button>`).join("")}
+  </div>
+  <div class="row" id="statsCustomRange" style="display:${sf.period === "custom" ? "flex" : "none"};margin-bottom:var(--ui-space-3)">
+    <div><label class="f">開始</label><input class="inp" type="date" id="statsFrom" value="${esc(sf.dateFrom || "")}"></div>
+    <div><label class="f">終了</label><input class="inp" type="date" id="statsTo" value="${esc(sf.dateTo || "")}"></div>
+  </div>
+  <select class="inp" id="statsPeriod" hidden>${periodOpts}<option value="custom" ${sf.period === "custom" ? "selected" : ""}>カスタム</option></select>
+  <select class="inp" id="statsDist" hidden><option value="">すべて</option>${dists.map((d) => `<option value="${d}" ${String(sf.dist) === String(d) ? "selected" : ""}>${d}m</option>`).join("")}</select>
+  <select class="inp" id="statsBow" hidden><option value="">すべて</option>${BOW_TYPES.map((b) => `<option value="${b.id}" ${sf.bowType === b.id ? "selected" : ""}>${b.label}</option>`).join("")}</select>
   ${badgeSample && typeof badgeProgressBannerHtml === "function" ? badgeProgressBannerHtml(badgeSample, all) : ""}
-  <section class="card statsOverview">
-    <div class="heroMetrics ds-metricsBoard">
-      ${heroMetricHtml("練習", `${overview.sessions}回`, `${overview.arrows}本`)}
-      ${heroMetricHtml("平均/本", overview.arrows ? overview.avg.toFixed(2) : "—", "フィルター後")}
-      ${heroMetricHtml("最高", overview.best || "—", "セッション合計")}
-      ${heroMetricHtml("X率", overview.arrows ? `${Math.round(overview.xRate * 100)}%` : "—", `的中 ${overview.arrows ? Math.round(overview.hitRate * 100) : 0}%`)}
-    </div>
-  </section>
+  ${statsSummaryHeroHtml(overview, filtered)}
+  ${statsTrendCardHtml(filtered, lineData)}
+  <details class="an-advancedStats">
+    <summary>詳細分析を見る</summary>
   <section class="card statsCompare">
     <h2>今月 vs 先月</h2>
     <div class="heroMetrics ds-metricsBoard">
@@ -68,10 +104,6 @@ function renderStats(m) {
       ${heroMetricHtml("先月", periodCmp.prev.sessions ? periodCmp.prev.avg.toFixed(1) : "—", `${periodCmp.prev.sessions}回`)}
       ${heroMetricHtml("差分", periodCmp.cur.sessions && periodCmp.prev.sessions ? `${periodCmp.delta >= 0 ? "+" : ""}${periodCmp.delta.toFixed(1)}` : "—", "セッション平均")}
     </div>
-  </section>
-  <section class="card chartCard">
-    <h2>スコア推移 <span class="mini">${filtered.length}回 · 3回移動平均</span></h2>
-    <div class="chartWrap">${dualLineChartSvg(lineData, { title: "スコア推移", color: "var(--green)" })}</div>
   </section>
   ${bowBars.length ? `<section class="card chartCard"><h2>弓種別平均</h2><div class="chartWrap">${barChartSvg(bowBars, { title: "弓種別" })}</div></section>` : ""}
   <section class="card chartCard">
@@ -101,7 +133,23 @@ function renderStats(m) {
       <span class="mini">${r.total}点 · X${r.xCount}</span>
     </button>`;
   }).join("") : `<div class="empty ds-emptyBlock">該当する記録がありません<button class="btn sec sm" type="button" id="statsEmptyReset">フィルタをリセット</button></div>`}
-  </section>`;
+  </section>
+  <section class="an-proCard" aria-label="分析ツール">
+    <span class="an-proIcon" aria-hidden="true">★</span>
+    <div>
+      <h4>詳細分析</h4>
+      <p>セッション比較・月次レポートは記録が増えると使いやすくなります。</p>
+    </div>
+  </section>
+  <div class="an-settingsSection">
+    <p class="an-settingsHdr">Pro分析</p>
+    <div class="an-settingsGroup">
+      <button class="an-settingsRow an-settingsRow--locked" type="button" disabled><span class="an-rowIcon">↔</span><span class="an-rowBody">セッション比較</span><span class="an-rowLock">🔒</span></button>
+      <button class="an-settingsRow an-settingsRow--locked" type="button" disabled><span class="an-rowIcon">📄</span><span class="an-rowBody">月次レポート</span><span class="an-rowLock">🔒</span></button>
+      <button class="an-settingsRow" type="button" id="statsOpenHistory"><span class="an-rowIcon">📊</span><span class="an-rowBody">履歴で詳細を見る</span><span class="an-rowChevron">›</span></button>
+    </div>
+  </div>
+  </details>`;
 
   function applyFilter() {
     sf.period = $("#statsPeriod").value;
@@ -115,6 +163,22 @@ function renderStats(m) {
     render();
   }
 
+  document.querySelectorAll("[data-stats-period]").forEach((btn) => {
+    btn.onclick = () => {
+      sf.period = btn.dataset.statsPeriod;
+      if ($("#statsPeriod")) $("#statsPeriod").value = sf.period;
+      const custom = $("#statsCustomRange");
+      if (custom) custom.style.display = sf.period === "custom" ? "flex" : "none";
+      applyFilter();
+    };
+  });
+  document.querySelectorAll("[data-stats-dist]").forEach((btn) => {
+    btn.onclick = () => {
+      sf.dist = btn.dataset.statsDist || "";
+      if ($("#statsDist")) $("#statsDist").value = sf.dist;
+      applyFilter();
+    };
+  });
   $("#statsPeriod").onchange = () => {
     const custom = $("#statsCustomRange");
     if (custom) custom.style.display = $("#statsPeriod").value === "custom" ? "flex" : "none";
@@ -122,6 +186,8 @@ function renderStats(m) {
   };
   $("#statsDist").onchange = applyFilter;
   $("#statsBow").onchange = applyFilter;
+  const statsOpenHistory = $("#statsOpenHistory");
+  if (statsOpenHistory) statsOpenHistory.onclick = () => showView("history");
   if ($("#statsFrom")) $("#statsFrom").onchange = applyFilter;
   if ($("#statsTo")) $("#statsTo").onchange = applyFilter;
   const resetStatsFilter=()=>{

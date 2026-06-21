@@ -1,0 +1,514 @@
+/* Archery Note–style patterns (html.ui-refresh). Reference UI clone layer. */
+
+html.ui-refresh{
+  --an-blue:#3B82F6;
+  --an-blue-soft:rgba(59,130,246,.1);
+  --an-navy:#1B3152;
+  --an-promo:#1A2F4F;
+  --an-pill-bg:#ECEEF2;
+  --an-score-grad:linear-gradient(90deg,#F2C94C 0%,#F2994A 52%,#EB5757 100%);
+}
+
+/* ── Screen titles (データ / サマリー / 統計) ── */
+html.ui-refresh .an-screenHead{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin:0 0 var(--ui-space-3);
+  padding:0 2px;
+}
+html.ui-refresh .an-screenTitle{
+  margin:0;
+  font-size:28px;
+  font-weight:700;
+  line-height:1.15;
+  letter-spacing:-.02em;
+  color:var(--ui-label);
+}
+html.ui-refresh .an-screenAction{
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:50%;
+  background:transparent;
+  color:var(--ui-label-secondary);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+}
+html.ui-refresh .an-screenAction .ic-svg{
+  width:22px;
+  height:22px;
+}
+
+/* ── Pill filters ── */
+html.ui-refresh .an-pillRow{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+  margin:0 0 var(--ui-space-4);
+  padding:2px 0 4px;
+}
+html.ui-refresh .an-pillRow::-webkit-scrollbar{display:none;}
+html.ui-refresh .an-pill{
+  flex:0 0 auto;
+  min-height:34px;
+  padding:0 14px;
+  border:none;
+  border-radius:999px;
+  background:var(--an-pill-bg);
+  color:var(--ui-label-secondary);
+  font-size:13px;
+  font-weight:600;
+  white-space:nowrap;
+  cursor:pointer;
+}
+html.ui-refresh .an-pill.on{
+  background:var(--an-navy);
+  color:#fff;
+}
+html.ui-refresh .an-pillRow--wrap{
+  flex-wrap:wrap;
+  overflow:visible;
+}
+
+/* ── Summary hero card (#2) ── */
+html.ui-refresh .an-heroCard{
+  position:relative;
+  margin:0 0 var(--ui-space-3);
+  padding:var(--ui-space-5) var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-surface-elevated);
+  border:1px solid var(--ui-separator);
+  box-shadow:var(--ui-shadow-sm);
+}
+html.ui-refresh .an-heroLabel{
+  margin:0 0 var(--ui-space-2);
+  font-size:var(--ui-font-caption);
+  font-weight:500;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-heroValue{
+  margin:0;
+  font-size:42px;
+  font-weight:700;
+  line-height:1;
+  font-variant-numeric:tabular-nums;
+  color:var(--an-navy);
+}
+html.ui-refresh .an-heroSub{
+  margin-left:6px;
+  font-size:var(--ui-font-headline);
+  font-weight:500;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-dataBadge{
+  position:absolute;
+  top:var(--ui-space-4);
+  right:var(--ui-space-4);
+  padding:5px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  color:var(--ui-label-secondary);
+  background:var(--an-pill-bg);
+}
+
+/* ── 4-up metric tiles ── */
+html.ui-refresh .an-metricGrid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin:0 0 var(--ui-space-4);
+}
+html.ui-refresh .an-metricTile{
+  padding:var(--ui-space-3) 8px;
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface-elevated);
+  border:1px solid var(--ui-separator);
+  text-align:center;
+  min-width:0;
+}
+html.ui-refresh .an-metricTile .k{
+  display:block;
+  margin:0 0 4px;
+  font-size:10px;
+  font-weight:600;
+  color:var(--ui-label-secondary);
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+html.ui-refresh .an-metricTile .v{
+  margin:0;
+  font-size:18px;
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  color:var(--ui-label);
+}
+html.ui-refresh .an-metricTile--accent .v{
+  color:#E6A817;
+}
+
+/* ── Chart / trend card ── */
+html.ui-refresh .an-chartCard{
+  margin:0 0 var(--ui-space-4);
+  padding:var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-surface-elevated);
+  border:1px solid var(--ui-separator);
+}
+html.ui-refresh .an-chartCard h3{
+  margin:0 0 4px;
+  font-size:var(--ui-font-headline);
+  font-weight:600;
+}
+html.ui-refresh .an-chartCard .sub{
+  margin:0 0 var(--ui-space-3);
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-chartEmpty{
+  padding:var(--ui-space-6) var(--ui-space-3);
+  text-align:center;
+  color:var(--ui-label-secondary);
+  font-size:var(--ui-font-caption);
+  line-height:1.5;
+}
+
+/* ── Empty states (#6 #8 #9) ── */
+html.ui-refresh .an-emptyState{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:var(--ui-space-7) var(--ui-space-4);
+  min-height:280px;
+}
+html.ui-refresh .an-emptyIcon{
+  width:64px;
+  height:64px;
+  margin-bottom:var(--ui-space-4);
+  color:var(--ui-label-secondary);
+  opacity:.45;
+}
+html.ui-refresh .an-emptyIcon .ic-svg{
+  width:64px;
+  height:64px;
+}
+html.ui-refresh .an-emptyTitle{
+  margin:0 0 var(--ui-space-2);
+  font-size:var(--ui-font-headline);
+  font-weight:700;
+  color:var(--ui-label);
+}
+html.ui-refresh .an-emptyHint{
+  margin:0 0 var(--ui-space-4);
+  max-width:280px;
+  font-size:var(--ui-font-caption);
+  line-height:1.5;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-emptyCta{
+  min-width:140px;
+  border-radius:999px;
+  background:var(--an-blue);
+  color:#fff;
+  font-weight:600;
+}
+
+/* ── Settings (#5 #10) ── */
+html.ui-refresh .an-promoBanner{
+  display:block;
+  width:100%;
+  margin:0 0 var(--ui-space-4);
+  padding:var(--ui-space-4);
+  border:none;
+  border-radius:var(--ui-radius-lg);
+  background:var(--an-promo);
+  color:#fff;
+  text-align:left;
+  cursor:pointer;
+  box-shadow:var(--ui-shadow-md);
+}
+html.ui-refresh .an-promoBanner h4{
+  margin:0 0 4px;
+  font-size:20px;
+  font-weight:700;
+}
+html.ui-refresh .an-promoBanner p{
+  margin:0 0 var(--ui-space-3);
+  font-size:var(--ui-font-caption);
+  opacity:.88;
+  line-height:1.4;
+}
+html.ui-refresh .an-promoPills{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+html.ui-refresh .an-promoPill{
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:600;
+  background:rgba(255,255,255,.14);
+  color:#fff;
+}
+html.ui-refresh .an-promoPill--green{background:rgba(52,211,153,.35);}
+html.ui-refresh .an-promoPill--purple{background:rgba(167,139,250,.35);}
+html.ui-refresh .an-settingsSection{
+  margin:0 0 var(--ui-space-4);
+}
+html.ui-refresh .an-settingsHdr{
+  margin:0 0 var(--ui-space-2);
+  padding:0 4px;
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-settingsGroup{
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-surface-elevated);
+  border:1px solid var(--ui-separator);
+  overflow:hidden;
+}
+html.ui-refresh .an-settingsRow{
+  display:flex;
+  align-items:center;
+  gap:var(--ui-space-3);
+  width:100%;
+  min-height:48px;
+  padding:var(--ui-space-3) var(--ui-space-4);
+  border:none;
+  border-bottom:1px solid var(--ui-separator);
+  background:transparent;
+  text-align:left;
+  font-size:var(--ui-font-body);
+  color:var(--ui-label);
+  cursor:pointer;
+}
+html.ui-refresh .an-settingsRow:last-child{border-bottom:none;}
+html.ui-refresh .an-settingsRow .an-rowIcon{
+  width:28px;
+  height:28px;
+  flex:0 0 28px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+}
+html.ui-refresh .an-settingsRow .an-rowBody{flex:1 1 auto;min-width:0;}
+html.ui-refresh .an-settingsRow .an-rowChevron{
+  flex:0 0 auto;
+  color:var(--ui-label-secondary);
+  opacity:.5;
+  font-size:18px;
+}
+html.ui-refresh .an-settingsRow--locked .an-rowLock{
+  margin-left:auto;
+  opacity:.45;
+  font-size:14px;
+}
+
+/* ── Beta / limit banners (#3) ── */
+html.ui-refresh .an-betaBanner{
+  display:flex;
+  align-items:center;
+  gap:var(--ui-space-2);
+  margin:0 0 var(--ui-space-3);
+  padding:var(--ui-space-3) var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:#FEF3C7;
+  border:1px solid rgba(180,83,9,.12);
+  font-size:var(--ui-font-caption);
+  color:#92400E;
+}
+html.ui-refresh .an-betaTag{
+  flex:0 0 auto;
+  padding:2px 7px;
+  border-radius:6px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.05em;
+  background:#D97706;
+  color:#fff;
+}
+html.ui-refresh .an-limitBanner{
+  display:flex;
+  align-items:center;
+  gap:var(--ui-space-2);
+  margin:0 0 var(--ui-space-3);
+  padding:var(--ui-space-3) var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:var(--an-blue-soft);
+  border:1px solid rgba(59,130,246,.15);
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+}
+
+/* ── Round preset list (#7) ── */
+html.ui-refresh .an-roundList{
+  margin:0 0 var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-surface-elevated);
+  border:1px solid var(--ui-separator);
+  overflow:hidden;
+}
+html.ui-refresh .an-roundItem{
+  display:flex;
+  align-items:center;
+  gap:var(--ui-space-3);
+  width:100%;
+  padding:var(--ui-space-3) var(--ui-space-4);
+  border:none;
+  border-bottom:1px solid var(--ui-separator);
+  background:transparent;
+  text-align:left;
+  cursor:pointer;
+}
+html.ui-refresh .an-roundItem:last-child{border-bottom:none;}
+html.ui-refresh .an-roundIcon{
+  flex:0 0 36px;
+  width:36px;
+  height:36px;
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:16px;
+  font-weight:700;
+  color:#fff;
+}
+html.ui-refresh .an-roundIcon--indoor{background:#5B9FD4;}
+html.ui-refresh .an-roundIcon--outdoor{background:#34C759;}
+html.ui-refresh .an-roundBody{flex:1 1 auto;min-width:0;}
+html.ui-refresh .an-roundTitle{
+  margin:0;
+  font-size:var(--ui-font-body);
+  font-weight:600;
+  color:var(--ui-label);
+}
+html.ui-refresh .an-roundMeta{
+  margin:2px 0 0;
+  font-size:11px;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .an-roundTag{
+  flex:0 0 auto;
+  font-size:10px;
+  font-weight:600;
+  color:var(--ui-label-secondary);
+}
+
+/* ── Pro / locked rows (#8 #10) ── */
+html.ui-refresh .an-proCard{
+  margin:0 0 var(--ui-space-4);
+  padding:var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-surface-elevated);
+  border:1px solid var(--ui-separator);
+  display:flex;
+  gap:var(--ui-space-3);
+  align-items:flex-start;
+}
+html.ui-refresh .an-proIcon{
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:linear-gradient(135deg,#FCD34D,#F59E0B);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:20px;
+  flex:0 0 auto;
+}
+html.ui-refresh .an-proCard h4{
+  margin:0 0 4px;
+  font-size:var(--ui-font-headline);
+  font-weight:700;
+  color:var(--an-blue);
+}
+html.ui-refresh .an-proCard p{
+  margin:0;
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+  line-height:1.4;
+}
+
+/* ── Ranking-style dark card (#4) — stats compare accent ── */
+html.ui-refresh .an-liveCard{
+  margin:0 0 var(--ui-space-4);
+  padding:var(--ui-space-4);
+  border-radius:var(--ui-radius-lg);
+  background:linear-gradient(145deg,#1A2F4F 0%,#0F172A 100%);
+  color:#fff;
+  box-shadow:var(--ui-shadow-md);
+}
+html.ui-refresh .an-liveCard .tag{
+  display:inline-flex;
+  align-items:center;
+  gap:4px;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:700;
+  background:rgba(255,255,255,.12);
+}
+
+/* ── Settings sheet layout ── */
+html.ui-refresh .sheet.an-settingsSheet{
+  max-height:92vh;
+  overflow-y:auto;
+  padding:var(--ui-space-4) var(--ui-space-4) var(--ui-space-6);
+}
+html.ui-refresh .sheet.an-settingsSheet > h3{
+  margin:0 0 var(--ui-space-4);
+  font-size:28px;
+  font-weight:700;
+  text-align:left;
+}
+
+/* ── Form gallery CTA (#3) ── */
+html.ui-refresh .an-galleryCta{
+  width:100%;
+  min-height:52px;
+  margin-top:var(--ui-space-3);
+  border-radius:var(--ui-radius-lg);
+  background:var(--an-navy);
+  color:#fff;
+  font-size:var(--ui-font-body);
+  font-weight:600;
+  border:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:var(--ui-space-2);
+  cursor:pointer;
+}
+
+/* ── Stats advanced collapse ── */
+html.ui-refresh .an-advancedStats{
+  margin-top:var(--ui-space-2);
+}
+html.ui-refresh .an-advancedStats > summary{
+  padding:var(--ui-space-3) 0;
+  font-size:var(--ui-font-caption);
+  font-weight:600;
+  color:var(--an-blue);
+  cursor:pointer;
+  list-style:none;
+}
+html.ui-refresh .an-advancedStats > summary::-webkit-details-marker{display:none;}
+
+@media (max-width:380px){
+  html.ui-refresh .an-metricGrid{grid-template-columns:repeat(2,1fr);}
+  html.ui-refresh .an-heroValue{font-size:36px;}
+}

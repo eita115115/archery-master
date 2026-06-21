@@ -38,6 +38,7 @@
     "ui/ds-screens.css",
     "ui/ui-motion.css",
     "ui/ui-overrides.css",
+    "ui/ds-archery-note.css",
     "ui/icons.svg",
     "beta.json",
     "manifest.json",

@@ -11,34 +11,44 @@ function renderHistory(m){
     (!hf.dist || String(s.dist)===String(hf.dist)) &&
     (!hf.round || (s.round||"free")===hf.round)
   );
+  const histCards=ss.length
+    ?`<section class="homeFeed" id="histList" aria-label="練習履歴">${ss.map((s,i)=>typeof homeSessionCardHtml==="function"?homeSessionCardHtml(s,{hero:i===0}):`<button class="homeSessionCard" type="button" data-open-sess="${esc(s.id)}">${fmtD(s.date)} ${s.dist}m</button>`).join("")}</section>`
+    :`<section class="an-emptyState card" id="histList">
+      <span class="an-emptyIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+      <p class="an-emptyTitle">${allSs.length&&!ss.length?"条件に合う記録がありません":"データなし"}</p>
+      <p class="an-emptyHint">${allSs.length&&!ss.length?"絞り込みを解除して再度お試しください。":"完了したセッションが表示されます。ホームの＋から記録を始められます。"}</p>
+      ${allSs.length&&!ss.length?`<button class="btn sec an-emptyCta" type="button" id="histEmptyClear">絞り込み解除</button>`:""}
+    </section>`;
   m.innerHTML=`${historyOverviewHtml(allSs,ss)}
-  <div class="card"><h2>練習履歴 <span class="mini">${ss.length}/${allSs.length}回</span></h2>
-    <div class="row">
-      <div><label class="f">用具</label><select class="inp" id="histSetup"><option value="">すべて</option><option value="__none" ${hf.setupId==="__none"?"selected":""}>未指定</option>${db.setups.map(s=>`<option value="${s.id}" ${hf.setupId===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>
-      <div><label class="f">距離</label><select class="inp" id="histDist"><option value="">すべて</option>${dists.map(d=>`<option value="${d}" ${String(hf.dist)===String(d)?"selected":""}>${d}m</option>`).join("")}</select></div>
-    </div>
-    <div class="row">
-      <div><label class="f">ラウンド</label><select class="inp" id="histRound"><option value="">すべて</option>${rounds.map(r=>`<option value="${r}" ${hf.round===r?"selected":""}>${roundLabel(r)}</option>`).join("")}</select></div>
-      <div style="display:flex;align-items:flex-end"><button class="btn ghost" id="histClear">絞り込み解除</button></div>
-    </div>
-    <div id="histList">
-    ${ss.length? ss.map(s=>{
-      const all=s.ends.flat();
-      const setup=db.setups.find(x=>x.id===s.setupId);
-      const stats=aggregateSessionStats(all);
-      return `<div class="listItem" data-id="${s.id}">
-        <div><div class="t">${fmtD(s.date)} ・ ${s.dist}m ・ ${bowTypeLabel(s.bowType)}</div>
-        <div class="d"><span class="badge">${envLabel(s.environment)}</span><span class="badge">${faceLabel(s)}</span>${setup?`<span class="badge">${esc(setup.name)}</span>`:""}<span class="badge">X${stats.xCount} / 10${stats.tenCount}</span>${s.round&&s.round!=="free"?`<span class="badge">${roundLabel(s.round)}</span>`:""}${all.length}本</div></div>
-        <div class="big">${stats.total}<small> / 的中 ${stats.hitCount}</small></div></div>`;
-    }).join(""):`<div class="empty ds-emptyBlock">${allSs.length&&!ss.length?`条件に合う記録がありません<button class="btn sec sm" type="button" id="histEmptyClear">絞り込み解除</button>`:`まだ記録がありません。ホームから記録を始めましょう。`}</div>`}
-  </div></div>
+  <div class="an-screenHead">
+    <h2 class="an-screenTitle">履歴</h2>
+    <button class="an-screenAction" id="histClear" type="button" aria-label="絞り込み解除"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-history"/></svg></button>
+  </div>
+  <div class="an-pillRow an-pillRow--wrap" id="histDistPills">
+    <button type="button" class="an-pill${!hf.dist?" on":""}" data-hist-dist="">すべて</button>
+    ${dists.map(d=>`<button type="button" class="an-pill${String(hf.dist)===String(d)?" on":""}" data-hist-dist="${d}">${d}m</button>`).join("")}
+  </div>
+  <select class="inp" id="histSetup" hidden><option value="">すべて</option><option value="__none" ${hf.setupId==="__none"?"selected":""}>未指定</option>${db.setups.map(s=>`<option value="${s.id}" ${hf.setupId===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
+  <select class="inp" id="histDist" hidden><option value="">すべて</option>${dists.map(d=>`<option value="${d}" ${String(hf.dist)===String(d)?"selected":""}>${d}m</option>`).join("")}</select>
+  <select class="inp" id="histRound" hidden><option value="">すべて</option>${rounds.map(r=>`<option value="${r}" ${hf.round===r?"selected":""}>${roundLabel(r)}</option>`).join("")}</select>
+  <p class="ds-caption" style="margin:0 0 var(--ui-space-3)">${ss.length}/${allSs.length}回</p>
+  ${histCards}
   ${groupingTrendCard(ss)}${distTrendCard(ss)}${scoreDistCard(ss)}${monthlyCard(ss)}`;
   $("#histSetup").onchange=e=>{ ui.histFilter.setupId=e.target.value; render(); };
   $("#histDist").onchange=e=>{ ui.histFilter.dist=e.target.value; if(e.target.value) db.settings.lastSelectedDistance=+e.target.value; save("hist-filter"); render(); };
   $("#histRound").onchange=e=>{ ui.histFilter.round=e.target.value; render(); };
+  document.querySelectorAll("[data-hist-dist]").forEach(btn=>{
+    btn.onclick=()=>{
+      ui.histFilter.dist=btn.dataset.histDist||"";
+      if(ui.histFilter.dist) db.settings.lastSelectedDistance=+ui.histFilter.dist;
+      save("hist-filter");
+      render();
+    };
+  });
   $("#histClear").onclick=()=>{ ui.histFilter={setupId:"",dist:"",round:""}; render(); };
   const histEmptyClear=$("#histEmptyClear");
   if(histEmptyClear) histEmptyClear.onclick=()=>{ ui.histFilter={setupId:"",dist:"",round:""}; render(); };
+  document.querySelectorAll("#histList [data-open-sess]").forEach(btn=>btn.onclick=()=>openHistDetail(btn.dataset.openSess));
   document.querySelectorAll("#histList .listItem").forEach(li=>li.onclick=()=>openHistDetail(li.dataset.id));
 }
 function sessionGroupPoint(s){

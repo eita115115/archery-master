@@ -123,7 +123,10 @@ function renderHome(m){
   m.innerHTML=`
   ${homeLocalNoticeHtml()}
   ${homeFeedHtml()}
-  ${dashCompactHtml()}
+  <details class="an-advancedStats">
+    <summary>週間サマリー</summary>
+    ${dashCompactHtml()}
+  </details>
   ${recordFastActionsHtml(last,defDist,defFace,setup)}
   <button class="homeFab" id="quickStart" type="button" aria-label="今日の記録を始める">
     <span class="homeFabIcon" aria-hidden="true">+</span>
@@ -146,11 +149,12 @@ function renderHome(m){
 }
 
 function renderRecordIdle(m){
-  m.innerHTML=`<section class="card idlePrompt ds-emptyState">
-    <span class="ds-emptyBadge">記録は未開始</span>
-    <img class="idleIcon" src="icon.svg" width="48" height="48" alt="">
-    <p class="idleLead">ホームの「今日の記録を始める」から開始できます</p>
-    <button class="btn startPrimary" id="goHome" type="button">ホームへ</button>
+  m.innerHTML=`<section class="an-emptyState card idlePrompt">
+    <span class="an-emptyIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+    <p class="an-emptyTitle">スコア記録を始める</p>
+    <p class="an-emptyHint">右下の＋ボタンから新しいセッションを作成し、練習のスコアを記録しましょう</p>
+    <button class="btn an-emptyCta" id="goHome" type="button">新規作成</button>
+    <p class="idleLead" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">ホームの「今日の記録を始める」から開始できます</p>
   </section>`;
   $("#goHome").onclick=()=>{ view="home"; render(); };
 }
