@@ -96,7 +96,7 @@ function renderStats(m) {
   ${statsSummaryHeroHtml(overview, filtered)}
   ${statsTrendCardHtml(filtered, lineData)}
   <details class="an-advancedStats">
-    <summary>詳細分析を見る</summary>
+    <summary>グラフと内訳を見る</summary>
   <section class="card statsCompare">
     <h2>今月 vs 先月</h2>
     <div class="heroMetrics ds-metricsBoard">
@@ -134,21 +134,6 @@ function renderStats(m) {
     </button>`;
   }).join("") : `<div class="empty ds-emptyBlock">該当する記録がありません<button class="btn sec sm" type="button" id="statsEmptyReset">フィルタをリセット</button></div>`}
   </section>
-  <section class="an-proCard" aria-label="分析ツール">
-    <span class="an-proIcon" aria-hidden="true">★</span>
-    <div>
-      <h4>詳細分析</h4>
-      <p>セッション比較・月次レポートは記録が増えると使いやすくなります。</p>
-    </div>
-  </section>
-  <div class="an-settingsSection">
-    <p class="an-settingsHdr">Pro分析</p>
-    <div class="an-settingsGroup">
-      <button class="an-settingsRow an-settingsRow--locked" type="button" disabled><span class="an-rowIcon">↔</span><span class="an-rowBody">セッション比較</span><span class="an-rowLock">🔒</span></button>
-      <button class="an-settingsRow an-settingsRow--locked" type="button" disabled><span class="an-rowIcon">📄</span><span class="an-rowBody">月次レポート</span><span class="an-rowLock">🔒</span></button>
-      <button class="an-settingsRow" type="button" id="statsOpenHistory"><span class="an-rowIcon">📊</span><span class="an-rowBody">履歴で詳細を見る</span><span class="an-rowChevron">›</span></button>
-    </div>
-  </div>
   </details>`;
 
   function applyFilter() {
@@ -186,8 +171,6 @@ function renderStats(m) {
   };
   $("#statsDist").onchange = applyFilter;
   $("#statsBow").onchange = applyFilter;
-  const statsOpenHistory = $("#statsOpenHistory");
-  if (statsOpenHistory) statsOpenHistory.onclick = () => showView("history");
   if ($("#statsFrom")) $("#statsFrom").onchange = applyFilter;
   if ($("#statsTo")) $("#statsTo").onchange = applyFilter;
   const resetStatsFilter=()=>{

@@ -390,15 +390,6 @@ function openSettings(){
   const expert=!!db.settings.expertMode;
   const snaps=readSnapshots();
   ovl.innerHTML=`<div class="sheet an-settingsSheet"><h3>設定</h3>
-    <button class="an-promoBanner" type="button" id="setBetaInfo">
-      <h4>Archery-master ベータ</h4>
-      <p>全機能搭載で練習に集中。記録は端末内に保存されます。</p>
-      <div class="an-promoPills">
-        <span class="an-promoPill an-promoPill--green">広告なし</span>
-        <span class="an-promoPill an-promoPill--purple">詳細分析</span>
-        <span class="an-promoPill">新機能を先行利用</span>
-      </div>
-    </button>
     <div class="an-settingsSection">
       <p class="an-settingsHdr">ツール</p>
       <div class="an-settingsGroup settingsNav">
@@ -454,7 +445,6 @@ function openSettings(){
       <p class="an-settingsHdr">情報</p>
       <div class="an-settingsGroup">
         <button class="an-settingsRow" type="button" id="setOnboard"><span class="an-rowIcon">📖</span><span class="an-rowBody">オンボーディングを見る</span><span class="an-rowChevron">›</span></button>
-        <button class="an-settingsRow an-settingsRow--locked" type="button" disabled><span class="an-rowIcon">☁</span><span class="an-rowBody">クラウド同期</span><span class="an-rowLock">🔒</span></button>
       </div>
     </div>
     <div class="settingsSection">${trashSettingsHtml()}</div>
@@ -484,8 +474,6 @@ function openSettings(){
   ovl.querySelector("#setEye").onchange=e=>{ db.settings.eyeSight=+e.target.value||850; save(); };
   const expertToggle=ovl.querySelector("#setExpert");
   if(expertToggle) expertToggle.onchange=e=>{ db.settings.expertMode=!!e.target.checked; save(); };
-  const setBetaInfo=ovl.querySelector("#setBetaInfo");
-  if(setBetaInfo) setBetaInfo.onclick=()=>toast("ベータ版 — 全機能が有効です。不具合はバックアップ JSON とあわせて共有してください。");
   const setOnboard=ovl.querySelector("#setOnboard");
   if(setOnboard) setOnboard.onclick=()=>{
     if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
