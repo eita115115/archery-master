@@ -75,8 +75,12 @@ function main() {
   console.log("  check:ui-layer OK");
   runNpm("check:app");
   console.log("  check:app OK");
-  runNpm("check:ui");
-  console.log("  check:ui OK");
+  if (process.env.CI || process.env.GITHUB_ACTIONS) {
+    console.log("  check:ui SKIP (no browser in CI)");
+  } else {
+    runNpm("check:ui");
+    console.log("  check:ui OK");
+  }
 
   if (prep) {
     const build = spawnSync(process.execPath, [path.join(__dirname, "build-native-web.js")], {
