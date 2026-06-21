@@ -1,13 +1,8 @@
 "use strict";
-/* Archery Note: startup and update check */
+/* Archery-master: startup and update check */
 /* ============ init ============ */
-if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")){
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
-}
-applyTheme();
-$("#btnSettings").onclick=openSettings;
-/* 更新通知: version.json と比較（公開時は APP_VER と version.json の v を同時に上げる） */
 let updateAvailable=false;
+
 function syncUpdateBarVisibility(){
   const bar=$("#updBar");
   if(!bar) return;
@@ -36,8 +31,26 @@ function freshReload(){
     reload();
   }
 }
-$("#updBar").onclick=freshReload;
-document.addEventListener("visibilitychange",()=>{ if(document.hidden) flushSafetySnapshot(); else checkUpdate(); });
-window.addEventListener("pagehide",()=>flushSafetySnapshot());
-checkUpdate();
-render();
+function bootApp(){
+  const run=()=>render();
+  if(typeof maybeRunOnboard==="function"&&maybeRunOnboard(run)) return;
+  run();
+}
+async function matonoteStartup(){
+  if("serviceWorker" in navigator && (location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1")){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+  if(typeof ensureBetaChannel==="function") await ensureBetaChannel();
+  if(typeof applyBetaFullFeatures==="function"&&typeof betaFullFeaturesActive==="function"&&betaFullFeaturesActive()&&window.__MATONOTE_BETA__){
+    applyBetaFullFeatures(window.__MATONOTE_BETA__);
+  }
+  applyTheme();
+  if(typeof syncUiRefreshClass==="function") syncUiRefreshClass();
+  if(typeof ensureUiDepth==="function") ensureUiDepth(db.settings);
+  $("#btnSettings").onclick=openSettings;
+  $("#updBar").onclick=freshReload;
+  document.addEventListener("visibilitychange",()=>{ if(document.hidden) flushSafetySnapshot(); else checkUpdate(); });
+  window.addEventListener("pagehide",()=>flushSafetySnapshot());
+  checkUpdate();
+}
+matonoteStartup().then(()=>bootApp()).catch(()=>bootApp());

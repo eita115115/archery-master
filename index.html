@@ -2,11 +2,11 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="description" content="的ノートは、アーチェリーの得点・着弾・用具をまとめて残し、練習後にサイトを動かすか・保留するかの判断材料を見られる練習ノートです。">
-<meta name="theme-color" content="#0f766e" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d5c56" media="(prefers-color-scheme: dark)">
-<meta property="og:title" content="的ノート — アーチェリー練習ノート">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
+<meta name="description" content="Archery-master は、アーチェリーの得点・着弾・用具をまとめて残し、練習後にサイトを動かすか・保留するかの判断材料を見られる練習ノートです。">
+<meta name="theme-color" content="#089B72" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#060A10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Archery-master — 練習ノート">
 <meta property="og:description" content="タップ・写真・数字で記録。サイト調整の判断まで、シンプルに。">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://eita115115.github.io/archery-master/">
@@ -14,40 +14,49 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>的ノート — アーチェリー練習ノート</title>
+<title>Archery-master — 練習ノート</title>
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="ui/ui-tokens.css">
+<link rel="stylesheet" href="ui/ds-components.css">
+<link rel="stylesheet" href="ui/ds-screens.css">
+<link rel="stylesheet" href="ui/ui-motion.css">
+<link rel="stylesheet" href="ui/ui-overrides.css">
 </head>
 <body>
 <header class="app">
   <div class="appLogo" aria-hidden="true"><img src="icon.svg" alt=""></div>
-  <div class="appIdentity"><h1>的ノート</h1><div class="sub">アーチェリー練習ノート</div></div>
-  <button class="gear" id="btnSettings" aria-label="設定">⚙</button>
+  <div class="appIdentity"><h1>Archery-master</h1><div class="sub">練習ノート</div></div>
+  <button class="gear ic" id="btnSettings" aria-label="設定"><svg class="ic-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="ui/icons.svg#ic-gear"/></svg></button>
 </header>
 <main id="main">
   <section class="bootFallback" id="bootFallback" aria-live="polite">
-    <div class="bootIcon">🏹</div>
+    <img class="bootIcon" src="icon.svg" width="48" height="48" alt="">
     <h2>読み込みに時間がかかっています</h2>
     <p>通信が不安定な場合は再読み込みしてください。記録は端末内に保存されます。</p>
     <a class="btn bootReload" href="./index.html">再読み込み</a>
   </section>
 </main>
 <nav class="tabs" id="tabs" aria-label="主な画面">
-  <button data-v="home" aria-label="ホーム"><span class="ic ic-home" aria-hidden="true"></span>ホーム</button>
-  <button data-v="record" aria-label="記録"><span class="ic ic-record" aria-hidden="true"></span>記録</button>
-  <button data-v="history" aria-label="履歴"><span class="ic ic-history" aria-hidden="true"></span>履歴</button>
-  <button data-v="stats" aria-label="統計"><span class="ic ic-stats" aria-hidden="true"></span>統計</button>
+  <button data-v="home" aria-label="ホーム"><span class="ic" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-home"/></svg></span>ホーム</button>
+  <button data-v="record" aria-label="記録"><span class="ic" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>記録</button>
+  <button data-v="history" aria-label="履歴"><span class="ic" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-history"/></svg></span>履歴</button>
+  <button data-v="stats" aria-label="統計"><span class="ic" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-stats"/></svg></span>統計</button>
 </nav>
-<div class="updbar" id="updBar" hidden>新しい版があります。タップで更新</div>
-<div class="toast" id="toast"></div>
+<button type="button" class="updbar" id="updBar" hidden>新しい版があります。タップで更新</button>
+<div class="toast ds-toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="scripts/00-compat.js"></script>
 <script src="scripts/05-app-core.js"></script>
+<script src="scripts/ui/ds-primitives.js"></script>
 <script src="scripts/10-storage-native.js"></script>
 <script src="scripts/20-scoring.js"></script>
 <script src="scripts/30-target-svg.js"></script>
 <script src="scripts/35-photo-vision.js"></script>
 <script src="scripts/36-score-ocr.js"></script>
 <script src="scripts/37-form-coach.js"></script>
+<script src="scripts/38-badge-engine.js"></script>
+<script src="scripts/39-pair-scoring.js"></script>
+<script src="scripts/41-team-set.js"></script>
 <script src="scripts/40-analysis-physics.js"></script>
 <script src="scripts/46-decision-engine.js"></script>
 <script src="scripts/45-stats-engine.js"></script>
@@ -55,11 +64,15 @@
 <script src="scripts/51-record-setup.js"></script>
 <script src="scripts/48-home-view.js"></script>
 <script src="scripts/53-page-heroes.js"></script>
+<script src="scripts/54-motion.js"></script>
+<script src="scripts/56-onboard.js"></script>
+<script src="scripts/57-ui-depth.js"></script>
 <script src="scripts/52-input-modes.js"></script>
 <script src="scripts/50-record-view.js"></script>
 <script src="scripts/55-stats-view.js"></script>
 <script src="scripts/60-history-sight-view.js"></script>
 <script src="scripts/70-gear-settings.js"></script>
+<script src="scripts/58-beta-boot.js"></script>
 <script src="scripts/90-init.js"></script>
 </body>
 </html>

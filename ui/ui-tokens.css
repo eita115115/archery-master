@@ -1,0 +1,175 @@
+/* 的ノート UI layer — taste tokens. html.ui-refresh only. */
+html.ui-refresh{
+  --ui-font-sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",Meiryo,sans-serif;
+  --ui-bg:#F2F0EB;
+  --ui-bg-deep:#E8E5DE;
+  --ui-surface:#FDFCFA;
+  --ui-surface-elevated:#FFFFFF;
+  --ui-surface-deep:#F5F3EE;
+  --ui-separator:rgba(26,31,28,.12);
+  --ui-label:#1A1F1C;
+  --ui-label-secondary:#5C6560;
+  --ui-accent:#146356;
+  --ui-accent-bright:#17896F;
+  --ui-accent-pressed:#0F4F44;
+  --ui-accent-soft:rgba(20,99,86,.1);
+  --ui-accent-on:#FFFFFF;
+  --ui-chrome-line:rgba(26,31,28,.08);
+  --ui-shadow-sm:0 1px 2px rgba(26,31,28,.05),0 1px 0 rgba(255,255,255,.6) inset;
+  --ui-shadow-md:0 10px 28px rgba(26,31,28,.08);
+  --ui-fill-secondary:#E3E0D8;
+  --ui-danger:#B42318;
+  --ui-warning:#B54708;
+  --ui-space-1:4px;
+  --ui-space-2:8px;
+  --ui-space-3:12px;
+  --ui-space-4:16px;
+  --ui-space-5:24px;
+  --ui-space-6:32px;
+  --ui-space-7:40px;
+  --ui-radius-sm:8px;
+  --ui-radius-md:10px;
+  --ui-radius-lg:14px;
+  --ui-radius-sheet:18px;
+  --ui-font-title:20px;
+  --ui-font-headline:17px;
+  --ui-font-body:15px;
+  --ui-font-caption:13px;
+  --ui-font-metric:32px;
+  --ui-font-metric-sm:22px;
+  --ui-ease-spring:cubic-bezier(.22,1,.36,1);
+  --ui-ease-bounce:cubic-bezier(.2,1.2,.2,1);
+  --ui-dur-instant:.12s;
+  --ui-dur-fast:.2s;
+  --ui-dur-med:.34s;
+  --ui-dur-celebrate:.52s;
+  --bg:var(--ui-bg);
+  --card:var(--ui-surface);
+  --ink:var(--ui-label);
+  --sub:var(--ui-label-secondary);
+  --green:var(--ui-accent);
+  --accent:var(--ui-accent);
+  --line:var(--ui-separator);
+  --soft:var(--ui-fill-secondary);
+  --radius-card:var(--ui-radius-lg);
+  --radius-control:var(--ui-radius-md);
+  --chrome-bg:var(--ui-surface-elevated);
+  --ease-app:var(--ui-ease-spring);
+  --motion-fast:var(--ui-dur-instant);
+  --motion-med:var(--ui-dur-med);
+}
+html.ui-refresh.dark{
+  --ui-bg:#0E1012;
+  --ui-bg-deep:#090B0D;
+  --ui-surface:#161A1E;
+  --ui-surface-elevated:#1B2025;
+  --ui-surface-deep:#12161A;
+  --ui-separator:rgba(255,255,255,.1);
+  --ui-label:#ECEEE9;
+  --ui-label-secondary:#A3ABA6;
+  --ui-accent:#52B896;
+  --ui-accent-bright:#6BC9A8;
+  --ui-accent-pressed:#3D9A7C;
+  --ui-accent-soft:rgba(82,184,150,.14);
+  --ui-accent-on:#0A1F18;
+  --ui-chrome-line:rgba(255,255,255,.08);
+  --ui-shadow-sm:0 1px 2px rgba(0,0,0,.28);
+  --ui-shadow-md:0 12px 32px rgba(0,0,0,.38);
+  --ui-fill-secondary:#252B30;
+}
+@media (prefers-color-scheme:dark){
+  html.ui-refresh.auto{
+    --ui-bg:#0E1012;
+    --ui-bg-deep:#090B0D;
+    --ui-surface:#161A1E;
+    --ui-surface-elevated:#1B2025;
+    --ui-surface-deep:#12161A;
+    --ui-separator:rgba(255,255,255,.1);
+    --ui-label:#ECEEE9;
+    --ui-label-secondary:#A3ABA6;
+    --ui-accent:#52B896;
+    --ui-accent-bright:#6BC9A8;
+    --ui-accent-pressed:#3D9A7C;
+    --ui-accent-soft:rgba(82,184,150,.14);
+    --ui-accent-on:#0A1F18;
+    --ui-chrome-line:rgba(255,255,255,.08);
+    --ui-shadow-sm:0 1px 2px rgba(0,0,0,.28);
+    --ui-shadow-md:0 12px 32px rgba(0,0,0,.38);
+    --ui-fill-secondary:#252B30;
+  }
+}
+html.ui-refresh body{
+  background-color:var(--ui-bg);
+  color:var(--ui-label);
+  font-family:var(--ui-font-sans);
+  font-size:var(--ui-font-body);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+html.ui-refresh main{
+  padding:var(--ui-space-4) var(--ui-space-4) var(--ui-space-6);
+}
+html.ui-refresh header.app,
+html.ui-refresh nav.tabs{
+  backdrop-filter:none;
+  -webkit-backdrop-filter:none;
+  background:var(--ui-surface-elevated);
+  border-color:var(--ui-separator);
+}
+html.ui-refresh header.app{
+  border-bottom:1px solid var(--ui-separator);
+  box-shadow:none;
+}
+html.ui-refresh nav.tabs{
+  box-shadow:0 -1px 0 var(--ui-separator);
+  background:var(--ui-surface-elevated);
+}
+html.ui-refresh .btn,
+html.ui-refresh .homeAction.primary,
+html.ui-refresh .startPrimary{
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-accent);
+  color:var(--ui-accent-on);
+  font-weight:600;
+  font-size:var(--ui-font-body);
+  border:1px solid transparent;
+  box-shadow:var(--ui-shadow-sm);
+  transition:background var(--ui-dur-fast) ease,transform var(--ui-dur-instant) ease;
+}
+html.ui-refresh .btn.sec,
+html.ui-refresh .btn.ghost,
+html.ui-refresh .homeAction.sec{
+  background:var(--ui-surface);
+  color:var(--ui-label);
+  border:1px solid var(--ui-separator);
+  box-shadow:none;
+}
+html.ui-refresh .btn:active,
+html.ui-refresh .homeAction.primary:active{
+  background:var(--ui-accent-pressed);
+  transform:scale(.985);
+}
+html.ui-refresh .btn:disabled,
+html.ui-refresh .homeAction:disabled{
+  opacity:.5;
+  cursor:not-allowed;
+}
+html.ui-refresh .chip{
+  border-radius:var(--ui-radius-sm);
+  border-color:var(--ui-separator);
+}
+html.ui-refresh .card{
+  background:var(--ui-surface);
+  border:1px solid var(--ui-separator);
+  box-shadow:var(--ui-shadow-sm);
+}
+html.ui-refresh header.app .gear{
+  font-size:0;
+}
+html.ui-refresh .empty{
+  color:var(--ui-label-secondary);
+  font-size:var(--ui-font-body);
+  line-height:1.5;
+  padding:var(--ui-space-5) var(--ui-space-3);
+  text-align:center;
+}

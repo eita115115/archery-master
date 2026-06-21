@@ -322,14 +322,14 @@ function gearWorkbenchHtml(){
   const marks=db.sightMarks.length;
   const top=setups.map(s=>({s,p:gearPrecisionProfile(s),m:modelReadinessProfile(s.id)}))
     .sort((a,b)=>(b.p.score+b.m.score)-(a.p.score+a.m.score))[0];
-  return `<div class="insightStrip">
-    <div class="insightTile"><div class="k">用具ライブラリ</div><b>${setups.length}件</b><span>練習紐付け ${linked}回 / サイト値 ${marks}点</span></div>
-    <div class="insightTile"><div class="k">入力材料</div><b>${pct(avg)}</b><span>矢重量・矢径・FOC・実測初速の平均充実度</span></div>
-    <div class="insightTile"><div class="k">よく使う用具</div><b>${top?esc(top.s.name):"—"}</b><span>${top?`入力 ${top.p.level} / 履歴 ${top.m.level}`:"登録待ち"}</span></div>
+  return `<div class="insightStrip ds-insightBoard">
+    <div class="insightTile"><p class="k">用具ライブラリ</p><p class="ds-metricValue">${setups.length}件</p><span>練習紐付け ${linked}回 · サイト値 ${marks}点</span></div>
+    <div class="insightTile"><p class="k">入力材料</p><p class="ds-metricValue">${pct(avg)}</p><span>矢重量・矢径・FOC・実測初速</span></div>
+    <div class="insightTile"><p class="k">よく使う用具</p><p class="ds-metricValue">${top?esc(top.s.name):"—"}</p><span>${top?`入力 ${top.p.level} · 履歴 ${top.m.level}`:"登録待ち"}</span></div>
   </div>`;
 }
 function renderGear(m){
-  m.innerHTML=`${pageHeroHtml("gear")}${gearWorkbenchHtml()}
+  m.innerHTML=`${gearWorkbenchHtml()}
   <div class="card"><h2>用具セッティング <span class="mini">${db.setups.length}件</span></h2>
     <div id="gearList">${db.setups.length? db.setups.map(s=>{
       const cnt=db.sessions.filter(x=>x.setupId===s.id).length;
@@ -342,7 +342,7 @@ function renderGear(m){
       </div><div style="font-size:18px;color:var(--sub)">›</div></div>`;
     }).join(""):`<div class="empty">セッティングを登録すると、サイト台帳・調整提案・成績がセッティングごとに紐付きます。</div>`}</div>
     <div class="btnrow"><button class="btn sec" id="gWizard">初回セットアップ</button><button class="btn" id="gAdd">＋ 新しいセッティング</button></div>
-    <div class="hint">バックアップ・テーマなどは右上の <b>⚙設定</b> から。</div>
+    <div class="hint">バックアップ・テーマなどは右上の <b>設定</b> から。</div>
   </div>`;
   $("#gWizard").onclick=()=>openSetupWizard();
   $("#gAdd").onclick=()=>openGearForm(null);
@@ -350,81 +350,132 @@ function renderGear(m){
 }
 
 /* ---------- ツールシート（サイト・用具） ---------- */
-function openToolSheet(kind){
+function openToolSheet(kind,fromSettings){
   const ovl=document.createElement("div");
   ovl.className="ovl toolSheet";
-  const titles={sight:"サイト調整",gear:"用具セッティング",form:"射形コーチ"};
+  const titles={sight:"サイト調整",gear:"用具セッティング",form:"射形の確認"};
+  const backLabel=fromSettings?"‹ 設定":"閉じる";
   ovl.innerHTML=`<div class="sheet toolSheetBody"><div class="toolSheetHdr">
-    <button class="back" id="toolClose" type="button">閉じる</button>
+    <button class="back" id="toolClose" type="button">${backLabel}</button>
     <h3>${titles[kind]||"ツール"}</h3><span></span>
   </div><div class="toolSheetMain" id="toolSheetMain"></div></div>`;
   document.body.appendChild(ovl);
   const main=$("#toolSheetMain");
+  const closeTool=()=>{
+    if(kind==="form"&&typeof stopFormCoach==="function") stopFormCoach();
+    ovl.remove();
+    if(fromSettings) openSettings();
+    else render();
+  };
   if(kind==="form"){
     if(typeof renderFormCoachPanel==="function") renderFormCoachPanel(main);
-    else main.innerHTML=`<section class="card"><h2>射形コーチ</h2><div class="empty">射形モジュールを読み込めませんでした</div></section>`;
-    ovl.querySelector("#toolClose").onclick=()=>{ if(typeof stopFormCoach==="function") stopFormCoach(); ovl.remove(); render(); };
+    else main.innerHTML=`<section class="card"><h2>射形の確認</h2><div class="empty">射形モジュールを読み込めませんでした</div></section>`;
+    ovl.querySelector("#toolClose").onclick=closeTool;
     return;
   }else if(kind==="sight") renderSight(main);
   else renderGear(main);
-  ovl.querySelector("#toolClose").onclick=()=>{ ovl.remove(); render(); };
+  ovl.querySelector("#toolClose").onclick=closeTool;
 }
 
-/* ---------- ⚙ 設定 ---------- */
+/* ---------- 設定 ---------- */
 function applyTheme(){
   const t=db.settings.theme||"auto";
-  document.documentElement.className=t;
+  const root=document.documentElement;
+  root.classList.remove("light","dark","auto");
+  root.classList.add(t);
 }
 function openSettings(){
   const ovl=document.createElement("div"); ovl.className="ovl";
   const th=db.settings.theme||"auto";
+  const expert=!!db.settings.expertMode;
   const snaps=readSnapshots();
-  ovl.innerHTML=`<div class="sheet"><h3>⚙ 設定</h3>
-    <div class="settingsNav">
-      <button class="settingsLink" type="button" data-tool="sight">サイト調整</button>
-      <button class="settingsLink" type="button" data-tool="gear">用具セッティング</button>
-      <button class="settingsLink" type="button" data-tool="form">射形コーチ</button>
+  ovl.innerHTML=`<div class="sheet"><h3>設定</h3>
+    <div class="settingsSection">
+      <div class="listGroupHdr">ツール</div>
+      <div class="settingsNav">
+        <button class="settingsLink" type="button" data-tool="sight">サイト調整</button>
+        <button class="settingsLink" type="button" data-tool="gear">用具セッティング</button>
+        <button class="settingsLink" type="button" data-tool="form">射形の確認</button>
+      </div>
+      <p class="formFpDisclaimer formFpDisclaimerCompact settingsDisclaimer">練習用計測 — コーチ・審判の代替ではありません。無マーカー時は弓追跡を保証しません。</p>
     </div>
-    <label class="f">テーマ</label>
-    <div class="chips" id="thChips">
-      ${[["auto","自動（端末に合わせる）"],["light","ライト"],["dark","ダーク"]].map(([v,lb])=>`<div class="chip ${th===v?"on":""}" data-th="${v}">${lb}</div>`).join("")}
+    <div class="settingsSection">
+      <div class="listGroupHdr">表示</div>
+      <div class="settingsGroup">
+        <div class="settingsRow settingsRowStack">
+          <span class="settingsRowLabel">テーマ</span>
+          <div class="chips" id="thChips">
+            ${[["auto","自動（端末に合わせる）"],["light","ライト"],["dark","ダーク"]].map(([v,lb])=>`<div class="chip ${th===v?"on":""}" data-th="${v}">${lb}</div>`).join("")}
+          </div>
+        </div>
+        <div class="settingsRow settingsRowStack">
+          <label class="settingsRowLabel" for="setEye">アイ〜サイト距離 (mm)</label>
+          <input class="inp" id="setEye" inputmode="numeric" value="${db.settings.eyeSight||850}">
+          <span class="settingsRowCaption">調整提案の目安計算に使用します</span>
+        </div>
+        <label class="settingsRow settingsRowToggle">
+          <span class="settingsRowLabel">詳しい使い方</span>
+          <input type="checkbox" id="setExpert" ${expert?"checked":""}>
+        </label>
+      </div>
     </div>
-    <label class="f">アイ〜サイト距離 (mm) — 調整提案のmm目安の計算に使用</label>
-    <input class="inp" id="setEye" inputmode="numeric" value="${db.settings.eyeSight||850}">
+    <div class="settingsSection">
+      <div class="listGroupHdr">データ管理</div>
+      ${backupReminderHtml()}
+      <div class="settingsGroup">
+        <button class="settingsRow" type="button" id="dExp">バックアップ保存</button>
+        <button class="settingsRow" type="button" id="dImp">読み込み</button>
+        <button class="settingsRow" type="button" id="dCsv">CSV出力</button>
+        <button class="settingsRow" type="button" id="dAiPrep">オフライン用データをダウンロード</button>
+      </div>
+      <input type="file" id="dFile" accept=".json" style="display:none">
+    </div>
+    <div class="settingsSection">
+      <div class="listGroupHdr">自動バックアップ</div>
+      <div class="settingsGroup">
+        ${snaps.length?`<div class="settingsRow settingsRowStack">
+          <label class="settingsRowLabel" for="dSnapSel">復元候補</label>
+          <select class="inp" id="dSnapSel">${snaps.map((s,i)=>`<option value="${i}">${esc(snapshotLabel(s))}</option>`).join("")}</select>
+        </div>`:`<div class="settingsRow settingsRowNote">自動バックアップはまだありません。保存操作を行うと端末内に復元用バックアップが残ります。</div>`}
+        <button class="settingsRow" type="button" id="dSnapNow">今すぐバックアップ</button>
+        <button class="settingsRow settingsRowAction" type="button" id="dSnapRestore" ${snaps.length?"":"disabled"}>選択したバックアップを復元</button>
+      </div>
+    </div>
+    <div class="settingsSection">${trashSettingsHtml()}</div>
     ${nativeReadinessHtml()}
-    <h3 style="margin-top:18px;font-size:14px">データ管理</h3>
-    ${backupReminderHtml()}
-    <div class="btnrow">
-      <button class="btn sec" id="dExp">⬇ バックアップ保存</button>
-      <button class="btn sec" id="dImp">⬆ 読み込み</button>
-    </div>
-    <div class="btnrow"><button class="btn sec" id="dCsv">CSV出力</button></div>
-    <div class="btnrow"><button class="btn sec" id="dAiPrep">AIオフライン準備（OCR・射形）</button></div>
-    <input type="file" id="dFile" accept=".json" style="display:none">
-    <h3 style="margin-top:18px;font-size:14px">自動バックアップ</h3>
-    ${snaps.length?`<label class="f">復元候補</label><select class="inp" id="dSnapSel">${snaps.map((s,i)=>`<option value="${i}">${esc(snapshotLabel(s))}</option>`).join("")}</select>`:`<div class="empty">自動バックアップはまだありません。保存操作を行うと端末内に復元用バックアップが残ります。</div>`}
-    <div class="btnrow">
-      <button class="btn sec" id="dSnapNow">今すぐバックアップ</button>
-      <button class="btn ghost" id="dSnapRestore" ${snaps.length?"":"disabled"}>選択したバックアップを復元</button>
-    </div>
-    ${trashSettingsHtml()}
     <div class="hint">記録データはこの端末のブラウザ内にだけ保存されます（サーバーには送信されません）。</div>
-    <div class="hint" style="color:var(--danger)">⚠️ iPhoneの「設定 → Safari → 履歴とWebサイトデータを消去」や、Safariの「Webサイトデータを削除」を行うと、<b>このアプリの記録もすべて消えます。</b>その操作をする前と、機種変更の前には必ず「バックアップ保存」をしてください。月1回のバックアップ習慣がおすすめです。</div>
-    <div class="hint" style="text-align:center;margin-top:12px">的ノート v${APP_VER}</div>
+    <div class="hint settingsWarn">iPhoneの「設定 → Safari → 履歴とWebサイトデータを消去」や、Safariの「Webサイトデータを削除」を行うと、<b>このアプリの記録もすべて消えます。</b>その操作をする前と、機種変更の前には必ず「バックアップ保存」をしてください。月1回のバックアップ習慣がおすすめです。</div>
+    <div class="hint settingsVersion">Archery-master v${APP_VER}</div>
     <div class="btnrow"><button class="btn ghost" id="setClose">閉じる</button></div>
   </div>`;
   document.body.appendChild(ovl);
-  ovl.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{ ovl.remove(); openToolSheet(b.dataset.tool); });
-  ovl.querySelectorAll("#thChips .chip").forEach(c=>c.onclick=()=>{
-    db.settings.theme=c.dataset.th; save(); applyTheme();
-    ovl.querySelectorAll("#thChips .chip").forEach(x=>x.classList.toggle("on",x===c));
+  if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector("h3") });
+  ovl.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{
+    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
+    ovl.remove(); openToolSheet(b.dataset.tool,true);
   });
+  if(typeof wireChipGroup==="function"){
+    wireChipGroup(ovl.querySelector("#thChips"),".chip",c=>{
+      db.settings.theme=c.dataset.th; save(); applyTheme();
+    });
+  }else{
+    ovl.querySelectorAll("#thChips .chip").forEach(c=>c.onclick=()=>{
+      db.settings.theme=c.dataset.th; save(); applyTheme();
+      ovl.querySelectorAll("#thChips .chip").forEach(x=>x.classList.toggle("on",x===c));
+    });
+  }
   ovl.querySelector("#setEye").onchange=e=>{ db.settings.eyeSight=+e.target.value||850; save(); };
-  ovl.querySelector("#setClose").onclick=()=>{ ovl.remove(); render(); };
+  const expertToggle=ovl.querySelector("#setExpert");
+  if(expertToggle) expertToggle.onchange=e=>{ db.settings.expertMode=!!e.target.checked; save(); };
+  ovl.querySelector("#setClose").onclick=()=>{
+    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
+    ovl.remove(); render();
+  };
   ovl.querySelector("#dExp").onclick=()=>{
     db.settings.lastBackupAt=new Date().toISOString();
     save({reason:"json-export",forceSnapshot:true});
-    shareOrDownloadText(`matonote-${today()}.json`,JSON.stringify(db,null,1),"application/json","的ノート Backup");
+    shareOrDownloadText(`archery-master-${today()}.json`,JSON.stringify(db,null,1),"application/json","Archery-master Backup");
   };
   ovl.querySelector("#dCsv").onclick=()=>exportSessionsCsv();
   const aiBtn=ovl.querySelector("#dAiPrep");
@@ -432,11 +483,11 @@ function openSettings(){
     aiBtn.disabled=true; aiBtn.textContent="準備中…";
     try{
       await prepareOfflineAI((pct)=>{ aiBtn.textContent=`準備中… ${pct}%`; });
-      toast("AIモジュールのオフライン準備が完了しました");
+      toast("オフラインで使える準備ができました");
     }catch(e){
       toast(e&&e.message?e.message:"準備に失敗しました");
     }
-    aiBtn.disabled=false; aiBtn.textContent="AIオフライン準備（OCR・射形）";
+    aiBtn.disabled=false; aiBtn.textContent="オフライン用データをダウンロード";
     ovl.remove(); openSettings();
   };
   ovl.querySelector("#dSnapNow").onclick=()=>{ writeSafetySnapshot("manual",true); toast("現在のデータをバックアップしました"); ovl.remove(); openSettings(); };

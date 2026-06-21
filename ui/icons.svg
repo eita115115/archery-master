@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="ic-home" viewBox="0 0 24 24">
+    <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="ic-record" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="8.25" fill="none" stroke="currentColor" stroke-width="1.75"/>
+    <circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.5" opacity=".75"/>
+    <circle cx="12" cy="12" r="2.75" fill="none" stroke="currentColor" stroke-width="1.25" opacity=".55"/>
+    <circle cx="12" cy="12" r="1" fill="currentColor"/>
+  </symbol>
+  <symbol id="ic-history" viewBox="0 0 24 24">
+    <path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M5.5 6.8A7.5 7.5 0 1 1 5 12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M5 4.5v3.5H8.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="ic-stats" viewBox="0 0 24 24">
+    <path d="M6 18V11" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M12 18V7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M18 18V13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <path d="M4 18h16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" opacity=".45"/>
+  </symbol>
+  <symbol id="ic-gear" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="2.75" fill="none" stroke="currentColor" stroke-width="1.75"/>
+    <path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M5.8 5.8l1.55 1.55M16.65 16.65l1.55 1.55M5.8 18.2l1.55-1.55M16.65 7.35l1.55-1.55" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+    <circle cx="12" cy="12" r="5.5" fill="none" stroke="currentColor" stroke-width="1.75"/>
+  </symbol>
+</svg>

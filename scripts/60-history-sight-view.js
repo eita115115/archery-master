@@ -11,7 +11,7 @@ function renderHistory(m){
     (!hf.dist || String(s.dist)===String(hf.dist)) &&
     (!hf.round || (s.round||"free")===hf.round)
   );
-  m.innerHTML=`${pageHeroHtml("history",{ss})}${historyOverviewHtml(allSs,ss)}
+  m.innerHTML=`${historyOverviewHtml(allSs,ss)}
   <div class="card"><h2>練習履歴 <span class="mini">${ss.length}/${allSs.length}回</span></h2>
     <div class="row">
       <div><label class="f">用具</label><select class="inp" id="histSetup"><option value="">すべて</option><option value="__none" ${hf.setupId==="__none"?"selected":""}>未指定</option>${db.setups.map(s=>`<option value="${s.id}" ${hf.setupId===s.id?"selected":""}>${esc(s.name)}</option>`).join("")}</select></div>
@@ -29,14 +29,16 @@ function renderHistory(m){
       return `<div class="listItem" data-id="${s.id}">
         <div><div class="t">${fmtD(s.date)} ・ ${s.dist}m ・ ${bowTypeLabel(s.bowType)}</div>
         <div class="d"><span class="badge">${envLabel(s.environment)}</span><span class="badge">${faceLabel(s)}</span>${setup?`<span class="badge">${esc(setup.name)}</span>`:""}<span class="badge">X${stats.xCount} / 10${stats.tenCount}</span>${s.round&&s.round!=="free"?`<span class="badge">${roundLabel(s.round)}</span>`:""}${all.length}本</div></div>
-        <div class="big">${stats.total}<small> / Hits ${stats.hitCount}</small></div></div>`;
-    }).join(""):`<div class="empty">まだ記録がありません。「記録」タブから始めましょう。</div>`}
+        <div class="big">${stats.total}<small> / 的中 ${stats.hitCount}</small></div></div>`;
+    }).join(""):`<div class="empty ds-emptyBlock">${allSs.length&&!ss.length?`条件に合う記録がありません<button class="btn sec sm" type="button" id="histEmptyClear">絞り込み解除</button>`:`まだ記録がありません。ホームから記録を始めましょう。`}</div>`}
   </div></div>
   ${groupingTrendCard(ss)}${distTrendCard(ss)}${scoreDistCard(ss)}${monthlyCard(ss)}`;
   $("#histSetup").onchange=e=>{ ui.histFilter.setupId=e.target.value; render(); };
   $("#histDist").onchange=e=>{ ui.histFilter.dist=e.target.value; if(e.target.value) db.settings.lastSelectedDistance=+e.target.value; save("hist-filter"); render(); };
   $("#histRound").onchange=e=>{ ui.histFilter.round=e.target.value; render(); };
   $("#histClear").onclick=()=>{ ui.histFilter={setupId:"",dist:"",round:""}; render(); };
+  const histEmptyClear=$("#histEmptyClear");
+  if(histEmptyClear) histEmptyClear.onclick=()=>{ ui.histFilter={setupId:"",dist:"",round:""}; render(); };
   document.querySelectorAll("#histList .listItem").forEach(li=>li.onclick=()=>openHistDetail(li.dataset.id));
 }
 function sessionGroupPoint(s){
@@ -67,7 +69,7 @@ function groupingTrendCard(ss){
     .sort((a,b)=>(b[b.length-1].date||"").localeCompare(a[a.length-1].date||""))
     .slice(0,4);
   if(!groups.length) return "";
-  return `<div class="card"><h2>グルーピング推移 <span class="mini">過去中心の分布と偏移</span></h2>`+
+  return `<div class="card"><h2>グルーピング推移 <span class="mini">着弾のばらつき</span></h2>`+
     groups.map(g=>groupingTrendItem(g)).join("")+
     `<div class="hint">丸は各練習のグルーピング中心、線は時系列、緑の楕円は過去中心の分布です。的の中心からどちらへ偏り続けているか、直近でどちらへ流れているかを見るための俯瞰です。</div></div>`;
 }
@@ -176,19 +178,22 @@ function openHistDetail(id){
   const setup=db.setups.find(x=>x.id===sess.setupId);
   const st=robustStats(all);
   const adv=adviceFor(sess,setup);
-  ovl.innerHTML=`<div class="sheet">
+  ovl.innerHTML=`<div class="sheet histDetailSheet">
     <h3>${fmtD(sess.date)} ・ ${sess.dist}m ・ ${faceLabel(sess)}</h3>
-    <div style="font-size:12px;color:var(--sub)">${setup?esc(setup.name):"セッティング未指定"}${sess.round&&sess.round!=="free"?" ・ "+roundLabel(sess.round):""}${windText(sess)?" ・ "+esc(windText(sess)):""}${sess.note?" ・ "+esc(sess.note):""}</div>
+    <div class="histDetailMeta">${setup?esc(setup.name):"セッティング未指定"}${sess.round&&sess.round!=="free"?" ・ "+roundLabel(sess.round):""}${sess.faceType==="quad"?" ・ 四枚 "+quadHalfLabel((sess.ends||[]).length>10?"second":(sess.quadHalf||"first")):""}${sess.fieldCourseId?" ・ コース "+esc(fieldCourseLabel(sess.fieldCourseId)):""}${windText(sess)?" ・ "+esc(windText(sess)):""}${sess.note?" ・ "+esc(sess.note):""}</div>
+    <div id="hPlot" class="histDetailPlot"></div>
     <div class="statbar">
       ${(()=>{ const st=aggregateSessionStats(all); return `
       <div class="stat"><b>${st.total}</b><span>合計 (${st.count}本)</span></div>
       <div class="stat"><b>${st.xCount}</b><span>Xs</span></div>
       <div class="stat"><b>${st.tenCount}</b><span>10s</span></div>
-      <div class="stat"><b>${st.hitCount}</b><span>Hits</span></div>`; })()}
+      <div class="stat"><b>${st.hitCount}</b><span>的中</span></div>`; })()}
     </div>
+    ${sess.fieldCourse?`<details class="adv fieldCourseAdv"><summary>フィールドコース</summary><div class="note fieldDisclaimer">${esc(FIELD_COURSE_DISCLAIMER)}</div>${fieldCourseTableHtml(sess)}${typeof fieldTargetSummaryHtml==="function"?fieldTargetSummaryHtml(sess):""}</details>`:""}
     <div class="readOnlyGrid">${scoreGridReadOnlyHtml(sess)}</div>
     ${(sess.formAnalyses&&sess.formAnalyses.length)?`<div class="advice" style="background:var(--card);border-color:var(--line)"><div class="note"><b>射形分析</b> — 最新 ${sess.formAnalyses[sess.formAnalyses.length-1].score}点 / ${sess.formAnalyses.length}回記録</div></div>`:""}
-    <div id="hPlot" style="margin-top:10px"></div>
+    ${typeof formPrecisionCorrelationHtml==="function"?formPrecisionCorrelationHtml(sess):""}
+    ${(()=>{const runs=(sess&&sess.formPrecisionRuns)||[];const r=runs[runs.length-1];return (r&&typeof renderFormPrecisionErrorReport==="function")?renderFormPrecisionErrorReport(r,sess):"";})()}
     ${groupSummaryHtml(st)}
     ${trustHtml(sess,setup,st)}
     ${roundProgressHtml(sess)}
@@ -199,13 +204,13 @@ function openHistDetail(id){
       const sorted=[...end].sort((a,b)=>b.s-a.s);
       return `<tr><td><span class="histChip" style="background:${ENDCOLORS[i%ENDCOLORS.length]}"></span>${i+1}</td><td>${sorted.map(scoreLabel).join("・")}</td><td class="right"><b>${end.reduce((a,x)=>a+x.s,0)}</b></td></tr>`;
     }).join("")}</table>
-    ${adv?`<div class="advice"><div style="font-size:12px;color:var(--sub)">🔧 この回からのサイト調整提案</div>${adv.lines.map(l=>`<div class="dir">${l.html}</div>`).join("")}${judgementHtml(adv,sess)}${shapeNote(adv.st)}${adv.notes.slice(0,3).map(n=>`<div class="note">・${n}</div>`).join("")}</div>`:""}
+    ${adv?`<div class="advice"><div style="font-size:12px;color:var(--sub)">この回からのサイト調整提案</div>${adv.lines.map(l=>`<div class="dir">${l.html}</div>`).join("")}${judgementHtml(adv,sess)}${shapeNote(adv.st)}${adv.notes.slice(0,3).map(n=>`<div class="note">・${n}</div>`).join("")}</div>`:""}
     ${personalModelHtml(adv,sess,setup)}
     ${conditionHtml(sess,st,setup)}
     ${nextActionHtml(sess,adv,setup)}
     <div class="btnrow">
       <button class="btn danger" id="hDel">削除</button>
-      <button class="btn sec" id="hEdit">✏ 編集</button>
+      <button class="btn sec" id="hEdit">編集</button>
     </div>
     <div class="btnrow">
       <button class="btn sec" id="hCard">画像保存</button>
@@ -259,8 +264,7 @@ function renderSight(m){
       ${preds.length?`<div class="chips" style="margin-top:8px">${preds.join("")}</div>`:`<div class="hint">定番距離（18/30/50/70m）はすべて実測済みです</div>`}
       <div class="hint">2距離以上の実測サイト値から予測します。4距離以上ある場合は、弾道に近いカーブ近似が有効なときだけ自動採用します。左右は距離の影響がほぼないため上下のみ予測します。</div>`;
   }
-  m.innerHTML=`${pageHeroHtml("sight",{setup,dist,marks,adv,lastSess})}
-  <div class="card">
+  m.innerHTML=`<div class="card">
     <h2>サイト台帳</h2>
     ${db.setups.length?`
     <label class="f">セッティング</label><select class="inp" id="sgSetup">${db.setups.map(s=>`<option value="${s.id}" ${s.id===sid?"selected":""}>${esc(s.name)}</option>`).join("")}</select>
@@ -287,7 +291,7 @@ function renderSight(m){
       ${modelReadinessHtml(sid)}
       ${physicsCalibrationHtml(sid)}
     </details>
-    `:`<div class="empty">先に「用具」タブでセッティングを登録してください。<br>サイト台帳はセッティングごとに管理されます。</div>`}
+    `:`<div class="empty">先に設定 → 用具セッティングで登録してください。<br>サイト台帳はセッティングごとに管理されます。</div>`}
   </div>
   ${setup?`
   <div class="card">

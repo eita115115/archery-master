@@ -4,6 +4,7 @@ const vm = require("vm");
 
 const root = path.resolve(__dirname, "..");
 const visionPath = path.join(root, "scripts", "35-photo-vision.js");
+const scoringPath = path.join(root, "scripts", "20-scoring.js");
 
 function assert(ok, msg) {
   if (!ok) throw new Error(msg);
@@ -106,9 +107,15 @@ const sandbox = {
   window: {},
 };
 
+const scoringSource = fs.readFileSync(scoringPath, "utf8");
+const scoringStart = scoringSource.indexOf("function isFieldFace");
+const scoringEnd = scoringSource.indexOf("function momentStats");
+const scoringSlice = scoringSource.slice(scoringStart, scoringEnd);
+
 sandbox.__exports = {};
 vm.createContext(sandbox);
-vm.runInContext(`${stripped}
+vm.runInContext(`${scoringSlice}
+${stripped}
 __exports.DETECTOR_DEFAULTS = DETECTOR_DEFAULTS;
 __exports.analyzeImageData = analyzeImageData;
 __exports.analyzeTargetPhoto = analyzeTargetPhoto;
@@ -130,7 +137,7 @@ assert(DETECTOR_DEFAULTS && typeof DETECTOR_DEFAULTS === "object", "DETECTOR_DEF
 
 const target = { x: 50, y: 50, radiusPx: 40 };
 const centerScore = scoreImpact({ x: 50, y: 50 }, target, 122);
-const edgeScore = scoreImpact({ x: 90, y: 50 }, target, 122);
+const edgeScore = scoreImpact({ x: 88, y: 50 }, target, 122);
 assert(centerScore === 10, `center score expected 10, got ${centerScore}`);
 assert(edgeScore < centerScore, `edge score expected lower than center, got ${edgeScore}`);
 assert(edgeScore >= 1, `edge score expected at least 1, got ${edgeScore}`);

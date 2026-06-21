@@ -1,6 +1,6 @@
 {
   "appId": "com.eita.archerynote",
-  "appName": "Archery Note",
+  "appName": "Archery-master",
   "webDir": "dist/native",
   "bundledWebRuntime": false,
   "server": {
@@ -9,11 +9,11 @@
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 0,
-      "backgroundColor": "#1a5c3a"
+      "backgroundColor": "#146356"
     },
     "StatusBar": {
       "style": "dark",
-      "backgroundColor": "#1a5c3a"
+      "backgroundColor": "#146356"
     }
   }
 }

@@ -7,6 +7,8 @@ function setupOptions(sel){
 }
 const RECORD_FLOW_MODES=[
   {id:"practice",icon:"◎",title:"練習記録",desc:"点取りから調整提案へ"},
+  {id:"pair",icon:"⇄",title:"ペア採点",desc:"練習用の相互確認（公式マーカー代替ではありません）"},
+  {id:"volume",icon:"#",title:"本数練",desc:"得点は取らず本数だけ記録"},
   {id:"calibration",icon:"↕",title:"サイト値を残す",desc:"サイト値・風メモも一緒に"},
   {id:"diagnosis",icon:"?",title:"足りないデータを見る",desc:"提案の材料を確認"}
 ];
@@ -49,7 +51,7 @@ function recordIntroHtml(sys, mode){
     <div class="missionTop">
       <img class="startLogoMark" src="icon.svg" alt="">
       <div>
-        <div class="eyebrow">的ノート</div>
+        <div class="eyebrow">Archery-master</div>
         <h2>${mode==="calibration"?"サイト値も残す":"今日のズレを、次の一射へ。"}</h2>
         <p>グリッド・タップ・ライブ・動画で記録。サイトを動かすか・保留するか、データで判断できます。</p>
       </div>
@@ -67,6 +69,7 @@ function recordIntroHtml(sys, mode){
         <span class="on">${esc(nf.runtime.label)}</span>
         <span class="${nf.haptics?"on":""}">触感${nf.haptics?"ON":"待ち"}</span>
         <span class="${nf.share?"on":""}">共有${nf.share?"ON":"待ち"}</span>
+        <span class="${nf.keepAwake?"on":""}">スリープ防止${nf.keepAwake?"ON":"待ち"}</span>
       </div>
       <div class="missionFlow" id="flowMode">${flow}</div>
       <div class="missionNext"><b>次の材料</b><span>${esc(sys.next)} / ${sys.lines.map(esc).join(" / ")}</span></div>
@@ -110,27 +113,208 @@ function recordSetupSnapshot(setupId,dist){
 function faceChoiceValue(sess){
   if(!sess) return "122";
   if(sess.faceType==="triple") return "T40";
+  if(sess.faceType==="quad") return "Q40";
   if(sess.faceType==="field") return `F${sess.faceD||80}`;
   return String(sess.faceD||122);
 }
-function suggestedFaceValue(dist,last){
+function suggestedFaceValue(dist,last,bowType){
   if(last && last.faceD) return faceChoiceValue(last);
-  return String((dist||70)>=60?122:((dist||70)<=18?40:80));
+  const d=dist||70;
+  const bow=bowType||(last&&last.bowType)||db.settings.defaultBowType||"recurve";
+  const env=(last&&last.environment)||db.settings.defaultEnvironment||"outdoor";
+  if(bow==="barebow"&&env==="indoor"&&d<=18) return "Q40";
+  if(bow==="compound"&&d===50) return "48";
+  return String(d>=60?122:(d<=18?40:80));
 }
 function actionFaceLabel(value){
   const f=parseFaceChoice(value);
   if(f.faceType==="triple") return "40cm三つ目";
+  if(f.faceType==="quad") return "40cm四枚";
   if(f.faceType==="field") return `${f.faceD}cmフィールド`;
   return `${f.faceD}cm`;
 }
-function recordFastActionsHtml(last,dist,faceValue){
-  const currentLabel=`${dist}m / ${actionFaceLabel(faceValue)}`;
-  const lastLabel=last?`${last.dist}m / ${actionFaceLabel(faceChoiceValue(last))}`:"なし";
+function collectFocusPointsFromInputs(){
+  const pts=[];
+  ["#fFocusPoints","#ciFocus1","#ciFocus2","#ciFocus3"].forEach(sel=>{
+    const el=$(sel);
+    if(!el) return;
+    if(sel==="#fFocusPoints"){
+      el.value.split(",").map(s=>s.trim()).filter(Boolean).forEach(p=>{ if(pts.length<3) pts.push(p); });
+    }else if(el.value.trim()&&pts.length<3) pts.push(el.value.trim());
+  });
+  return pts.slice(0,3);
+}
+function checkInSheetHtml(meta){
+  const existing=meta.focusPoints||[];
+  return `<div class="sheet checkInSheet">
+    <h3>練習前チェックイン</h3>
+    <p class="checkInLead">今日の意識ポイント（最大3つ）を決めてから始めましょう。</p>
+    <label class="f">意識ポイント 1</label>
+    <input class="inp" id="ciFocus1" placeholder="例: アンカー固定" value="${esc(existing[0]||"")}">
+    <label class="f">意識ポイント 2</label>
+    <input class="inp" id="ciFocus2" placeholder="例: 押し手" value="${esc(existing[1]||"")}">
+    <label class="f">意識ポイント 3</label>
+    <input class="inp" id="ciFocus3" placeholder="例: リリース" value="${esc(existing[2]||"")}">
+    <div class="checkInMeta ds-truncate">${esc(meta.dist)}m / ${esc(meta.faceLabel)}${meta.roundLabel?` · ${esc(meta.roundLabel)}`:""}</div>
+    <div class="btnrow">
+      <button class="btn ghost" id="ciSkip" type="button">スキップ</button>
+      <button class="btn startPrimary" id="ciGo" type="button">記録開始</button>
+    </div>
+  </div>`;
+}
+function openCheckInModal(meta,onConfirm){
+  const finish=pts=>{ if(typeof onConfirm==="function") onConfirm((pts||[]).slice(0,3)); };
+  const go=()=>finish(collectFocusPointsFromInputs());
+  if(typeof mountOverlay==="function"){
+    const mounted=mountOverlay(checkInSheetHtml(meta),{dismissOnBackdrop:false});
+    const {ovl,dismiss}=mounted;
+    ovl.classList.add("checkInOvl");
+    const close=pts=>{ dismiss(); finish(pts); };
+    ovl.querySelector("#ciGo").onclick=()=>close(collectFocusPointsFromInputs());
+    ovl.querySelector("#ciSkip").onclick=()=>close([]);
+    ovl.addEventListener("click",e=>{ if(e.target===ovl) close(collectFocusPointsFromInputs()); });
+    return;
+  }
+  const ovl=document.createElement("div");
+  ovl.className="ovl checkInOvl";
+  ovl.innerHTML=checkInSheetHtml(meta);
+  document.body.appendChild(ovl);
+  if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  const legacy=pts=>{ ovl.remove(); finish(pts); };
+  ovl.querySelector("#ciGo").onclick=()=>legacy(collectFocusPointsFromInputs());
+  ovl.querySelector("#ciSkip").onclick=()=>legacy([]);
+  ovl.onclick=e=>{ if(e.target===ovl) legacy(collectFocusPointsFromInputs()); };
+}
+function launchActiveSession(opts){
+  const d=opts.dist;
+  if(!d){ toast("距離を入力してください"); return; }
+  const face=opts.face;
+  const bowType=opts.bowType||db.settings.defaultBowType||"recurve";
+  const environment=opts.environment||db.settings.defaultEnvironment||"outdoor";
+  db.settings.defaultBowType=bowType;
+  db.settings.defaultDistance=d;
+  db.settings.defaultEnvironment=environment;
+  db.settings.lastSelectedDistance=d;
+  const roundId=opts.roundId||"free";
+  const laneChip=opts.laneChip;
+  db.active={
+    id:uid(), date:opts.date||today(), setupId:opts.setupId||null,
+    bowType, environment,
+    dist:d, faceD: face.faceD, faceType: face.faceType, perEnd:opts.perEnd||6,
+    inputStyle:"grid",
+    shaft:+lineCutRadius(face.faceD, face.faceType).toFixed(3),
+    sightV:opts.sightV||"", sightH:opts.sightH||"",
+    wx:opts.wx||"", note:opts.note||"", windDir:opts.windDir||"", windSpeed:opts.windSpeed||"",
+    round:roundId,
+    purpose:opts.purpose||"practice",
+    pairMode:opts.purpose==="pair"||opts.pairMode===true,
+    ...(opts.purpose==="pair"||opts.pairMode?{
+      pairEnd:{shooter:[],marker:[]},
+      pairNames:opts.pairNames||{shooter:"射手",marker:"マーカー"},
+    }:{}),
+    focusPoints:(opts.focusPoints||[]).slice(0,3),
+    laneSpot:laneChip?laneChip.dataset.lane:"A",
+    curSpotId:laneChip?laneChip.dataset.lane:"A",
+    indoorHalf:roundId==="18m60_jp"||roundId==="18m60_jp_x2"?1:undefined,
+    ends:[], cur:[]
+  };
+  applyRoundToSession(db.active, roundId);
+  if(opts.fieldCourseId&&db.active.faceType==="field") applyFieldCourseToSession(db.active,opts.fieldCourseId);
+  if(db.active.faceType==="quad"&&typeof ensureQuadHalf==="function") ensureQuadHalf(db.active);
+  if(opts.purpose==="volume"||roundId==="volume"){
+    db.active.purpose="volume";
+    db.active.round="volume";
+    if(!db.active.perEnd||db.active.perEnd===6) db.active.perEnd=8;
+  }
+  resetEndTimer(db.active);
+  ui.inputMode="grid";
+  ui.gridCell=-1;
+  ui.indoorHalfBanner=false;
+  nativePulse("success");
+  save();
+  if(typeof opts.onStart==="function") opts.onStart();
+  else showView("record");
+  render();
+}
+function launchQuadJpPreset(ctx){
+  ctx=ctx||{};
+  const setupId=ctx.defSetup!=null?ctx.defSetup:(db.setups[0]?db.setups[0].id:"");
+  const start=pts=>launchActiveSession({
+    dist:18, face:parseFaceChoice("Q40"), perEnd:3, roundId:"quad60_jp",
+    bowType:"barebow", environment:"indoor", setupId, date:today(),
+    focusPoints:pts||[], onStart:ctx.onStart
+  });
+  if(ctx.skipCheckIn) start([]);
+  else openCheckInModal({dist:18,faceLabel:"40cm四枚",roundLabel:roundLabel("quad60_jp"),focusPoints:[]},start);
+}
+function recordFastActionsHtml(last,dist,faceValue,setup){
+  const setupName=setup&&setup.name?setup.name:"用具未指定";
+  const currentLabel=`${dist}m · ${actionFaceLabel(faceValue)} · ${setupName}`;
   return `<section class="homeActions" aria-label="すぐ使う">
-    <button class="homeAction primary" id="quickStart" type="button"><b>今日の記録を始める</b><span id="quickStartMeta">${esc(currentLabel)}</span></button>
-    ${last?`<button class="homeAction" id="quickRepeat" type="button"><b>前回と同じ</b><span>${esc(lastLabel)}</span></button>
-    <button class="homeAction" id="quickHistory" type="button"><b>履歴を見る</b><span>分析</span></button>`:""}
+    <button class="homeAction primary ds-cta" id="quickStart" type="button">
+      <span class="ds-ctaLead">今日の記録を始める</span>
+      <span class="ds-ctaMeta ds-truncate" id="quickStartMeta">${esc(currentLabel)}</span>
+    </button>
+    <div class="homeActionRow">
+      <button class="homeAction sec" id="quickRepeat" type="button" ${last?"":"disabled"}>
+        <span class="ds-ctaLead">前回と同じ</span>
+        ${last?"":`<span class="ds-ctaHint">まだ記録がありません</span>`}
+      </button>
+      <button class="homeAction sec" id="quickHistory" type="button"><span class="ds-ctaLead">履歴</span></button>
+    </div>
   </section>`;
+}
+function quickStartSession(ctx){
+  ctx=ctx||{};
+  const last=ctx.last;
+  const d=ctx.defDist;
+  if(!d){ toast("距離を入力してください"); return; }
+  const face=parseFaceChoice(ctx.defFace);
+  const bowType=last&&last.bowType?last.bowType:(db.settings.defaultBowType||"recurve");
+  const environment=last&&last.environment?last.environment:(db.settings.defaultEnvironment||"outdoor");
+  const mode=ctx.mode||ui.recordMode||"practice";
+  const purpose=mode==="volume"?"volume":(mode==="pair"?"pair":mode);
+  const launchOpts={
+    dist:d, face, bowType, environment,
+    setupId:ctx.defSetup||null,
+    perEnd:last&&last.perEnd?last.perEnd:6,
+    roundId:last&&last.round?last.round:"free",
+    purpose,
+    onStart:ctx.onStart
+  };
+  if(mode==="pair") launchOpts.pairMode=true;
+  launchOpts.focusPoints=(last&&last.focusPoints)?last.focusPoints.slice(0,3):[];
+  launchActiveSession(launchOpts);
+}
+function repeatLastSession(last,ctx){
+  if(!last) return;
+  const face=parseFaceChoice(faceChoiceValue(last));
+  const launchOpts={
+    dist:last.dist, face,
+    bowType:last.bowType||db.settings.defaultBowType||"recurve",
+    environment:last.environment||db.settings.defaultEnvironment||"outdoor",
+    setupId:last.setupId||null,
+    perEnd:last.perEnd||6,
+    roundId:last.round||"free",
+    purpose:last.purpose||"practice",
+    pairMode:!!last.pairMode,
+    onStart:ctx&&ctx.onStart
+  };
+  if(last.purpose==="pair") launchOpts.pairMode=true;
+  launchActiveSession(launchOpts);
+}
+function openLaunchSheet(ctx){
+  ctx=ctx||{};
+  const ovl=document.createElement("div");
+  ovl.className="ovl launchSheetOvl";
+  ovl.innerHTML=`<div class="sheet launchSheet"><div id="launchSheetMount"></div></div>`;
+  document.body.appendChild(ovl);
+  const mount=ovl.querySelector("#launchSheetMount");
+  const close=()=>ovl.remove();
+  renderRecordSetup(mount,Object.assign({},ctx,{
+    onStart:()=>{ close(); if(ctx.onStart) ctx.onStart(); }
+  }));
+  ovl.addEventListener("click",e=>{ if(e.target===ovl) close(); });
 }
 function renderRecordSetup(m,ctx){
   ctx=ctx||{};
@@ -138,14 +322,14 @@ function renderRecordSetup(m,ctx){
   const defSetup=ctx.defSetup!=null?ctx.defSetup:(last?last.setupId:(db.setups[0]?db.setups[0].id:""));
   const defDist=ctx.defDist!=null?ctx.defDist:(last?last.dist:70);
   const mode=ctx.mode||ui.recordMode||"practice";
-  const defFace=ctx.defFace!=null?ctx.defFace:suggestedFaceValue(defDist,last);
-  const defPerEnd=last&&last.perEnd?last.perEnd:6;
   const defBow=last&&last.bowType?last.bowType:(db.settings.defaultBowType||"recurve");
+  const defFace=ctx.defFace!=null?ctx.defFace:suggestedFaceValue(defDist,last,defBow);
+  const defPerEnd=last&&last.perEnd?last.perEnd:6;
   const defEnv=last&&last.environment?last.environment:(db.settings.defaultEnvironment||"outdoor");
   m.innerHTML=`
   <section class="launchPanel convergeLaunch startFirst">
     <div class="launchHead">
-      <div class="launchTitle"><div class="stepBadge">01</div><h2>${mode==="calibration"?"サイト値を残す練習":"条件を選ぶ"}</h2></div>
+      <div class="launchTitle"><h2>${mode==="calibration"?"サイト値を残す練習":"条件を選ぶ"}</h2></div>
       <button class="tinyAction" id="jumpGear" type="button">用具</button>
     </div>
     <div class="launchBody">
@@ -162,14 +346,30 @@ function renderRecordSetup(m,ctx){
     <div class="quickSelects">
       <div><label class="f">的</label><select class="inp" id="fFace">
         <optgroup label="ターゲット">
-          ${[122,80,60,40].map(f=>`<option value="${f}" ${String(defFace)===String(f)?"selected":""}>${f}cm</option>`).join("")}
+          ${[122,80,60,48,40].map(f=>`<option value="${f}" ${String(defFace)===String(f)?"selected":""}>${f}cm</option>`).join("")}
           <option value="T40" ${defFace==="T40"?"selected":""}>40cm 三つ目（縦）</option>
+          <option value="Q40" ${defFace==="Q40"?"selected":""}>40cm 四枚（ABCD）</option>
         </optgroup>
         <optgroup label="フィールド">
           ${FIELD_FACE_SIZES.map(f=>`<option value="F${f}" ${defFace===`F${f}`?"selected":""}>${f}cm フィールド</option>`).join("")}
         </optgroup>
       </select></div>
       <div><label class="f">1エンドの本数</label><select class="inp" id="fArrows">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}" ${n===defPerEnd?"selected":""}>${n}本</option>`).join("")}</select></div>
+    </div>
+    <button class="btn sec" id="fQuadJpStart" type="button">四枚40cm（小中学生）で始める</button>
+    <details class="adv quadRulesAdv">
+      <summary>四枚40cmのルール（練習用メモ）</summary>
+      <div class="note">畳1枚に A・B・C・D の4枚の的。前半30射のあと<strong>上下が入れ替わり</strong>ます（上A/B → 下へ、C/D → 上へ）。</div>
+      <div class="note">射る的はチップで選びます。競技では間違った的は0点 — アプリは練習記録用です。</div>
+    </details>
+    <div id="fFieldCourseWrap" style="display:none">
+      <label class="f">フィールドコース（練習用）</label>
+      <select class="inp" id="fFieldCourse">
+        <option value="flat24_marked">フラット24（マーク）</option>
+        <option value="wa_sample12">WA簡易12標的</option>
+        <option value="">手動（距離固定）</option>
+      </select>
+      <div class="note fieldDisclaimer">${esc(FIELD_COURSE_DISCLAIMER)}</div>
     </div>
     <div class="btnrow"><button class="btn startPrimary" id="fStart">${mode==="calibration"?"サイト値つきで開始":"この条件で開始"}</button></div>
     <details class="adv recordDetails" ${mode==="calibration"?"open":""}>
@@ -180,8 +380,16 @@ function renderRecordSetup(m,ctx){
       </div>
       <label class="f">日付</label><input class="inp" type="date" id="fDate" value="${today()}">
       <label class="f">ラウンド</label><select class="inp" id="fRound">
-        ${ROUND_TYPES.map(r=>`<option value="${r.id}">${r.label}</option>`).join("")}
+        ${ROUND_TYPES.map(r=>`<option value="${r.id}" ${(mode==="volume"&&r.id==="volume")?"selected":""}>${r.label}</option>`).join("")}
       </select>
+      <div id="fFocusWrap" style="display:${mode==="practice"?"block":"none"}">
+        <label class="f">意識ポイント（最大3つ・任意）</label>
+        <input class="inp" id="fFocusPoints" placeholder="例: アンカー, 押し手, リリース" value="">
+      </div>
+      <div id="fIndoorJpWrap" style="display:none">
+        <label class="f">自分の列（日本インドア）</label>
+        <div class="chips" id="fLaneSpot">${["A","B","C","D"].map(id=>`<div class="chip ${id==="A"?"on":""}" data-lane="${id}">${id}</div>`).join("")}</div>
+      </div>
       <div class="row">
         <div><label class="f">サイト 上下（目盛り）</label><input class="inp" id="fSightV" inputmode="decimal" placeholder="例: 5.4"></div>
         <div><label class="f">サイト 左右（目盛り）</label><input class="inp" id="fSightH" inputmode="decimal" placeholder="例: 2 / -1.5"></div>
@@ -202,43 +410,70 @@ function renderRecordSetup(m,ctx){
   </section>`;
   const distState={d:defDist};
   const faceSel=$("#fFace");
-  const suggestFace=d=>{ if(String(faceSel.value).startsWith("F")) return; faceSel.value = d>=60?122:(d<=18?40:80); };
+  const suggestFace=d=>{
+    if(String(faceSel.value).startsWith("F")) return;
+    const bow=$("#fBow").value||"recurve";
+    faceSel.value=bow==="compound"&&d===50?"48":(d>=60?122:(d<=18?40:80));
+  };
+  $("#fBow").onchange=()=>{ if(distState.d) suggestFace(distState.d); updateQuickStartMeta(); };
   function updateQuickStartMeta(){
     const meta=$("#quickStartMeta");
     if(meta && distState.d) meta.textContent=`${distState.d}m / ${actionFaceLabel(faceSel.value)}`;
   }
   faceSel.onchange=()=>{
     if(String(faceSel.value).startsWith("F") && $("#fArrows").value==="6") $("#fArrows").value="3";
+    updateFieldCourseWrap();
     updateQuickStartMeta();
   };
-  $("#fRound").onchange=e=>{
-    if(e.target.value==="field72"){
-      if(!String(faceSel.value).startsWith("F")) faceSel.value="F80";
-      $("#fArrows").value="3";
+  function updateFieldCourseWrap(){
+    const wrap=$("#fFieldCourseWrap"), round=$("#fRound").value, isField=String(faceSel.value).startsWith("F")||isFieldRoundId(round);
+    if(wrap) wrap.style.display=isField?"block":"none";
+    const sel=$("#fFieldCourse");
+    if(sel&&isField){
+      if(round==="field12") sel.value="wa_sample12";
+      else if(isFieldRoundId(round)) sel.value="flat24_marked";
     }
-    updateQuickStartMeta();
-  };
-  $("#jumpGear").onclick=()=>openToolSheet("gear");
-  if(last){
-    const repeatBtn=document.createElement("button");
-    repeatBtn.id="quickRepeatGo"; repeatBtn.hidden=true;
-    m.appendChild(repeatBtn);
-    repeatBtn.onclick=()=>{
-      distState.d=last.dist||defDist;
-      const known=[70,50,30,18].includes(+distState.d);
-      const key=known?String(distState.d):"custom";
-      document.querySelectorAll("#fDistChips .chip").forEach(x=>x.classList.toggle("on", String(x.dataset.d)===key));
-      $("#fDistCustomWrap").style.display=known?"none":"block";
-      if(!known) $("#fDistCustom").value=distState.d||"";
-      faceSel.value=faceChoiceValue(last);
-      $("#fArrows").value=last.perEnd||6;
-      $("#fSetup").value=last.setupId||"";
-      $("#fRound").value=last.round||"free";
-      fillSight();
-      refreshLens();
-      $("#fStart").click();
-    };
   }
+  function applyRoundPreset(roundId){
+    const r=roundMeta(roundId);
+    const jpWrap=$("#fIndoorJpWrap");
+    if(jpWrap) jpWrap.style.display=(roundId==="18m60_jp"||roundId==="18m60_jp_x2")?"block":"none";
+    if(!r||roundId==="free") return;
+    if(r.dist!=null){
+      distState.d=r.dist;
+      const known=[70,50,30,18].includes(+r.dist);
+      document.querySelectorAll("#fDistChips .chip").forEach(x=>x.classList.toggle("on", String(x.dataset.d)===(known?String(r.dist):"custom")));
+      $("#fDistCustomWrap").style.display=known?"none":"block";
+      if(!known) $("#fDistCustom").value=r.dist;
+    }
+    if(r.perEnd!=null) $("#fArrows").value=String(r.perEnd);
+    if(r.faceD!=null&&r.faceType){
+      faceSel.value=r.faceType==="triple"?"T40":r.faceType==="quad"?"Q40":String(r.faceD);
+    }
+    if(roundId==="quad60_jp"){
+      $("#fEnv").value="indoor";
+      if($("#fBow").value!=="barebow") $("#fBow").value="barebow";
+    }
+    if(r.indoor) $("#fEnv").value="indoor";
+    if(roundId==="50m72"&&$("#fBow").value!=="compound") $("#fBow").value="compound";
+    if((roundId==="field12"||roundId==="field24"||roundId==="field72")&&faceSel){
+      faceSel.value=roundId==="field12"?"F80":"F80";
+      if($("#fArrows").value!=="3") $("#fArrows").value="3";
+    }
+    updateFieldCourseWrap();
+    fillSight();
+    refreshLens();
+    updateQuickStartMeta();
+  }
+  $("#fRound").onchange=e=>applyRoundPreset(e.target.value);
+  updateFieldCourseWrap();
+  if(mode==="volume") applyRoundPreset("volume");
+  document.querySelectorAll("#fLaneSpot .chip").forEach(c=>c.onclick=()=>{
+    document.querySelectorAll("#fLaneSpot .chip").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");
+  });
+  $("#jumpGear").onclick=()=>openToolSheet("gear");
+
   function refreshLens(){
     const old=$("#setupLens");
     if(old) old.outerHTML=recordSetupSnapshot($("#fSetup").value, distState.d);
@@ -260,6 +495,8 @@ function renderRecordSetup(m,ctx){
   }
   $("#fSetup").onchange=()=>{ fillSight(); refreshLens(); };
   fillSight();
+  const quadStart=$("#fQuadJpStart");
+  if(quadStart) quadStart.onclick=()=>launchQuadJpPreset({defSetup,onStart:ctx.onStart});
   $("#fStart").onclick=()=>{
     const d=distState.d;
     if(!d){ toast("距離を入力してください"); return; }
@@ -267,28 +504,38 @@ function renderRecordSetup(m,ctx){
     const face=parseFaceChoice(fv);
     const bowType=$("#fBow").value||db.settings.defaultBowType||"recurve";
     const environment=$("#fEnv").value||db.settings.defaultEnvironment||"outdoor";
-    db.settings.defaultBowType=bowType;
-    db.settings.defaultDistance=d;
-    db.settings.defaultEnvironment=environment;
-    db.settings.lastSelectedDistance=d;
-    db.active={
-      id:uid(), date:$("#fDate").value||today(), setupId:$("#fSetup").value||null,
-      bowType, environment,
-      dist:d, faceD: face.faceD, faceType: face.faceType, perEnd:+$("#fArrows").value,
-      inputStyle:"grid",
-      shaft:+lineCutRadius(face.faceD, face.faceType).toFixed(3),
+    const roundId=$("#fRound").value||"free";
+    const laneChip=document.querySelector("#fLaneSpot .chip.on");
+    const mode=ui.recordMode||"practice";
+    const purpose=mode==="volume"?"volume":(mode==="pair"?"pair":mode);
+    const courseSel=$("#fFieldCourse");
+    const fieldCourseId=courseSel&&courseSel.value&&face.faceType==="field"?courseSel.value:null;
+    const launchOpts={
+      dist:d, face, bowType, environment, roundId, laneChip, fieldCourseId,
+      date:$("#fDate").value||today(),
+      setupId:$("#fSetup").value||null,
+      perEnd:+$("#fArrows").value,
       sightV:$("#fSightV").value.trim(), sightH:$("#fSightH").value.trim(),
-      wx:$("#fWx").value, note:$("#fNote").value.trim(), windDir:$("#fWindDir").value, windSpeed:$("#fWindSpeed").value.trim(),
-      round:$("#fRound").value||"free",
-      purpose:ui.recordMode||"practice",
-      ends:[], cur:[]
+      wx:$("#fWx").value, note:$("#fNote").value.trim(),
+      windDir:$("#fWindDir").value, windSpeed:$("#fWindSpeed").value.trim(),
+      purpose,
+      onStart:ctx.onStart
     };
-    ui.inputMode="grid";
-    ui.gridCell=-1;
-    nativePulse("success");
-    save();
-    if(typeof ctx.onStart==="function") ctx.onStart();
-    else showView("record");
-    render();
+    if(mode==="pair") launchOpts.pairMode=true;
+    const needsCheckIn=mode==="practice"||mode==="volume"||mode==="pair";
+    if(needsCheckIn){
+      openCheckInModal({
+        dist:d,
+        faceLabel:actionFaceLabel(fv),
+        roundLabel:roundLabel(roundId),
+        focusPoints:collectFocusPointsFromInputs()
+      }, pts=>{
+        launchOpts.focusPoints=pts;
+        launchActiveSession(launchOpts);
+      });
+    }else{
+      launchOpts.focusPoints=collectFocusPointsFromInputs();
+      launchActiveSession(launchOpts);
+    }
   };
 }

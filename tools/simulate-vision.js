@@ -6,9 +6,18 @@
 const fs = require("fs");
 const path = require("path");
 const vm = require("vm");
+const { performance } = require("perf_hooks");
+
+const PROFILE = process.env.PROFILE === "1";
+const FULL_GRID = process.env.FULL_GRID === "1";
+function profileLog(label, t0) {
+  if (PROFILE) console.log(`[profile] ${label}: ${(performance.now() - t0).toFixed(0)}ms`);
+}
 
 const root = path.resolve(__dirname, "..");
 const source = fs.readFileSync(path.join(root, "scripts", "35-photo-vision.js"), "utf8");
+const scoringSource = fs.readFileSync(path.join(root, "scripts", "20-scoring.js"), "utf8");
+const scoringSlice = scoringSource.slice(scoringSource.indexOf("function isFieldFace"), scoringSource.indexOf("function momentStats"));
 const stripped = source.replace(/window\.ArcherVision\s*=\s*\{[\s\S]*?\};?\s*$/m, "");
 
 const sandbox = {
@@ -19,7 +28,8 @@ const sandbox = {
 };
 sandbox.__exports = {};
 vm.createContext(sandbox);
-vm.runInContext(`${stripped}
+vm.runInContext(`${scoringSlice}
+${stripped}
 __exports.analyzeImageData = analyzeImageData;
 __exports.DETECTOR_DEFAULTS = DETECTOR_DEFAULTS;
 __exports.scoreImpact = scoreImpact;
@@ -172,6 +182,11 @@ const SCENARIOS = [
   },
 ];
 
+const SCENARIO_TARGETS = SCENARIOS.map((scenario) => ({
+  scenario,
+  target: makeSyntheticTarget(scenario.size, scenario.spec),
+}));
+
 function matchArrows(detected, truth, target, width, height) {
   const tcx = (target.cx / width) * 100;
   const tcy = (target.cy / height) * 100;
@@ -212,11 +227,10 @@ function matchArrows(detected, truth, target, width, height) {
   };
 }
 
-function evaluateConfig(configOverrides) {
+function evaluateConfig(configOverrides, targets = SCENARIO_TARGETS) {
   let total = 0;
   let fails = 0;
-  for (const scenario of SCENARIOS) {
-    const target = makeSyntheticTarget(scenario.size, scenario.spec);
+  for (const { scenario, target } of targets) {
     try {
       const result = analyzeImageData(
         { data: target.data },
@@ -247,38 +261,64 @@ function evaluateConfig(configOverrides) {
   return { score: total / SCENARIOS.length, fails };
 }
 
-function gridSearch() {
+function betterCandidate(next, prev, nextConfig, prevConfig) {
+  if (next.score > prev.score + 1e-9) return true;
+  if (Math.abs(next.score - prev.score) > 1e-9) return false;
+  if (next.fails < prev.fails) return true;
+  if (next.fails > prev.fails) return false;
+  if ((nextConfig.minimumRunLength || 2) < (prevConfig.minimumRunLength || 2)) return true;
+  if ((nextConfig.minimumRunLength || 2) > (prevConfig.minimumRunLength || 2)) return false;
+  if ((nextConfig.minimumAngleSeparation || 12) < (prevConfig.minimumAngleSeparation || 12)) return true;
+  if ((nextConfig.minimumAngleSeparation || 12) > (prevConfig.minimumAngleSeparation || 12)) return false;
+  return JSON.stringify(nextConfig) < JSON.stringify(prevConfig);
+}
+
+const TUNE_GRID = {
+  darkExcess: [42, 48, 54],
+  minimumAngularScore: [600, 720, 840],
+  impactRefineDarkness: [170, 185, 200],
+  minimumAngleSeparation: [12, 15, 18],
+  impactRefineRadiusPx: [4, 5, 7],
+  minimumRunLength: [2, 3],
+};
+
+function coordinateDescentSearch() {
   const base = { ...DETECTOR_DEFAULTS };
-  const grid = {
-    darkExcess: [42, 48, 54],
-    minimumAngularScore: [600, 720, 840],
-    impactRefineDarkness: [170, 185, 200],
-    minimumAngleSeparation: [12, 15, 18],
-    impactRefineRadiusPx: [4, 5, 7],
-    minimumRunLength: [2, 3],
-  };
-  const keys = Object.keys(grid);
+  const keys = Object.keys(TUNE_GRID);
+  let current = { ...base };
+  let best = { score: -1, config: current, fails: 99 };
+  let evals = 0;
+  const rounds = 3;
+  for (let round = 0; round < rounds; round += 1) {
+    for (const key of keys) {
+      for (const v of TUNE_GRID[key]) {
+        const trial = { ...current, [key]: v };
+        const result = evaluateConfig(trial);
+        evals += 1;
+        if (betterCandidate(result, best, trial, best.config)) {
+          best = { ...result, config: trial };
+          current = { ...trial };
+        }
+      }
+    }
+  }
+  if (PROFILE) console.log(`[profile] coordinateDescent evals=${evals} (vs full grid 486)`);
+  return best;
+}
+
+function exhaustiveGridSearch() {
+  const base = { ...DETECTOR_DEFAULTS };
+  const keys = Object.keys(TUNE_GRID);
   let best = { score: -1, config: base, fails: 99 };
   const combos = [];
   function walk(i, cur) {
     if (i === keys.length) { combos.push({ ...cur }); return; }
-    for (const v of grid[keys[i]]) {
+    for (const v of TUNE_GRID[keys[i]]) {
       cur[keys[i]] = v;
       walk(i + 1, cur);
     }
   }
   walk(0, {});
-  function betterCandidate(next, prev, nextConfig, prevConfig) {
-    if (next.score > prev.score + 1e-9) return true;
-    if (Math.abs(next.score - prev.score) > 1e-9) return false;
-    if (next.fails < prev.fails) return true;
-    if (next.fails > prev.fails) return false;
-    if ((nextConfig.minimumRunLength || 2) < (prevConfig.minimumRunLength || 2)) return true;
-    if ((nextConfig.minimumRunLength || 2) > (prevConfig.minimumRunLength || 2)) return false;
-    if ((nextConfig.minimumAngleSeparation || 12) < (prevConfig.minimumAngleSeparation || 12)) return true;
-    if ((nextConfig.minimumAngleSeparation || 12) > (prevConfig.minimumAngleSeparation || 12)) return false;
-    return JSON.stringify(nextConfig) < JSON.stringify(prevConfig);
-  }
   for (const combo of combos) {
     const merged = { ...base, ...combo };
     const result = evaluateConfig(merged);
@@ -286,12 +326,23 @@ function gridSearch() {
       best = { ...result, config: merged };
     }
   }
+  if (PROFILE) console.log(`[profile] exhaustiveGrid combos=${combos.length}`);
   return best;
 }
 
+function gridSearch() {
+  return FULL_GRID ? exhaustiveGridSearch() : coordinateDescentSearch();
+}
+
 function main() {
+  const t0 = performance.now();
+  const tSynth = performance.now();
+  profileLog("syntheticTargets", tSynth);
   const baseline = evaluateConfig({});
+  profileLog("baseline", t0);
+  const tSearch = performance.now();
   const tuned = gridSearch();
+  profileLog(FULL_GRID ? "exhaustiveGridSearch" : "coordinateDescentSearch", tSearch);
   console.log(`Vision simulation baseline=${baseline.score.toFixed(3)} fails=${baseline.fails}`);
   console.log(`Vision simulation tuned=${tuned.score.toFixed(3)} fails=${tuned.fails}`);
   const improved = tuned.score > baseline.score + 0.01;
@@ -315,6 +366,7 @@ function main() {
   fs.writeFileSync(path.join(root, "tools", "vision-tuning.json"), JSON.stringify(out, null, 2) + "\n");
   console.log("Recommended detector overrides:", JSON.stringify(out.recommended));
   if (pick.score < 0.55) throw new Error(`Vision simulation score too low: ${pick.score.toFixed(3)}`);
+  profileLog("total", t0);
   console.log("Vision simulation OK");
 }
 

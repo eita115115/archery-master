@@ -1,9 +1,28 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <rect width="100" height="100" rx="22" fill="#1a5c3a"/>
-  <circle cx="50" cy="50" r="40" fill="#ffffff"/>
-  <circle cx="50" cy="50" r="32" fill="#1c1e1c"/>
-  <circle cx="50" cy="50" r="24" fill="#37a6e0"/>
-  <circle cx="50" cy="50" r="16" fill="#f23b3b"/>
-  <circle cx="50" cy="50" r="8" fill="#ffe14d"/>
-  <circle cx="50" cy="50" r="1.6" fill="#1c1e1c"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="的ノート">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="100%" stop-color="#17643d"/>
+    </linearGradient>
+    <radialGradient id="face" cx="50%" cy="46%" r="52%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="72%" stop-color="#f4f7f5"/>
+      <stop offset="100%" stop-color="#e8ece9"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#0a3d28" flood-opacity=".22"/>
+    </filter>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+  <g filter="url(#soft)">
+    <circle cx="50" cy="48" r="34" fill="url(#face)"/>
+    <circle cx="50" cy="48" r="28" fill="none" stroke="#1c1e1c" stroke-width="2.2" opacity=".92"/>
+    <circle cx="50" cy="48" r="21" fill="none" stroke="#1c1e1c" stroke-width="1.8" opacity=".78"/>
+    <circle cx="50" cy="48" r="14" fill="none" stroke="#1c1e1c" stroke-width="1.5" opacity=".62"/>
+    <circle cx="50" cy="48" r="7.5" fill="none" stroke="#1c1e1c" stroke-width="1.2" opacity=".48"/>
+    <circle cx="50" cy="48" r="2.2" fill="#ffd54f" stroke="#c9a227" stroke-width=".6"/>
+  </g>
+  <path d="M72 24 L58 58 L54 54 L68 20 Z" fill="#ffffff" opacity=".92"/>
+  <path d="M68 20 L72 24 L70 26 L66 22 Z" fill="#17643d"/>
+  <path d="M54 54 L58 58 L56 60 L52 56 Z" fill="#125230"/>
 </svg>

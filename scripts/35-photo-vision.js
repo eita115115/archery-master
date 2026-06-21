@@ -432,14 +432,24 @@ function estimateFaceDamage(imageData, width, height, target) {
   return darkMarks / Math.max(1, samples);
 }
 
-function scoreImpact(point, target, faceCm) {
-  const faceRadiusMm = faceCm * 5;
-  const shaftRadiusPx = target.radiusPx * (SHAFT_RADIUS_MM / faceRadiusMm);
-  const rawDistancePx = distance(point, target);
-  const lineCutterDistancePx = Math.max(0, rawDistancePx - shaftRadiusPx);
-  const normalizedRadius = lineCutterDistancePx / target.radiusPx;
-  if (normalizedRadius > 1) return 0;
-  return Math.max(1, 10 - Math.floor(normalizedRadius * 10));
+function scoreImpact(point, target, faceCm, opts) {
+  opts = opts || {};
+  const faceType = opts.faceType || (faceCm <= 40 ? "triple" : "single");
+  const faceRadiusCm = faceCm / 2;
+  const relX = ((point.x - target.x) / target.radiusPx) * faceRadiusCm;
+  const relY = -((point.y - target.y) / target.radiusPx) * faceRadiusCm;
+  const touchCm = typeof lineCutRadius === "function"
+    ? lineCutRadius(faceCm, faceType)
+    : faceCm / 85;
+  const scoreOpts = typeof normalizeScoreOpts === "function"
+    ? normalizeScoreOpts(opts)
+    : { bowType: opts.bowType || "recurve", environment: opts.environment || "outdoor", scoring: opts.scoring || "outdoor" };
+  if (typeof scoreAt === "function") {
+    return scoreAt(relX, relY, faceCm, faceType, touchCm, scoreOpts).s;
+  }
+  const normalizedRadius = Math.max(0, Math.hypot(relX, relY) - touchCm) / (faceCm / 20);
+  if (normalizedRadius > 6) return 0;
+  return Math.max(0, 10 - Math.ceil(normalizedRadius));
 }
 
 /**
@@ -481,7 +491,7 @@ function analyzeImageData(imageData, width, height, faceCm, options = {}) {
   const arrows = candidates.map((point) => ({
     x: (point.x / width) * 100,
     y: (point.y / height) * 100,
-    score: scoreImpact(point, target, faceCm),
+    score: scoreImpact(point, target, faceCm, options.scoreOpts || options),
   }));
   const corroboratingRuns = runs.slice(1).filter((run) => distance(run.target, target) / Math.max(1, target.radiusPx) < 0.18 && Math.abs(run.target.radiusPx - target.radiusPx) / Math.max(1, target.radiusPx) < 0.18).length;
   const corroboration = Math.min(1, corroboratingRuns / 2);

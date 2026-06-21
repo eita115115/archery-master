@@ -1,11 +1,11 @@
 {
-  "name": "的ノート — アーチェリー練習ノート",
-  "short_name": "的ノート",
+  "name": "Archery-master — アーチェリー練習ノート",
+  "short_name": "Archery-master",
   "description": "タップ・写真・数字で記録。サイト調整の判断まで、シンプルに。",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f8f7f4",
-  "theme_color": "#0f766e",
+  "background_color": "#F2F0EB",
+  "theme_color": "#146356",
   "lang": "ja",
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },

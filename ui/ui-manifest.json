@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "description": "UI refresh layer — isolated from optimization refactors. Enable with html.ui-refresh.",
+  "designDocs": ["UI_DESIGN.md", "UI_RESEARCH.md", "UI_PARALLEL.md"],
+  "enableFlag": {
+    "htmlClass": "ui-refresh",
+    "storageKey": "uiRefreshPreview",
+    "settingsField": "uiRefresh"
+  },
+  "staticAssets": [
+    "ui/ui-tokens.css",
+    "ui/ds-components.css",
+    "ui/ds-screens.css",
+    "ui/ui-motion.css",
+    "ui/ui-overrides.css"
+  ],
+  "scripts": [
+    "scripts/54-motion.js",
+    "scripts/56-onboard.js",
+    "scripts/57-ui-depth.js"
+  ],
+  "dsScripts": [
+    "scripts/ui/ds-primitives.js"
+  ],
+  "scriptInsertAfter": "scripts/53-page-heroes.js",
+  "indexHeadSnippets": [
+    "<link rel=\"stylesheet\" href=\"ui/ui-tokens.css\">",
+    "<link rel=\"stylesheet\" href=\"ui/ds-components.css\">",
+    "<link rel=\"stylesheet\" href=\"ui/ds-screens.css\">",
+    "<link rel=\"stylesheet\" href=\"ui/ui-motion.css\">",
+    "<link rel=\"stylesheet\" href=\"ui/ui-overrides.css\">"
+  ],
+  "initHooks": [
+    "maybeRunOnboard()",
+    "syncUiRefreshClass()"
+  ],
+  "phases": {
+    "UI-P1": { "files": ["ui/ui-tokens.css"], "touchesCoreCss": false },
+    "UI-P2": { "files": ["48-home-view.js", "51-record-setup.js", "52-input-modes.js", "ui/ui-overrides.css"], "touchesCoreCss": false },
+    "UI-P3": { "files": ["60-history-sight-view.js", "55-stats-view.js"], "touchesCoreCss": false },
+    "UI-P4": { "files": ["70-gear-settings.js", "10-storage-native.js", "56-onboard.js"], "touchesCoreCss": false },
+    "UI-P5": { "files": ["54-motion.js", "ui/ui-motion.css", "57-ui-depth.js"], "touchesCoreCss": false }
+  },
+  "mergePriority": "ui-layer wins for ui/* and scripts/5[4,6-7]-*.js; core wins for business logic inside *-view.js unless marked UI-P*"
+}

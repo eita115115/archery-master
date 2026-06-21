@@ -1,7 +1,7 @@
 "use strict";
 /* Archery Note: target drawing and plots */
 /* ============ target SVG ============ */
-function targetMarkup(faceD, idPrefix, faceType){
+function targetMarkup(faceD, idPrefix, faceType, quadHalf){
   const w=ringW(faceD,faceType);
   const spotG=(cx,cy)=>{
     let h="";
@@ -17,6 +17,19 @@ function targetMarkup(faceD, idPrefix, faceType){
     let g=`<rect x="-14" y="-36" width="28" height="72" rx="1.5" fill="#f7f6f0" stroke="#bbb" stroke-width="0.2"/>`;
     SPOT_Y.forEach(c=>{ g+=spotG(0,-c); });
     return `<svg class="main triple" id="${idPrefix}svg" viewBox="-15 -37.5 30 75" xmlns="http://www.w3.org/2000/svg">
+    <g id="${idPrefix}main"><g>${g}</g><g id="${idPrefix}marks"></g><g id="${idPrefix}cur"></g></g>
+  </svg>`;
+  }
+  if(faceType==="quad"){
+    const spots=typeof quadSpotsForHalf==="function"?quadSpotsForHalf(quadHalf):SPOT_QUAD;
+    const halfLbl=typeof quadHalfLabel==="function"?quadHalfLabel(quadHalf):"";
+    let g=`<rect x="-46" y="-46" width="92" height="92" rx="2" fill="#f7f6f0" stroke="#bbb" stroke-width="0.25"/>`;
+    if(halfLbl) g+=`<text x="0" y="-42" font-size="2.8" text-anchor="middle" fill="#697168">${halfLbl}</text>`;
+    spots.forEach(c=>{
+      g+=`<text x="${c.x}" y="${c.y-24}" font-size="3.2" text-anchor="middle" fill="#697168" font-weight="700">${c.id}</text>`;
+      g+=spotG(c.x,c.y);
+    });
+    return `<svg class="main quad" id="${idPrefix}svg" viewBox="-48 -48 96 96" xmlns="http://www.w3.org/2000/svg">
     <g id="${idPrefix}main"><g>${g}</g><g id="${idPrefix}marks"></g><g id="${idPrefix}cur"></g></g>
   </svg>`;
   }
@@ -64,11 +77,22 @@ function markCircle(a, faceD, color, label, cls){
 function plotSession(sess, container){
   const faceD=sess.faceD;
   const ft=sess.faceType==="triple"?"spot":sess.faceType;
-  container.innerHTML=`<div class="tgWrap">${targetMarkup(faceD,"pl",ft)}</div>`+
-    (sess.faceType==="triple"?`<div class="hint" style="text-align:center">三つ目的：3スポットを1つに重ねて表示しています</div>`:"");
+  const qHalf=sess.faceType==="quad"?(sess.quadHalf||"first"):"first";
+  const quadHint=sess.faceType==="quad"?`<div class="hint" style="text-align:center">四枚40cm · ${quadHalfLabel(qHalf)}（${qHalf==="second"?"上C/D・下A/B":"上A/B・下C/D"}）</div>`:"";
+  container.innerHTML=`<div class="tgWrap">${targetMarkup(faceD,"pl",ft,qHalf)}</div>`+
+    (sess.faceType==="triple"?`<div class="hint" style="text-align:center">三つ目的：3スポットを1つに重ねて表示しています</div>`:"")+
+    quadHint;
   const marks=$("#plmarks");
   let html="";
-  sess.ends.forEach((end,ei)=>{ end.forEach(a=>{ html+=markCircle(a,faceD,ENDCOLORS[ei%ENDCOLORS.length]); }); });
+  sess.ends.forEach((end,ei)=>{
+    const half=sess.faceType==="quad"?quadHalfForEndIndex(sess,ei):qHalf;
+    end.forEach(a=>{
+      let p=a;
+      if(sess.faceType==="triple") p={x:a.x,y:a.y+SPOT_Y[a.spot||0]};
+      else if(sess.faceType==="quad") p=quadArrowGlobal(a,half);
+      html+=markCircle(p,faceD,ENDCOLORS[ei%ENDCOLORS.length]);
+    });
+  });
   const all=sess.ends.flat();
   const st=robustStats(all);
   if(st){

@@ -28,12 +28,78 @@ function arrowMetaSummaryHtml(sess){
     ${rows}
   </div>`;
 }
+function dismissTargetHint(){
+  if(db.settings.targetHintSeen) return;
+  db.settings.targetHintSeen=true;
+  save("target-hint");
+  const el=$("#targetHint");
+  if(el) el.remove();
+}
+function targetHintHtml(){
+  if(db.settings.targetHintSeen) return "";
+  const hints={
+    grid:"ボタンで次のセルに入力。セルタップで修正。",
+    tap:"的をタップして記録。矢チップで微調整。",
+    ocr:"紙のスコア表を撮影して読み取り。取り込み後は数字で修正。",
+    live:"的を映すと自動検出。取り込み後は的で微調整。",
+    video:"動画のフレームを解析。取り込み後は的で微調整。"
+  };
+  const text=hints[ui.inputMode]||hints.tap;
+  return `<div class="targetHint" id="targetHint">${text}</div>`;
+}
+function allInputFeaturesUnlocked(){
+  if(typeof betaFullFeaturesActive==="function"&&betaFullFeaturesActive()) return true;
+  return !!(db.settings&&db.settings.expertMode);
+}
+function inputModeBarHtml(){
+  const expert=allInputFeaturesUnlocked();
+  const allowTarget=expert||(typeof uiDepthAllows!=="function"||uiDepthAllows("targetTap"));
+  const allowMore=expert||(typeof uiDepthAllows!=="function"||uiDepthAllows("weekRoll"));
+  const otherActive=["live","ocr","video"].includes(ui.inputMode);
+  if(expert){
+    return `<div class="inputModeBar inputModeBarExpert" id="inputModeBar">
+      <button class="modeBtn ${ui.inputMode==="grid"?"on":""}" data-mode="grid" type="button">数字</button>
+      <button class="modeBtn ${ui.inputMode==="tap"?"on":""}" data-mode="tap" type="button">的</button>
+      <button class="modeBtn ${ui.inputMode==="live"?"on":""}" data-mode="live" type="button">写真で読み取り</button>
+      <button class="modeBtn ${ui.inputMode==="ocr"?"on":""}" data-mode="ocr" type="button">紙を読み取り</button>
+      <button class="modeBtn ${ui.inputMode==="video"?"on":""}" data-mode="video" type="button">動画を確認</button>
+    </div>`;
+  }
+  const cols=1+(allowTarget?1:0)+(allowMore?1:0);
+  return `<div class="inputModeBar inputModeBarCompact" id="inputModeBar" style="grid-template-columns:repeat(${cols},1fr)">
+    <button class="modeBtn ${ui.inputMode==="grid"?"on":""}" data-mode="grid" type="button">数字</button>
+    ${allowTarget?`<button class="modeBtn ${ui.inputMode==="tap"?"on":""}" data-mode="tap" type="button">的</button>`:""}
+    ${allowMore?`<button class="modeBtn ${otherActive?"on":""}" data-mode="more" type="button">その他<span class="modeCaret">▾</span></button>`:""}
+  </div>`;
+}
+function openInputMoreSheet(){
+  const ovl=document.createElement("div");
+  ovl.className="ovl";
+  const modes=[
+    {id:"live",label:"写真で読み取り"},
+    {id:"ocr",label:"紙を読み取り"},
+    {id:"video",label:"動画を確認"}
+  ];
+  ovl.innerHTML=`<div class="sheet"><h3>その他の入力</h3>
+    <div class="settingsNav">${modes.map(m=>`<button class="settingsLink" type="button" data-mode="${m.id}">${m.label}</button>`).join("")}</div>
+  </div>`;
+  document.body.appendChild(ovl);
+  if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  ovl.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{
+    ui.inputMode=b.dataset.mode;
+    ui.scanResult=null;
+    dismissTargetHint();
+    ovl.remove();
+    renderActive();
+  });
+  ovl.onclick=e=>{ if(e.target===ovl) ovl.remove(); };
+}
 function activeGuideHtml(){
   if(db.settings.activeGuideSeen) return "";
   return `<details class="adv activeGuide" open>
     <summary>初回の操作ガイド</summary>
-    <div class="guideLine"><b>グリッド</b><span>X/10/9…ボタンで素早く入力。セルをタップすると修正できます。</span></div>
-    <div class="guideLine"><b>タップ</b><span>的をタップすると、その場所に1本入ります。少しずれたら矢チップを選びます。</span></div>
+    <div class="guideLine"><b>数字</b><span>X/10/9…ボタンで素早く入力。セルをタップすると修正できます。</span></div>
+    <div class="guideLine"><b>的</b><span>的をタップすると、その場所に1本入ります。少しずれたら矢チップを選びます。</span></div>
     <div class="guideLine"><b>微調整</b><span>選んだ矢だけ下の矢印で動かせます。押したままでも細かく合わせられます。</span></div>
     <div class="guideLine"><b>進行</b><span>${db.active&&db.active.perEnd?db.active.perEnd:6}本入れたらエンド確定。最後はセッション終了で結果を見ます。</span></div>
     <button class="btn sm ghost activeGuideDone" id="activeGuideDone">次から表示しない</button>
@@ -41,21 +107,24 @@ function activeGuideHtml(){
 }
 function renderActive(m){
   stopAllInputModes();
+  ui.hudSnap=null;
   const s=db.active;
+  if(s&&!allInputFeaturesUnlocked()&&typeof uiDepthAllows==="function"){
+    if(!uiDepthAllows("targetTap")&&ui.inputMode==="tap") ui.inputMode="grid";
+    if(!uiDepthAllows("weekRoll")&&["live","ocr","video"].includes(ui.inputMode)) ui.inputMode="grid";
+  }
+  if(s&&s.faceType==="quad"&&typeof ensureQuadHalf==="function") ensureQuadHalf(s);
+  if(s&&s.faceType==="field"&&s.fieldCourse) applyFieldTargetToSession(s,(s.ends||[]).length);
   const setup=db.setups.find(x=>x.id===s.setupId);
   m.innerHTML=`
   ${liveSessionHeroHtml(s,setup)}
-  <div class="card targetFocusCard">
+  <div class="card targetFocusCard ds-recordCard">
     <div class="targetTools">
-      <h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>
-      <div class="inputModeBar" id="inputModeBar">
-        <button class="modeBtn ${ui.inputMode==="grid"?"on":""}" data-mode="grid" type="button">グリッド</button>
-        <button class="modeBtn ${ui.inputMode==="tap"?"on":""}" data-mode="tap" type="button">タップ</button>
-        <button class="modeBtn ${ui.inputMode==="live"?"on":""}" data-mode="live" type="button">ライブ</button>
-        <button class="modeBtn ${ui.inputMode==="video"?"on":""}" data-mode="video" type="button">動画</button>
-        <button class="modeBtn ${ui.inputMode==="ocr"?"on":""}" data-mode="ocr" type="button">OCR</button>
-      </div>
+      <h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini ds-truncate">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>
+      ${inputModeBarHtml()}
       ${s._edit?`<div class="editMetaBar">
+        <label class="f">ラウンド</label><select class="inp sm" id="editRound">${ROUND_TYPES.map(r=>`<option value="${r.id}" ${(s.round||"free")===r.id?"selected":""}>${r.label}</option>`).join("")}</select>
+        <label class="f">日付</label><input class="inp sm" id="editDate" type="date" value="${esc(s.date||"")}">
         <label class="f">距離</label><input class="inp sm" id="editDist" type="number" min="5" max="90" value="${s.dist}">
         <label class="f">弓種</label><select class="inp sm" id="editBow">${BOW_TYPES.map(b=>`<option value="${b.id}" ${s.bowType===b.id?"selected":""}>${b.label}</option>`).join("")}</select>
         <label class="f">環境</label><select class="inp sm" id="editEnv">${ENV_TYPES.map(e=>`<option value="${e.id}" ${s.environment===e.id?"selected":""}>${e.label}</option>`).join("")}</select>
@@ -64,20 +133,24 @@ function renderActive(m){
         ${[[1,"全体"],[2,"×2"],[3,"×3"]].map(([z,lb])=>`<div class="chip ${(ui.zoom||1)===z?"on":""}" data-z="${z}">${lb}</div>`).join("")}
       </div>`}
     </div>
-    <div class="scanPanel ${ui.inputMode==="tap"?"off":""}" id="scanPanel">
+    <div class="scanPanel ${ui.inputMode==="live"||ui.inputMode==="video"?"":"off"}" id="scanPanel">
       <video class="scanVideo" id="scanVideo" autoplay playsinline muted hidden></video>
       <div class="scanStatus" id="scanStatus">${ui.inputMode==="live"?"カメラを起動中…":ui.inputMode==="video"?"動画を選ぶとフレームを解析します":""}</div>
       <div class="scanActions" id="scanActions"></div>
       <input type="file" id="videoCapture" accept="video/*" hidden>
     </div>
-    <div class="gridSheet ${ui.inputMode==="grid"?"on":""}" id="gridSheet">
-      <div class="gridHeader">エンド ${s.ends.length+1} <span>合計 ${aggregateSessionStats(sessionArrows(s)).total}点</span></div>
-      <div class="scoreGrid" id="scoreGrid">${scoreGridHtml(s)}</div>
-      <div class="gridKeys" id="gridKeys">${GRID_SCORE_KEYS.map(v=>{ const z=gridZoneStyle(v); return `<button type="button" data-v="${v}" style="background:${z.bg};color:${z.fg}">${v}</button>`; }).join("")}</div>
+    ${s.pairMode&&typeof pairScoringPanelHtml==="function"?pairScoringPanelHtml(s):""}
+    ${typeof isTeamSetRound==="function"&&isTeamSetRound(s)&&typeof teamSetPanelHtml==="function"?teamSetPanelHtml(s):""}
+    <div class="gridSheet ${ui.inputMode==="grid"?"on":""} ${s.pairMode?"pairOff":""}" id="gridSheet">
+      <div class="gridHeader">エンド ${s.ends.length+1} <span>${s.purpose==="volume"?`本数 ${sessionArrowCount(s)}本`:`合計 ${sessionStats(s).total}点`}</span></div>
+      ${s.pairMode?"":`<div class="scoreGrid" id="scoreGrid">${scoreGridHtml(s)}</div>`}
+      ${gridKeysHtml(s)}
+      ${s.faceType==="quad"?`<div class="chips quadHalfChips" id="quadHalfChips">${[["first","前半"],["second","後半"]].map(([h,lb])=>`<div class="chip ${(s.quadHalf||"first")===h?"on":""}" data-half="${h}">${lb}</div>`).join("")}<span class="mini">${quadHalfLabel(s.quadHalf||"first")} — ${(s.quadHalf||"first")==="second"?"上C/D・下A/B":"上A/B・下C/D"}</span></div>`:""}
+      ${isJapanIndoorRound(s)||s.faceType==="quad"?`<div class="chips spotIdChips" id="spotIdChips">${["A","B","C","D"].map(id=>`<div class="chip ${(s.curSpotId||s.laneSpot||"A")===id?"on":""}" data-spot="${id}">${id}</div>`).join("")}<span class="mini">${s.faceType==="quad"?"射る的を選ぶ":"射る位置"}</span></div>`:""}
       <label class="f">メモ</label><input class="inp" id="gridMemo" placeholder="任意" value="${esc(s.note||"")}">
     </div>
     <div class="tgWrap ${ui.inputMode==="grid"?"off":""}" id="tgWrap">
-      ${targetMarkup(s.faceD,"tg",s.faceType)}
+      ${targetMarkup(s.faceD,"tg",s.faceType,s.quadHalf||"first")}
       <div class="lens" id="lens"><svg id="lensSvg" width="122" height="122"><use href="#tgmain"/><g id="lensCross"></g></svg></div>
       <div class="lensTag" id="lensTag">微調整モード</div>
     </div>
@@ -87,7 +160,8 @@ function renderActive(m){
       <div class="scanActions" id="ocrActions"></div>
       <img class="ocrPreview" id="ocrPreview" hidden alt="">
     </div>
-    <div class="targetHint" id="targetHint">${ui.inputMode==="grid"?"ボタンで次のセルに入力。セルタップで修正。":ui.inputMode==="ocr"?"紙シートを撮影して一括取り込み。取り込み後はグリッドで修正。":ui.inputMode==="live"?"カメラで的を映すと自動検出。取り込み後はタップで微調整。":ui.inputMode==="video"?"動画のフレームを解析して一括取り込み。タップは微調整用。":"タップで記録。矢チップで修正。"}</div>
+    ${targetHintHtml()}
+    ${s.faceType==="field"&&s.fieldCourse?`<details class="adv fieldCourseAdv"><summary>コース表 · ${esc(fieldCourseLabel(s.fieldCourseId))}</summary><div class="note fieldDisclaimer">${esc(FIELD_COURSE_DISCLAIMER)}</div>${fieldCourseTableHtml(s)}</details>`:""}
     ${activeGuideHtml()}
     <div class="scoreChips" id="curChips"></div>
     <div class="nudge" id="nudge">
@@ -110,19 +184,33 @@ function renderActive(m){
   <div class="card"><h2>エンド一覧</h2><div id="endsTbl"></div></div>`;
   if(ui.inputMode!=="grid") attachTargetInput(s);
   document.querySelectorAll("#inputModeBar .modeBtn").forEach(btn=>btn.onclick=()=>{
+    if(btn.dataset.mode==="more"){ openInputMoreSheet(); return; }
     if(ui.inputMode===btn.dataset.mode) return;
     ui.inputMode=btn.dataset.mode;
     ui.scanResult=null;
+    dismissTargetHint();
     renderActive();
   });
   bindActiveInputMode(s);
+  if(s.pairMode&&typeof bindPairScoring==="function") bindPairScoring(s);
+  if(typeof isTeamSetRound==="function"&&isTeamSetRound(s)&&typeof bindTeamSet==="function") bindTeamSet(s);
   if(s._edit){
-    const editDist=$("#editDist"), editBow=$("#editBow"), editEnv=$("#editEnv");
+    const editRound=$("#editRound"), editDate=$("#editDate"), editDist=$("#editDist"), editBow=$("#editBow"), editEnv=$("#editEnv");
+    if(editRound) editRound.onchange=()=>{
+      const rid=editRound.value;
+      s.round=rid;
+      if(rid==="volume"){ s.purpose="volume"; if(!s.perEnd||s.perEnd===6) s.perEnd=8; }
+      else if(s.purpose==="volume") s.purpose="practice";
+      applyRoundToSession(s,rid);
+      save("edit-meta");
+      refreshActive();
+    };
+    if(editDate) editDate.onchange=()=>{ const v=editDate.value; if(v) s.date=v; save("edit-meta"); renderActive(); };
     if(editDist) editDist.onchange=()=>{ s.dist=+editDist.value||s.dist; db.settings.lastSelectedDistance=s.dist; save("edit-meta"); refreshActive(); };
-    if(editBow) editBow.onchange=()=>{ s.bowType=editBow.value; save("edit-meta"); refreshActive(); };
-    if(editEnv) editEnv.onchange=()=>{ s.environment=editEnv.value; save("edit-meta"); refreshActive(); };
+    if(editBow) editBow.onchange=()=>{ s.bowType=editBow.value; save("edit-meta"); renderActive(); };
+    if(editEnv) editEnv.onchange=()=>{ s.environment=editEnv.value; save("edit-meta"); renderActive(); };
   }
-  function applyZoom(){ if(s.faceType==="triple") return; const M=s.faceD/2*1.18/(ui.zoom||1); $("#tgsvg").setAttribute("viewBox", `${-M} ${-M} ${2*M} ${2*M}`); }
+  function applyZoom(){ if(s.faceType==="triple"||s.faceType==="quad") return; const M=s.faceD/2*1.18/(ui.zoom||1); $("#tgsvg").setAttribute("viewBox", `${-M} ${-M} ${2*M} ${2*M}`); }
   document.querySelectorAll("#zoomChips .chip").forEach(c=>c.onclick=()=>{
     ui.zoom=+c.dataset.z;
     document.querySelectorAll("#zoomChips .chip").forEach(x=>x.classList.toggle("on",x===c));
@@ -131,22 +219,90 @@ function renderActive(m){
   applyZoom();
   $("#bUndo").onclick=()=>{ if(s.cur.length){ s.cur.pop(); ui.selArrow=-1; nativePulse("light"); save(); refreshActive(); } else toast("このエンドに矢がありません"); };
   $("#bEnd").onclick=()=>{
+    if(s.pairMode&&typeof commitPairEnd==="function"){
+      if(!commitPairEnd(s)) return;
+    }
     if(!s.cur.length){ toast("矢を記録してください"); return; }
+    maybeToastSpotCollision(s,s.cur);
+    if(s.faceType==="field"&&s.fieldCourse) tagFieldArrows(s.cur,s,s.ends.length);
     ui.gridCell=-1;
+    if(isSetMatchRound(s)&&s.cur.length){
+      const teamNote=typeof isTeamSetRound==="function"&&isTeamSetRound(s)?"（団体セット練習）":"";
+      const opp=prompt(`セット ${(s.matchMeta&&s.matchMeta.sets?s.matchMeta.sets.length:0)+1}${teamNote} — 相手チームの合計点を入力`, "");
+      if(opp==null){ toast("セット入力をキャンセルしました"); return; }
+      applySetMatchEnd(s,s.cur,opp);
+    }
     if(s.editIndex!=null){
       const at=Math.min(s.editIndex, s.ends.length);
       s.ends.splice(at,0,s.cur); toast(`エンド${at+1}を更新しました`); s.editIndex=null;
     }else{
       s.ends.push(s.cur); toast(`エンド${s.ends.length} 確定`);
+      if((s.round==="18m60_jp"||s.round==="18m60_jp_x2")&&s.ends.length===10){
+        s.indoorHalf=2;
+        ui.indoorHalfBanner=true;
+      }
+      if(s.round==="18m60_jp_x2"&&s.ends.length===20){
+        s.indoorHalf=1;
+        s.jpMatch=2;
+        ui.indoorHalfBanner=true;
+      }
+      if(s.round==="18m60_jp_x2"&&s.ends.length===30){
+        s.indoorHalf=2;
+        ui.indoorHalfBanner=true;
+      }
+      if(s.faceType==="quad"&&s.ends.length===10){
+        s.quadHalf="second";
+        ui.indoorHalfBanner=true;
+      }
+      if(s.faceType==="field"&&s.fieldCourse) applyFieldTargetToSession(s,s.ends.length);
     }
-    s.cur=[]; ui.selArrow=-1; nativePulse("success"); save(); refreshActive();
+    recordTimerEarlyEnd(s);
+    s.cur=[]; ui.selArrow=-1; resetEndTimer(s);
+    if(typeof pulseEndHud==="function") pulseEndHud(); else nativePulse("success");
+    save(); refreshActive();
   };
+  if(s.faceType==="quad"){
+    document.querySelectorAll("#quadHalfChips .chip").forEach(c=>c.onclick=()=>{
+      s.quadHalf=c.dataset.half;
+      document.querySelectorAll("#quadHalfChips .chip").forEach(x=>x.classList.toggle("on",x===c));
+      save("quad-half");
+      renderActive();
+    });
+  }
+  if(isJapanIndoorRound(s)||s.faceType==="quad"){
+    document.querySelectorAll("#spotIdChips .chip").forEach(c=>c.onclick=()=>{
+      s.curSpotId=c.dataset.spot;
+      document.querySelectorAll("#spotIdChips .chip").forEach(x=>x.classList.toggle("on",x===c));
+      save("spot-id");
+    });
+  }
   $("#bFinish").onclick=()=>finishSession();
   const guideDone=$("#activeGuideDone");
   if(guideDone) guideDone.onclick=()=>{ db.settings.activeGuideSeen=true; save("active-guide"); render(); };
+  const halfDismiss=$("#indoorHalfDismiss");
+  if(halfDismiss) halfDismiss.onclick=()=>{ ui.indoorHalfBanner=false; save("indoor-banner"); renderActive(); };
   document.querySelectorAll("#nudge .npad button").forEach(b=>b.onclick=()=>nudgeArrow(b.dataset.n));
   $("#nudgeDone").onclick=()=>{ ui.selArrow=-1; refreshActive(); };
+  clearActiveTimerTick();
+  if(s.purpose!=="volume"&&s.timerEndAt){
+    activeTimerTick=setInterval(()=>{
+      if(!db.active){ clearActiveTimerTick(); return; }
+      const hud=$("#timerHud");
+      if(hud){
+        const rem=timerRemainingSec(db.active);
+        const b=hud.querySelector("b");
+        if(b&&rem!=null) b.textContent=formatTimerSec(rem);
+        hud.classList.toggle("warn",rem!=null&&rem<=30);
+        hud.classList.toggle("expired",rem===0);
+      }
+    },1000);
+    registerCleanup(clearActiveTimerTick);
+  }
   refreshActive();
+}
+let activeTimerTick=null;
+function clearActiveTimerTick(){
+  if(activeTimerTick){ clearInterval(activeTimerTick); activeTimerTick=null; }
 }
 function shotMetaHtml(a,index){
   const tags=SHOT_REASON_TAGS.map(tag=>`<button class="reasonTag ${a.reason===tag?"on":""}" data-reason="${esc(tag)}">${esc(tag)}</button>`).join("");
@@ -181,23 +337,46 @@ function bindShotMeta(){
 function refreshActive(){
   const s=db.active; if(!s) return;
   if(ui.inputMode==="grid"){
-    const grid=$("#scoreGrid");
-    if(grid) grid.innerHTML=scoreGridHtml(s);
+    if(!s.pairMode){
+      const grid=$("#scoreGrid");
+      if(grid) grid.innerHTML=scoreGridHtml(s);
+    }
     const header=document.querySelector(".gridHeader span");
-    if(header) header.textContent=`合計 ${aggregateSessionStats(sessionArrows(s)).total}点`;
-    bindGridInput(s);
+    if(header) header.textContent=s.purpose==="volume"?`本数 ${sessionArrowCount(s)}本`:`合計 ${sessionStats(s).total}点`;
+    if(s.pairMode){
+      if(typeof bindPairScoring==="function") bindPairScoring(s);
+    }else{
+      bindGridInput(s);
+    }
+    const pairMount=document.querySelector("#pairCompareMount");
+    if(pairMount&&s.pairEnd&&typeof pairCompareHtml==="function"){
+      pairMount.innerHTML=pairCompareHtml(s.pairEnd.shooter,s.pairEnd.marker);
+    }
+    if(typeof isTeamSetRound==="function"&&isTeamSetRound(s)){
+      const teamMount=document.querySelector("#teamHistoryMount");
+      if(teamMount&&typeof teamSetHistoryHtml==="function") teamMount.innerHTML=teamSetHistoryHtml(s);
+    }
   }
   // markers
   let html="";
-  const gp=a=> s.faceType==="triple" ? {x:a.x, y:a.y+SPOT_Y[a.spot||0]} : a;
-  s.ends.forEach((end,ei)=>end.forEach(a=>{ html+=markCircle(gp(a),s.faceD,"rgba(60,60,60,.45)"); }));
-  s.cur.forEach((a,i)=>{ html+=markCircle(gp(a),s.faceD, i===ui.selArrow?"#111":"var(--green-l)", scoreLabel(a), i===ui.freshArrow?"shotNew":""); });
+  const gp=(a,ei)=>{
+    if(s.faceType==="triple") return {x:a.x,y:a.y+SPOT_Y[a.spot||0]};
+    if(s.faceType==="quad") return quadArrowGlobal(a,typeof ei==="number"?quadHalfForEndIndex(s,ei):(s.quadHalf||"first"));
+    return a;
+  };
+  s.ends.forEach((end,ei)=>end.forEach(a=>{ html+=markCircle(gp(a,ei),s.faceD,"rgba(60,60,60,.45)"); }));
+  s.cur.forEach((a,i)=>{ html+=markCircle(gp(a),s.faceD,i===ui.selArrow?"#111":"var(--green-l)",scoreLabel(a),i===ui.freshArrow?"shotNew":""); });
   $("#tgmarks").innerHTML=html;
   // chips
   $("#curChips").innerHTML = s.cur.map((a,i)=>{
     const z=zoneStyle(a.s,a.X,s.faceType);
     return `<div class="sc ${i===ui.selArrow?"sel":""} ${i===ui.freshArrow?"fresh":""}" data-i="${i}" style="background:${z.bg};color:${z.fg}"><span>${scoreLabel(a)}</span>${a.no?`<small>#${esc(a.no)}</small>`:""}</div>`;
-  }).join("") || `<span style="font-size:12px;color:var(--sub);align-self:center">エンド${s.ends.length+1}：的をタップして記録</span>`;
+  }).join("") || (()=>{
+    const mode=ui.inputMode||"grid";
+    const endN=s.ends.length+1;
+    const hint=mode==="grid"?`エンド${endN}：上の数字ボタンで入力`:mode==="tap"?`エンド${endN}：的をタップして記録`:`エンド${endN}：取り込み後に修正できます`;
+    return `<span style="font-size:13px;color:var(--sub);align-self:center">${hint}</span>`;
+  })();
   if(ui.freshArrow>=0){
     clearTimeout(ui.freshTimer);
     ui.freshTimer=setTimeout(()=>{
@@ -216,13 +395,19 @@ function refreshActive(){
     if(a) bindShotMeta();
   }
   // stats
-  const all=[...s.ends.flat(), ...s.cur];
-  const total=all.reduce((a,x)=>a+x.s,0);
-  $("#statbar").innerHTML=`
-    <div class="stat"><b>${total}</b><span>合計</span></div>
-    <div class="stat"><b>${all.length?(total/all.length).toFixed(2):"-"}</b><span>平均/本</span></div>
+  const st=sessionStats(s);
+  if(s.purpose==="volume"){
+    $("#statbar").innerHTML=`<div class="stat"><b>${st.count}</b><span>本数</span></div>
+      <div class="stat"><b>${s.ends.length}</b><span>エンド</span></div>
+      <div class="stat"><b>${(s.cur||[]).length}</b><span>現在E</span></div>`;
+  }else{
+    const all=[...s.ends.flat(), ...s.cur];
+    $("#statbar").innerHTML=`
+    <div class="stat"><b>${st.total}</b><span>合計</span></div>
+    <div class="stat"><b>${all.length?(st.total/all.length).toFixed(2):"-"}</b><span>平均/本</span></div>
     <div class="stat"><b>${perfectScoreCount(all,s)}</b><span>${perfectScoreLabel(s)}</span></div>
     <div class="stat"><b>${secondaryScoreCount(all,s)}</b><span>${secondaryScoreLabel(s)}</span></div>`;
+  }
   // ends table
   $("#endsTbl").innerHTML = s.ends.length? `<table class="tbl"><tr><th>#</th><th>得点</th><th class="right">計</th><th></th></tr>`+
     s.ends.map((end,i)=>{
@@ -239,13 +424,14 @@ function refreshActive(){
     ui.selArrow=-1; save(); refreshActive();
     toast(`エンド${s.editIndex+1}を編集中（確定で戻ります）`);
   });
+  if(typeof syncLiveHudMetrics==="function") syncLiveHudMetrics(s);
 }
 function nudgeArrow(dirKey){
   const s=db.active; if(!s || ui.selArrow<0 || !s.cur[ui.selArrow]) return;
   if(dirKey==="del"){ s.cur.splice(ui.selArrow,1); ui.selArrow=-1; nativePulse("heavy"); save(); refreshActive(); return; }
   const a=s.cur[ui.selArrow], step=s.faceD/200;
   if(dirKey==="u")a.y+=step; if(dirKey==="d")a.y-=step; if(dirKey==="l")a.x-=step; if(dirKey==="r")a.x+=step;
-  Object.assign(a, scoreAt(a.x,a.y,s.faceD,s.faceType,lineCutRadius(s.faceD,s.faceType)));
+  Object.assign(a, scoreAt(a.x,a.y,s.faceD,s.faceType,lineCutRadius(s.faceD,s.faceType),scoreOptsFromSession(s)));
   nativePulse("light"); save(); refreshActive();
 }
 
@@ -276,7 +462,7 @@ function attachTargetInput(s){
   function drawCursor(p){
     const w=ringW(s.faceD,s.faceType);
     const fine=!!(drag&&drag.fine);
-    const cutting=fine && isLineCuttingFromGlobal(p.x,p.y,s.faceD,s.faceType);
+    const cutting=fine && isLineCuttingFromGlobal(p.x,p.y,s.faceD,s.faceType,scoreOptsFromSession(s));
     const c=fine ? (cutting?"#0f9d58":"#c62828") : "#111";
     lens.classList.toggle("cut", cutting);
     lens.classList.toggle("miss", fine&&!cutting);
@@ -340,14 +526,20 @@ function attachTargetInput(s){
     clearTimeout(drag.tm);
     let MX=s.faceD/2*1.18, MY=MX;
     if(s.faceType==="triple"){ MX=14; MY=36; }
+    if(s.faceType==="quad"){ MX=44; MY=44; }
     const p={x:Math.max(-MX,Math.min(MX,drag.p.x)), y:Math.max(-MY,Math.min(MY,drag.p.y))};
     resetDrag();
-    const hit=hitFromGlobal(p.x,p.y,s.faceD,s.faceType,lineCutRadius(s.faceD,s.faceType));
+    const opts=scoreOptsFromSession(s);
+    const hit=hitFromGlobal(p.x,p.y,s.faceD,s.faceType,lineCutRadius(s.faceD,s.faceType),opts);
     const rec={x:+hit.x.toFixed(2), y:+hit.y.toFixed(2), s:hit.s, X:hit.X};
     if(hit.spot!=null) rec.spot=hit.spot;
+    if(isJapanIndoorRound(s)||s.faceType==="quad") rec.spotId=s.curSpotId||s.laneSpot||"A";
+    if(typeof isTeamSetRound==="function"&&isTeamSetRound(s)&&typeof tagTeamArrow==="function") tagTeamArrow(rec,s.cur.length);
     s.cur.push(rec);
+    maybeToastSpotCollision(s,s.cur);
     ui.freshArrow=s.cur.length-1;
-    nativePulse(isLineCuttingFromGlobal(p.x,p.y,s.faceD,s.faceType)?"success":"light");
+    if(typeof onArrowScored==="function") onArrowScored(rec,ui.freshArrow);
+    else nativePulse(isLineCuttingFromGlobal(p.x,p.y,s.faceD,s.faceType,opts)?"success":"light");
     save(); refreshActive();
     toast(`${scoreLabel(hit)} 点を記録`);
   }
@@ -382,6 +574,9 @@ function finishSession(){
   }
   delete s.cur; delete s.editIndex;
   const isEdit=!!s._edit; delete s._edit;
+  const total=typeof sessionScoreTotal==="function"?sessionScoreTotal(s):sessionTotalPoints(s);
+  const prevBest=typeof priorPersonalBest==="function"?priorPersonalBest(s,db.sessions):null;
+  const newBest=typeof isNewPersonalBest==="function"&&isNewPersonalBest(s,db.sessions,total);
   db.active=null;
   if(isEdit){
     const i=db.sessions.findIndex(x=>x.id===s.id);
@@ -389,21 +584,30 @@ function finishSession(){
   }else{
     db.sessions.push(s);
   }
-  nativePulse("success");
+  if(!newBest) nativePulse("success");
   save();
-  openSummary(s, !isEdit);
+  if(typeof maybeUiDepthToast==="function") maybeUiDepthToast("session_end");
+  openSummary(s,!isEdit,{
+    newBest,
+    total,
+    prevBest,
+    key:typeof sessionBestKey==="function"?sessionBestKey(s):""
+  });
 }
 
 /* ---------- summary modal ---------- */
-function openSummary(sess, isNew){
+function openSummary(sess,isNew,opts){
+  opts=opts||{};
   const setup=db.setups.find(x=>x.id===sess.setupId);
   const all=sess.ends.flat();
   const total=all.reduce((a,x)=>a+x.s,0);
   const st=robustStats(all);
   const adv=adviceFor(sess, setup);
   const ovl=document.createElement("div"); ovl.className="ovl";
+  const badgeBanner=typeof badgeProgressBannerHtml==="function"?badgeProgressBannerHtml(sess,db.sessions):"";
   ovl.innerHTML=`<div class="sheet">
     <h3>${isNew?"おつかれさまでした！":""} ${fmtD(sess.date)} ・ ${sess.dist}m</h3>
+    ${badgeBanner}
     ${summaryDecisionHtml(adv,sess)}
     ${typeof nextShotBriefHtml==="function"?nextShotBriefHtml(sess,adv,setup):""}
     <div class="statbar">
@@ -411,6 +615,7 @@ function openSummary(sess, isNew){
       <div class="stat"><b>${(total/all.length).toFixed(2)}</b><span>平均/本</span></div>
       <div class="stat"><b>${perfectScoreCount(all,sess)}</b><span>${perfectScoreLabel(sess)}</span></div>
       <div class="stat"><b>${secondaryScoreCount(all,sess)}</b><span>${secondaryScoreLabel(sess)}</span></div>
+      ${sess.timerEarlyCount?`<div class="stat"><b>${sess.timerEarlyCount}</b><span>早期完了（${timerEarlyTargetSec()}秒前）</span></div>`:""}
     </div>
     <div id="sumPlot" style="margin-top:10px"></div>
     ${groupSummaryHtml(st)}
@@ -431,9 +636,14 @@ function openSummary(sess, isNew){
       ${conditionHtml(sess,st,setup)}
     </details>
     ${sess.setupId&&(sess.sightV||sess.sightH)?`<div class="btnrow"><button class="btn sec" id="sumMark">📒 このサイト値を台帳に記録</button></div>`:""}
-    <div class="btnrow"><button class="btn sec" id="sumCard">画像保存</button><button class="btn ghost" id="sumClose">閉じる</button></div>
+    <div class="btnrow"><button class="btn sec" id="sumShare">共有/PNG</button><button class="btn sec" id="sumCard">SVG保存</button><button class="btn sec" id="sumPrint">印刷/PDF</button><button class="btn ghost" id="sumClose">閉じる</button></div>
   </div>`;
   document.body.appendChild(ovl);
+  if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  if(opts.newBest&&typeof celebrateBest==="function"){
+    celebrateBest({total:opts.total,prev:opts.prevBest,key:opts.key,label:"自己ベスト更新"});
+  }
+  if(typeof mountBadgeRings==="function") mountBadgeRings(ovl);
   plotSession(sess, ovl.querySelector("#sumPlot"));
   const mk=ovl.querySelector("#sumMark");
   if(mk) mk.onclick=()=>{
@@ -442,7 +652,11 @@ function openSummary(sess, isNew){
       note:`練習記録より（${all.length}本 / 平均${(total/all.length).toFixed(1)}）`});
     save(); toast("サイト台帳に記録しました"); mk.disabled=true;
   };
+  const sumShare=ovl.querySelector("#sumShare");
+  if(sumShare) sumShare.onclick=()=>{ if(typeof shareScorecard==="function") shareScorecard(sess); else exportScorecardImage(sess); };
   ovl.querySelector("#sumCard").onclick=()=>exportScorecardImage(sess);
+  const sumPrint=ovl.querySelector("#sumPrint");
+  if(sumPrint) sumPrint.onclick=()=>{ if(typeof openScorecardPrint==="function") openScorecardPrint(sess); };
   ovl.querySelector("#sumClose").onclick=()=>{ ovl.remove(); render(); };
 }
 
@@ -460,9 +674,9 @@ function historyOverviewHtml(allSs,ss){
   const distCount=new Set(src.map(s=>s.dist).filter(Boolean)).size;
   const quality=src.map(s=>sessionQuality(s,db.setups.find(x=>x.id===s.setupId))).filter(Boolean);
   const qAvg=quality.length?quality.reduce((a,q)=>a+q.score,0)/quality.length:0;
-  return `<div class="insightStrip">
-    <div class="insightTile"><div class="k">履歴の地図</div><b>${src.length}回</b><span>${arrows.length}本 / ${distCount}距離 / ${setupCount}用具</span></div>
-    <div class="insightTile"><div class="k">平均点</div><b>${avg?avg.toFixed(2):"—"}</b><span>直近${recent.length}回 ${recentAvg?recentAvg.toFixed(2):"—"}</span></div>
-    <div class="insightTile"><div class="k">判断材料</div><b>${pct(qAvg)}</b><span>サイト値・本数・用具入力の平均充実度</span></div>
+  return `<div class="insightStrip ds-insightBoard">
+    <div class="insightTile"><p class="k">履歴の地図</p><p class="ds-metricValue">${src.length}回</p><span>${arrows.length}本 · ${distCount}距離 · ${setupCount}用具</span></div>
+    <div class="insightTile"><p class="k">平均点</p><p class="ds-metricValue">${avg?avg.toFixed(2):"—"}</p><span>直近${recent.length}回 ${recentAvg?recentAvg.toFixed(2):"—"}</span></div>
+    <div class="insightTile"><p class="k">判断材料</p><p class="ds-metricValue">${pct(qAvg)}</p><span>サイト値・本数・用具入力</span></div>
   </div>`;
 }

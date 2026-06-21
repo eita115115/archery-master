@@ -35,7 +35,7 @@ write(storagePath, storage);
 write(versionPath, `{ "v": ${next} }\n`);
 
 let sw = read(swPath);
-sw = sw.replace(/archery-note-v\d+/, `archery-note-v${next}`);
+sw = sw.replace(/matonote-v\d+/, `matonote-v${next}`);
 write(swPath, sw);
 
 const pkg = JSON.parse(read(packagePath));

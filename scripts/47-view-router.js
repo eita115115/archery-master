@@ -18,27 +18,37 @@ let ui = {
   gridCell: -1,
   ocrBound: false,
   formBound: false,
+  pairCell: -1,
+  hudSnap: null,
+  pendingBestCelebrate: null,
 };
 
 function showView(v) {
   if (db.active && v === "home") v = "record";
-  if (view === v) return;
+  const prev = view;
   view = v;
   ui.selArrow = -1;
-  nativePulse("light");
+  if (prev !== v) nativePulse("light");
   render();
 }
 document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => showView(b.dataset.v)));
 
 function render() {
   updateAppChrome();
+  if (typeof syncKeepAwake === "function") syncKeepAwake();
   if (typeof syncUpdateBarVisibility === "function") syncUpdateBarVisibility();
   const tabs = Array.prototype.slice.call(document.querySelectorAll("#tabs button"));
   const effectiveView = db.active ? "record" : view;
   const activeIndex = Math.max(0, tabs.findIndex((b) => b.dataset.v === effectiveView));
   const tabBar = $("#tabs");
   if (tabBar) tabBar.style.setProperty("--active-tab", activeIndex);
-  tabs.forEach((b) => b.classList.toggle("on", b.dataset.v === effectiveView));
+  tabs.forEach((b) => {
+    const on=b.dataset.v === effectiveView;
+    b.classList.toggle("on", on);
+    b.setAttribute("aria-current", on ? "page" : "false");
+    if(db.active&&b.dataset.v==="home") b.setAttribute("aria-disabled","true");
+    else b.removeAttribute("aria-disabled");
+  });
   if (db.active) tabs.forEach((b) => b.classList.toggle("live", b.dataset.v === "record"));
   const m = $("#main");
   if (effectiveView === "record") {
@@ -47,4 +57,6 @@ function render() {
   } else if (effectiveView === "history") renderHistory(m);
   else if (effectiveView === "stats") renderStats(m);
   else renderHome(m);
+  if(typeof enterViewMotion==="function") enterViewMotion(m);
+  if(typeof pulseTabSpring==="function") pulseTabSpring();
 }

@@ -59,8 +59,7 @@ function filterSessionsByStatsFilter(sessions, filter) {
 }
 
 function sessionSummaryRow(s) {
-  const arrows = (s.ends || []).flat();
-  const stats = aggregateSessionStats(arrows);
+  const stats = typeof sessionStats === "function" ? sessionStats(s) : aggregateSessionStats((s.ends || []).flat());
   return {
     id: s.id,
     date: s.date || "",
@@ -217,6 +216,67 @@ function buildMovingAverageSeries(sessions, filter, windowSize) {
   return rows.map((r, i) => ({ label: r.date, value: r.total, ma: ma[i] }));
 }
 
+function groupBySpotStats(sessions, filter) {
+  const labels = ["上", "中", "下"];
+  const by = { 0: { n: 0, sum: 0 }, 1: { n: 0, sum: 0 }, 2: { n: 0, sum: 0 } };
+  filterSessionsByStatsFilter(sessions, filter).forEach((s) => {
+    if (s.faceType !== "triple") return;
+    (s.ends || []).flat().forEach((a) => {
+      if (a.spot == null) return;
+      by[a.spot].n += 1;
+      by[a.spot].sum += a.s || 0;
+    });
+  });
+  return [0, 1, 2].map((i) => ({
+    spot: i,
+    label: labels[i],
+    count: by[i].n,
+    avg: by[i].n ? by[i].sum / by[i].n : 0,
+  }));
+}
+
+function groupBySpotIdStats(sessions, filter) {
+  const ids = ["A", "B", "C", "D"];
+  const by = { A: { n: 0, sum: 0 }, B: { n: 0, sum: 0 }, C: { n: 0, sum: 0 }, D: { n: 0, sum: 0 } };
+  filterSessionsByStatsFilter(sessions, filter).forEach((s) => {
+    (s.ends || []).flat().forEach((a) => {
+      const id = a.spotId || (s.faceType === "quad" ? null : s.laneSpot);
+      if (!id || !by[id]) return;
+      by[id].n += 1;
+      by[id].sum += a.s || 0;
+    });
+  });
+  return ids.map((id) => ({
+    spotId: id,
+    label: `列${id}`,
+    count: by[id].n,
+    avg: by[id].n ? by[id].sum / by[id].n : 0,
+  }));
+}
+
+function groupByFieldTargetStats(sess) {
+  if (!sess || sess.faceType !== "field" || !sess.fieldCourse) return [];
+  const by = {};
+  sess.fieldCourse.forEach((t) => { by[t.target] = { target: t.target, n: 0, sum: 0, total: 0 }; });
+  (sess.ends || []).forEach((end) => {
+    end.forEach((a) => {
+      const key = a.fieldTarget;
+      if (key == null || !by[key]) return;
+      by[key].n += 1;
+      by[key].sum += a.s || 0;
+      by[key].total += a.s || 0;
+    });
+  });
+  return sess.fieldCourse.map((t) => ({
+    target: t.target,
+    count: by[t.target] ? by[t.target].n : 0,
+    avg: by[t.target] && by[t.target].n ? by[t.target].sum / by[t.target].n : 0,
+    total: by[t.target] ? by[t.target].total : 0,
+    distM: t.distM,
+    faceD: t.faceD,
+  }));
+}
+
 function buildBowTypeBarData(sessions, filter) {
   const rows = filterSessionsByStatsFilter(sessions, filter).map(sessionSummaryRow);
   const by = {};
@@ -302,5 +362,8 @@ if (typeof window !== "undefined") {
     buildBowTypeBarData,
     buildPeriodComparison,
     dualLineChartSvg,
+    groupBySpotStats,
+    groupBySpotIdStats,
+    groupByFieldTargetStats,
   };
 }

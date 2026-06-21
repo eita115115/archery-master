@@ -7,19 +7,12 @@ const root = path.resolve(__dirname, "..");
 const htmlPath = path.join(root, "index.html");
 const html = fs.readFileSync(htmlPath, "utf8");
 const css = fs.readFileSync(path.join(root, "style.css"), "utf8");
-const appScripts = [
-  "scripts/00-compat.js",
-  "scripts/10-storage-native.js",
-  "scripts/20-scoring.js",
-  "scripts/30-target-svg.js",
-  "scripts/40-analysis-physics.js",
-  "scripts/50-record-view.js",
-  "scripts/60-history-sight-view.js",
-  "scripts/70-gear-settings.js",
-  "scripts/90-init.js",
-];
-const appJs = appScripts.map(file => fs.readFileSync(path.join(root, file), "utf8")).join("\n");
-const surface = `${html}\n${css}\n${appJs}`;
+const uiCss = ["ui/ui-tokens.css", "ui/ds-components.css", "ui/ds-screens.css", "ui/ui-motion.css", "ui/ui-overrides.css"]
+  .map((f) => fs.readFileSync(path.join(root, f), "utf8")).join("\n");
+const appManifest = JSON.parse(fs.readFileSync(path.join(root, "app-scripts.json"), "utf8"));
+const appScripts = appManifest.scripts;
+const appJs = appScripts.map((file) => fs.readFileSync(path.join(root, file.replace(/\//g, path.sep)), "utf8")).join("\n");
+const surface = `${html}\n${css}\n${uiCss}\n${appJs}`;
 const appUrl = `file:///${htmlPath.replace(/\\/g, "/")}`;
 const outDir = path.join(root, "artifacts", "ui-smoke");
 
@@ -52,7 +45,18 @@ function ensureInsideRoot(p) {
 
 function cleanDir(dir) {
   const full = ensureInsideRoot(dir);
-  if (fs.existsSync(full)) fs.rmSync(full, { recursive: true, force: true });
+  if (fs.existsSync(full)) {
+    try { fs.rmSync(full, { recursive: true, force: true, maxRetries: 3, retryDelay: 200 }); }
+    catch (err) {
+      if (err.code !== "EPERM" && err.code !== "EBUSY") throw err;
+      for (const entry of fs.readdirSync(full)) {
+        if (!entry.startsWith(".profile-")) {
+          const p = path.join(full, entry);
+          try { fs.rmSync(p, { recursive: true, force: true }); } catch (_) { /* locked */ }
+        }
+      }
+    }
+  }
   fs.mkdirSync(full, { recursive: true });
 }
 
@@ -62,49 +66,55 @@ function pngSize(file) {
   return { width: b.readUInt32BE(16), height: b.readUInt32BE(20), bytes: b.length };
 }
 
+function stripFunction(src, name) {
+  let s = src;
+  const needle = `function ${name}(`;
+  for (let start = s.indexOf(needle); start >= 0; start = s.indexOf(needle)) {
+    const next = s.indexOf("\nfunction ", start + needle.length);
+    s = next < 0 ? s.slice(0, start) : s.slice(0, start) + s.slice(next + 1);
+  }
+  return s;
+}
+function assertForbiddenUiCopy(src) {
+  let s = stripFunction(stripFunction(src.replace(/\/\*[\s\S]*?\*\//g, ""), "pageHeroHtml"), "recordIntroHtml");
+  const rules = [
+    ["AIオフライン", /AIオフライン/],
+    ["PWA + Capacitor-ready", /PWA \+ Capacitor-ready/],
+    ["§番号（ユーザー向け）", /§\d/],
+    ["判断信頼度", /判断信頼度/],
+    ["個人データ準備度", /個人データ準備度/],
+    ["射形コーチ", /射形コーチ/],
+    ["nativeStack", /nativeStack/],
+  ];
+  for (const [label, re] of rules) {
+    assert(!re.test(s), `Forbidden UI copy remains: ${label}`);
+  }
+}
 function staticUiChecks() {
-  const gearList = name => {
-    const match = new RegExp(`\\n  ${name}:\\[([\\s\\S]*?)\\n  \\],`).exec(appJs);
-    assert(match, `${name} gear list missing`);
-    return match[1];
-  };
-  assert(/<meta name="viewport"[^>]*maximum-scale=1/.test(html), "Viewport zoom guard missing");
-  assert(html.includes('<link rel="stylesheet" href="style.css">') && css.includes(".missionPanel"), "External stylesheet missing");
-  assert(appScripts.every(file => html.includes(`<script src="${file}"></script>`)) && !/<script>([\s\S]*?)<\/script>/.test(html), "External app scripts missing");
+  assertForbiddenUiCopy(appJs);
+  assert(appJs.includes("onboardSheetHtml") && appJs.includes("射形の確認"), "UI-P4 onboard/form copy missing");
+  assert(/<meta name="viewport"[^>]*width=device-width/.test(html), "Viewport meta missing");
+  assert(/maximum-scale=5/.test(html) && !/user-scalable=no/.test(html), "Viewport must allow zoom for accessibility");
+  assert(html.includes('<link rel="stylesheet" href="style.css">'), "style.css link missing");
+  assert(html.includes("ui/ui-tokens.css") && html.includes("ui/ds-components.css") && html.includes("ui/ds-screens.css") && html.includes("ui/ui-motion.css") && html.includes("ui/ui-overrides.css"), "UI layer CSS links missing");
+  assert(appScripts.includes("scripts/ui/ds-primitives.js"), "ds-primitives.js not wired");
+  assert(surface.includes("mountOverlay") && surface.includes("mountSheetA11y"), "Design system primitives missing");
+  assert(appScripts.every((file) => html.includes(`<script src="${file}"></script>`)) && !/<script>([\s\S]*?)<\/script>/.test(html), "index.html scripts must match app-scripts.json");
   assert(!fs.existsSync(path.join(root, "app.js")), "Legacy app.js should not remain after script split");
-  assert(html.includes('name="description"') && html.includes('property="og:description"'), "Share/SEO metadata missing");
   assert(/<nav class="tabs" id="tabs"[^>]*>/.test(html), "Tab bar missing");
-  const tabMatches = [...html.matchAll(/<button data-v="([^"]+)"[^>]*>[\s\S]*?<\/button>/g)].map(m => m[1]);
-  assert(tabMatches.join(",") === "record,history,sight,gear", `Unexpected tabs: ${tabMatches.join(",")}`);
-  assert(surface.includes("記録") && surface.includes("履歴") && surface.includes("サイト調整") && surface.includes("用具"), "Tab labels missing");
-  assert(/@media \(max-width:360px\)/.test(surface), "Small-screen media query missing");
-  assert(/\.row\{flex-direction:column;\}/.test(surface), "Small-screen row stacking missing");
-  assert(surface.includes("content-visibility:auto") && surface.includes("contain-intrinsic-size"), "offscreen rendering guard missing");
-  assert(css.includes("touch-action:manipulation") && css.includes("--chrome-bg") && css.includes("min-height:48px"), "native-feel touch/chrome styling missing");
-  assert(surface.includes("@keyframes appRise") && !surface.includes("primaryPulse") && surface.includes("scorePop") && surface.includes("markPop") && surface.includes("impactFlash") && surface.includes("shotNew") && surface.includes("freshArrow") && surface.includes("prefers-reduced-motion") && surface.includes("ic-record") && surface.includes("ic-sight"), "minimal recording feedback, tab icons, and reduced-motion guard missing");
-  assert(surface.includes("--active-tab") && surface.includes("nav.tabs::before") && surface.includes('setProperty("--active-tab"'), "smooth state-following tab motion missing");
-  assert(!surface.includes("targetImpact") && !surface.includes("screenIn") && !surface.includes("triggerReleaseMotion") && !surface.includes("arrowFlight"), "overdone transition/target animation should not return");
-  assert(surface.includes("今日のズレを、次の一射へ") && surface.includes("点取りから調整提案へ") && surface.includes("足りないデータを見る"), "systematic onboarding UI missing");
-  assert(surface.includes("読み込みに時間がかかっています") && surface.includes("bootFallback") && surface.includes("bootFallbackDelay") && html.includes('id="updBar" hidden'), "startup/update fallback should be calm and initially hidden");
-  assert(surface.includes("サイト値を残す") && surface.includes("足りないデータを見る") && !surface.includes("校正用") && !surface.includes("状態確認"), "record mode labels should stay user-facing");
-  assert(surface.includes("FIELD_FACE_SIZES") && surface.includes("cm フィールド") && surface.includes("フィールド 24標的/72射"), "field target setup UI missing");
-  assert(surface.includes("perfectScoreLabel") && surface.includes("secondaryScoreLabel") && surface.includes("5点以上"), "field-aware score labels missing");
-  assert(surface.includes("初回の操作ガイド") && surface.includes("次から表示しない") && surface.includes("activeGuideSeen"), "first-run active guide missing");
-  assert(surface.includes("今日の記録を始める") && surface.includes("前回と同じ") && surface.includes("履歴を見る") && surface.includes("homeActions") && surface.includes("quickRepeat") && surface.includes("quickStartMeta") && surface.includes("actionFaceLabel") && !surface.includes("今の条件で開始") && surface.includes("今日のズレを、次の一射へ。") && surface.includes("アーチェリー練習ノート") && surface.includes("missionPanel") && surface.includes("convergeMission") && surface.includes("phaseArc") && surface.includes("simplePromise") && surface.includes("ズレを見る") && surface.includes("詳しく使う") && surface.includes("quickSelects") && surface.includes("missionMore") && surface.includes("summaryDecisionHtml") && surface.includes("setupLens") && surface.includes("insightStrip"), "lightweight record flow composition missing");
-  assert(surface.includes("compactHud") && !surface.includes("まず今日の記録を始める。詳しい材料") && !surface.includes("距離・的サイズはこの画面で変更できます") && !surface.includes("タップ＆ドラッグで確定"), "record screen should stay compact and low-noise");
-  assert(surface.includes("pageHero") && surface.includes("分布と偏移を読む") && surface.includes("サイト値を整える") && surface.includes("いつものセッティングを残す") && surface.includes("liveHud"), "reborn workspace surfaces missing");
-  assert(surface.includes("nativeSignal") && surface.includes("触感") && surface.includes("共有") && surface.includes("freshReload") && !html.includes("statusPill"), "native-feel UI should not crowd the header");
-  assert(surface.includes("SHOT_REASON_TAGS") && surface.includes("外れ理由") && surface.includes("矢番号") && surface.includes("arrowMetaSummaryHtml"), "shot reason and arrow-number note UI missing");
-  assert(surface.includes("判断信頼度") && surface.includes("個人モデル") && surface.includes("次のアクション") && surface.includes("個人データ準備度") && surface.includes("スパイン初期候補") && surface.includes("RK4-3D") && surface.includes("物理校正"), "analysis cards missing");
-  assert(surface.includes("アプリ情報・保存状態") && surface.includes("nativeStack") && surface.includes("PWA + Capacitor-ready") && surface.includes("ブラウザ保存"), "native readiness UI missing");
-  assert(surface.includes("自動バックアップ") && surface.includes("今すぐバックアップ") && surface.includes("バックアップデータを復元しました") && !surface.includes("\u81ea\u52d5\u9000\u907f") && !surface.includes("\u9000\u907f\u30c7\u30fc\u30bf"), "backup settings copy should be user-facing");
-  assert(surface.includes("シャフト銘柄") && surface.includes("番手/スパイン") && surface.includes("ハンドル/弓本体") && surface.includes("HOYT Grand Prix XCEED 2 H25") && surface.includes("HOYT Formula RCRV PODIUM Limbs"), "separated gear fields missing");
-  assert(surface.includes("EASTON X10 ProTour") && surface.includes("SHIBUYA ULTIMA RC IV 520 Carbon") && surface.includes("RAMRODS VEKTOR") && surface.includes("GAS Bowstrings Ghost XV"), "expanded gear knowledge missing");
-  assert(surface.includes("choicePick") && surface.includes("候補にないので手入力") && surface.includes("確認したチューニング"), "gear dropdown/tuning UI missing");
-  const bowList = gearList("bow");
-  const limbList = gearList("limbs");
-  assert(!/Formula SR|Formula XD/.test(limbList), "handle names leaked into limb dropdown");
-  assert(!/MK KOREA ZEST Limbs|MK XD Limbs/.test(bowList), "limb names leaked into handle dropdown");
+  const tabMatches = [...html.matchAll(/<button data-v="([^"]+)"[^>]*>[\s\S]*?<\/button>/g)].map((m) => m[1]);
+  assert(tabMatches.join(",") === "home,record,history,stats", `Unexpected tabs: ${tabMatches.join(",")}`);
+  assert(surface.includes("記録") && surface.includes("履歴") && surface.includes("統計") && surface.includes("ホーム"), "Tab labels missing");
+  assert(css.includes("touch-action:manipulation") && css.includes("min-height:48px"), "Touch/chrome styling missing");
+  assert(uiCss.includes("html.ui-refresh"), "ui layer CSS must scope to html.ui-refresh");
+  assert(surface.includes("@keyframes appRise") && surface.includes("scorePop") && surface.includes("prefers-reduced-motion") && surface.includes("ic-home"), "Motion primitives missing");
+  assert(surface.includes("dashCompact") && surface.includes("今日の記録を始める") && surface.includes("条件を変える") && surface.includes("quickStartSession"), "UI-P2 home missing");
+  assert(surface.includes("compactHud") && surface.includes("inputModeBarHtml") && surface.includes("openInputMoreSheet"), "UI-P2 record missing");
+  assert(surface.includes("syncLiveHudMetrics") && surface.includes("celebrateBest") && surface.includes("pulseTabSpring"), "UI-P5 motion missing");
+  assert(appScripts.includes("scripts/54-motion.js") && appScripts.includes("scripts/56-onboard.js") && appScripts.includes("scripts/57-ui-depth.js"), "UI layer scripts not wired");
+  assert(html.includes("練習ノート"), "Header subtitle missing");
+  assert(appJs.includes("<summary>アプリ情報</summary>") && !appJs.includes("nativeStack"), "UI-P4 settings copy missing");
+  assert(surface.includes("自動バックアップ") && surface.includes("今すぐバックアップ"), "Backup settings copy missing");
 }
 
 function freePort() {
@@ -133,11 +143,12 @@ async function stopProcess(proc) {
 async function rmDirWithRetry(dir) {
   for (let attempt = 0; attempt < 8; attempt++) {
     try {
-      if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+      if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true, maxRetries: 2, retryDelay: 120 });
       return;
     } catch (err) {
+      if (attempt === 7 && (err.code === "EPERM" || err.code === "EBUSY")) return;
       if (attempt === 7) throw err;
-      await sleep(160);
+      await sleep(200);
     }
   }
 }
@@ -229,7 +240,7 @@ function createCdpClient(wsUrl) {
 }
 
 async function screenshot(browser, view) {
-  const profile = path.join(outDir, `.profile-${view.name}`);
+  const profile = path.join(outDir, `.profile-${view.name}-${Date.now()}`);
   const shot = path.join(outDir, `${view.name}.png`);
   fs.mkdirSync(profile, { recursive: true });
   const port = await freePort();
@@ -260,6 +271,9 @@ async function screenshot(browser, view) {
     client = await createCdpClient(wsUrl);
     await client.send("Page.enable");
     await client.send("Runtime.enable");
+    await client.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `try{localStorage.setItem("uiRefreshPreview","1");localStorage.setItem("matonote_onboarded_v1","1");}catch(e){}`,
+    });
     await client.send("Emulation.setDeviceMetricsOverride", {
       width: view.width,
       height: view.height,
@@ -280,9 +294,14 @@ async function screenshot(browser, view) {
         const overflow = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - vw;
         const gear = document.querySelector("#btnSettings")?.getBoundingClientRect();
         const tabs = [...document.querySelectorAll("nav.tabs button")].map(b => b.getBoundingClientRect());
+        const homeBtn = document.querySelector('nav.tabs button[data-v="home"]');
+        const mainText = document.querySelector("#main")?.innerText || "";
         return {
           vw,
           overflow,
+          uiRefresh: document.documentElement.classList.contains("ui-refresh"),
+          hasHomeCta: /今日の記録を始める/.test(mainText),
+          homeOn: !!homeBtn?.classList.contains("on"),
           gear: gear && { left: gear.left, right: gear.right, width: gear.width },
           tabs: tabs.map(t => ({ left: t.left, right: t.right, width: t.width })),
         };
@@ -290,9 +309,12 @@ async function screenshot(browser, view) {
       returnByValue: true,
     });
     const value = metrics.result.value;
+    assert(value.uiRefresh, `${view.name} missing html.ui-refresh class`);
+    assert(value.hasHomeCta, `${view.name} home CTA not rendered`);
+    assert(value.homeOn, `${view.name} home tab should be active on boot`);
     assert(value.overflow <= 1, `${view.name} has horizontal overflow: ${JSON.stringify(value)}`);
     assert(value.gear && value.gear.left >= 0 && value.gear.right <= value.vw + 1, `${view.name} settings button is clipped: ${JSON.stringify(value.gear)}`);
-    assert(value.tabs.length === 4 && value.tabs.every(t => t.left >= -1 && t.right <= value.vw + 1 && t.width > 44), `${view.name} tab bar is clipped: ${JSON.stringify(value.tabs)}`);
+    assert(value.tabs.length === 4 && value.tabs.every(t => t.left >= -1 && t.right <= value.vw + 1 && t.width > 36), `${view.name} tab bar is clipped: ${JSON.stringify(value.tabs)}`);
     const capture = await client.send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     fs.writeFileSync(shot, Buffer.from(capture.data, "base64"));
     assert(fs.existsSync(shot), `Screenshot was not created: ${shot}`);

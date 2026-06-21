@@ -1,0 +1,206 @@
+/* 的ノート UI layer — motion (UI-P5). html.ui-refresh only. */
+@keyframes uiHudRollGlow{
+  0%{color:var(--ui-accent,var(--green));}
+  100%{color:var(--ui-label,var(--ink));}
+}
+@keyframes uiEndPulse{
+  0%{transform:scale(1);}
+  40%{transform:scale(1.02);}
+  100%{transform:scale(1);}
+}
+@keyframes uiIdleBreath{
+  0%,100%{transform:scale(1);opacity:.85;}
+  50%{transform:scale(1.04);opacity:1;}
+}
+@keyframes uiXRing{
+  0%{transform:scale(.72);opacity:1;}
+  100%{transform:scale(1.28);opacity:0;}
+}
+@keyframes uiBestBannerIn{
+  0%{opacity:0;transform:translateY(12px) scale(.96);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+@keyframes uiBestBannerOut{
+  0%{opacity:1;transform:translateY(0);}
+  100%{opacity:0;transform:translateY(-8px);}
+}
+html.ui-refresh .ui-best-banner{
+  position:fixed;
+  left:50%;
+  top:calc(env(safe-area-inset-top,0px) + 56px);
+  z-index:1200;
+  transform:translateX(-50%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  padding:10px 18px;
+  border-radius:var(--ui-radius-md,14px);
+  background:var(--ui-accent,var(--green));
+  color:var(--ui-accent-on,#fff);
+  border:1px solid transparent;
+  box-shadow:var(--ui-shadow-md,0 8px 24px rgba(0,0,0,.16));
+  pointer-events:none;
+  opacity:0;
+}
+html.ui-refresh .ui-best-banner b{
+  font-size:15px;
+  letter-spacing:.02em;
+}
+html.ui-refresh .ui-best-banner span{
+  font-size:12px;
+  opacity:.92;
+}
+html.ui-refresh .ui-best-banner.show{
+  animation:uiBestBannerIn .32s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) forwards;
+}
+html.ui-refresh .ui-best-banner:not(.show){
+  animation:uiBestBannerOut .28s ease forwards;
+}
+html.ui-refresh .dashMetricVal.ui-rolling,
+html.ui-refresh .dashMetric b.ui-rolling{
+  animation:uiHudRollGlow .52s ease-out;
+}
+html.ui-refresh .liveCell b.ui-rolling{
+  animation:uiHudRollGlow .4s ease-out;
+}
+html.ui-refresh .liveHud.ui-end-pulse{
+  animation:uiEndPulse .3s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1));
+}
+html.ui-refresh .sc.fresh{
+  animation:scorePop .38s cubic-bezier(.2,1.2,.2,1) both;
+}
+html.ui-refresh .shotNew{
+  transform-box:fill-box;
+  transform-origin:center;
+  animation:markPop .42s cubic-bezier(.2,1.15,.2,1) both;
+}
+html.ui-refresh .shotNew circle{
+  animation:impactFlash .42s ease-out both;
+}
+html.ui-refresh .sc.ui-x-ring{
+  position:relative;
+}
+html.ui-refresh .sc.ui-x-ring::after{
+  content:"";
+  position:absolute;
+  inset:-3px;
+  border-radius:16px;
+  border:2px solid #d4a017;
+  animation:uiXRing .15s ease-out forwards;
+  pointer-events:none;
+}
+html.ui-refresh .shotNew.ui-x-ring circle{
+  stroke:#d4a017;
+  stroke-width:1.6;
+  animation:markPop .42s cubic-bezier(.2,1.15,.2,1) both,uiXRing .15s ease-out forwards;
+}
+html.ui-refresh .idlePrompt .idleIcon,
+html.ui-refresh .bootFallback .bootIcon{
+  animation:uiIdleBreath 3s ease-in-out infinite;
+}
+html.ui-refresh .toast.show{
+  transition:opacity var(--ui-dur-fast),transform var(--ui-dur-fast) var(--ui-ease-spring);
+}
+/* M7 tabSpring */
+@keyframes uiTabSpring{
+  0%{transform:translateY(1px) scale(.98);}
+  55%{transform:translateY(-1px) scale(1.02);}
+  100%{transform:translateY(0) scale(1);}
+}
+html.ui-refresh nav.tabs.ui-tab-spring button.on,
+html.ui-refresh nav.tabs.ui-tab-spring button.live{
+  animation:uiTabSpring .32s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1));
+}
+html.ui-refresh nav.tabs button.on,
+html.ui-refresh nav.tabs button.live{
+  transition:color .28s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)),border-top-color .28s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1));
+}
+/* M8 sheetSpring */
+@keyframes uiOvlFade{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+@keyframes uiSheetSpring{
+  from{opacity:0;transform:translateY(22px);}
+  to{opacity:1;transform:translateY(0);}
+}
+html.ui-refresh .ovl{
+  animation:uiOvlFade .24s ease both;
+}
+html.ui-refresh .ovl .sheet{
+  animation:uiSheetSpring .34s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
+}
+/* M9 appRise */
+html.ui-refresh main > .ui-view-rise{
+  animation:appRise .32s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
+}
+/* M10 idleBreath — see .idlePrompt .idleIcon above */
+/* M11 onboardStep */
+html.ui-refresh .onboardStep.ui-onboard-step-enter,
+html.ui-refresh .onboardLead.ui-onboard-step-enter,
+html.ui-refresh .onboardSheet .startPrimary.ui-onboard-step-enter{
+  animation:decisionSlide .34s ease-out both;
+}
+/* M12 badgeRing */
+html.ui-refresh .badgeLine.star{
+  align-items:center;
+}
+html.ui-refresh .badgeRingWrap{
+  flex:0 0 40px;
+  width:40px;
+  height:40px;
+}
+html.ui-refresh .badgeRingTrack{
+  stroke:var(--ui-separator,var(--line));
+}
+html.ui-refresh .badgeRingFill{
+  stroke:var(--ui-accent,var(--green));
+  stroke-linecap:round;
+  transform:rotate(-90deg);
+  transform-origin:50% 50%;
+}
+html.ui-refresh .badgeRingFill.ui-ring-draw{
+  animation:uiBadgeRingDraw .6s ease-out both;
+}
+html.ui-refresh .badgeRingLabel{
+  font-size:11px;
+  font-weight:700;
+  fill:var(--ui-label,var(--title));
+}
+@keyframes uiBadgeRingDraw{
+  from{stroke-dashoffset:80;}
+  to{stroke-dashoffset:var(--ring-end,0);}
+}
+@media (prefers-reduced-motion:reduce){
+  html.ui-refresh .idlePrompt .idleIcon,
+  html.ui-refresh .bootFallback .bootIcon,
+  html.ui-refresh .sc.fresh,
+  html.ui-refresh .shotNew,
+  html.ui-refresh .shotNew circle,
+  html.ui-refresh .liveHud.ui-end-pulse,
+  html.ui-refresh .sc.ui-x-ring::after,
+  html.ui-refresh .shotNew.ui-x-ring circle{
+    animation:none;
+  }
+  html.ui-refresh .liveCell b.ui-rolling,
+  html.ui-refresh .dashMetricVal.ui-rolling,
+  html.ui-refresh .dashMetric b.ui-rolling{
+    animation:none;
+  }
+  html.ui-refresh .ui-best-banner,
+  html.ui-refresh .ui-best-banner.show{
+    animation:none;
+    opacity:1;
+    transform:translateX(-50%);
+  }
+  html.ui-refresh nav.tabs.ui-tab-spring button.on,
+  html.ui-refresh nav.tabs.ui-tab-spring button.live,
+  html.ui-refresh .ovl,
+  html.ui-refresh .ovl .sheet,
+  html.ui-refresh main > .ui-view-rise,
+  html.ui-refresh .onboardStep.ui-onboard-step-enter,
+  html.ui-refresh .onboardLead.ui-onboard-step-enter,
+  html.ui-refresh .onboardSheet .startPrimary.ui-onboard-step-enter,
+  html.ui-refresh .badgeRingFill.ui-ring-draw,
+}

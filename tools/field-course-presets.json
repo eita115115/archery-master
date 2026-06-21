@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "disclaimer": "練習用プリセット。大会公式コースの代替ではありません。",
+  "presets": {
+    "flat24_marked": {
+      "id": "flat24_marked",
+      "label": "フラット24（マーク・練習用）",
+      "targets": [
+        { "target": 1, "distM": 15, "angleDeg": 0, "faceD": 80, "marked": true },
+        { "target": 2, "distM": 15, "angleDeg": 0, "faceD": 80, "marked": true },
+        { "target": 3, "distM": 15, "angleDeg": 0, "faceD": 80, "marked": true },
+        { "target": 4, "distM": 18, "angleDeg": 0, "faceD": 60, "marked": true },
+        { "target": 5, "distM": 18, "angleDeg": 0, "faceD": 60, "marked": true },
+        { "target": 6, "distM": 18, "angleDeg": 0, "faceD": 60, "marked": true },
+        { "target": 7, "distM": 20, "angleDeg": 0, "faceD": 60, "marked": true },
+        { "target": 8, "distM": 20, "angleDeg": 0, "faceD": 60, "marked": true },
+        { "target": 9, "distM": 20, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 10, "distM": 22, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 11, "distM": 22, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 12, "distM": 22, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 13, "distM": 25, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 14, "distM": 25, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 15, "distM": 25, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 16, "distM": 28, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 17, "distM": 28, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 18, "distM": 28, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 19, "distM": 30, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 20, "distM": 30, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 21, "distM": 30, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 22, "distM": 32, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 23, "distM": 32, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 24, "distM": 32, "angleDeg": 0, "faceD": 40, "marked": true }
+      ]
+    },
+    "wa_sample12": {
+      "id": "wa_sample12",
+      "label": "WA簡易12標的（距離・角度混在）",
+      "targets": [
+        { "target": 1, "distM": 15, "angleDeg": 0, "faceD": 80, "marked": true },
+        { "target": 2, "distM": 18, "angleDeg": -10, "faceD": 60, "marked": true },
+        { "target": 3, "distM": 20, "angleDeg": 15, "faceD": 60, "marked": true },
+        { "target": 4, "distM": 22, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 5, "distM": 25, "angleDeg": -20, "faceD": 40, "marked": true },
+        { "target": 6, "distM": 28, "angleDeg": 10, "faceD": 40, "marked": true },
+        { "target": 7, "distM": 30, "angleDeg": 0, "faceD": 80, "marked": true },
+        { "target": 8, "distM": 32, "angleDeg": -15, "faceD": 60, "marked": true },
+        { "target": 9, "distM": 35, "angleDeg": 20, "faceD": 40, "marked": true },
+        { "target": 10, "distM": 38, "angleDeg": 0, "faceD": 40, "marked": true },
+        { "target": 11, "distM": 40, "angleDeg": -10, "faceD": 60, "marked": true },
+        { "target": 12, "distM": 45, "angleDeg": 0, "faceD": 80, "marked": true }
+      ]
+    }
+  }
+}

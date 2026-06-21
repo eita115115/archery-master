@@ -1,0 +1,163 @@
+/* 的ノート design system — primitives (html.ui-refresh). Route new UI through these. */
+
+/* ── Typography scale ── */
+html.ui-refresh .ds-title,
+html.ui-refresh header.app .appIdentity h1{
+  font-size:var(--ui-font-title);
+  font-weight:700;
+  line-height:1.25;
+  letter-spacing:0;
+  color:var(--ui-label);
+}
+html.ui-refresh .ds-headline,
+html.ui-refresh .card h2,
+html.ui-refresh .listGroupHdr{
+  font-size:var(--ui-font-headline);
+  font-weight:600;
+  line-height:1.3;
+  letter-spacing:0;
+  color:var(--ui-label);
+}
+html.ui-refresh .ds-body{
+  font-size:var(--ui-font-body);
+  font-weight:400;
+  line-height:1.5;
+  color:var(--ui-label);
+}
+html.ui-refresh .ds-caption,
+html.ui-refresh header.app .appIdentity .sub{
+  font-size:var(--ui-font-caption);
+  font-weight:400;
+  line-height:1.4;
+  color:var(--ui-label-secondary);
+  letter-spacing:0;
+}
+html.ui-refresh .ds-metric,
+html.ui-refresh .dashHeroValue,
+html.ui-refresh .dashMetricVal,
+html.ui-refresh .liveHud .liveCell b,
+html.ui-refresh .listItem .big{
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  line-height:1.1;
+}
+
+/* ── Focus (keyboard / low vision) ── */
+html.ui-refresh :focus{outline:none;}
+html.ui-refresh :focus-visible{
+  outline:2px solid var(--ui-accent);
+  outline-offset:2px;
+}
+html.ui-refresh .inp:focus-visible,
+html.ui-refresh select.inp:focus-visible,
+html.ui-refresh textarea.inp:focus-visible{
+  outline:2px solid var(--ui-accent);
+  outline-offset:1px;
+  box-shadow:0 0 0 4px var(--ui-accent-soft);
+}
+html.ui-refresh .settingsRowToggle input:focus-visible{
+  outline:2px solid var(--ui-accent);
+  outline-offset:2px;
+}
+
+/* ── DsButton aliases ── */
+html.ui-refresh .ds-btn,
+html.ui-refresh .btn{
+  min-height:44px;
+  padding:0 var(--ui-space-4);
+}
+html.ui-refresh .ds-btn--primary,
+html.ui-refresh .btn:not(.sec):not(.ghost):not(.danger):not(.sm){
+  background:var(--ui-accent);
+  color:var(--ui-accent-on);
+}
+html.ui-refresh .ds-btn--secondary,
+html.ui-refresh .btn.sec{
+  background:var(--ui-surface);
+  color:var(--ui-label);
+  border:1px solid var(--ui-separator);
+}
+html.ui-refresh .ds-btn--ghost,
+html.ui-refresh .btn.ghost{
+  background:transparent;
+  color:var(--ui-label-secondary);
+  border:1px solid var(--ui-separator);
+}
+html.ui-refresh .ds-btn--danger,
+html.ui-refresh .btn.danger{
+  background:var(--ui-danger);
+  color:#fff;
+  border-color:transparent;
+}
+
+/* ── DsCard ── */
+html.ui-refresh .ds-card,
+html.ui-refresh .card{
+  border-radius:var(--ui-radius-lg);
+  padding:var(--ui-space-4);
+}
+
+/* ── Truncation (frames / chips / meta lines) ── */
+html.ui-refresh .ds-truncate{
+  display:block;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* ── DsOverlay / DsSheet ── */
+html.ui-refresh .ds-overlay.ovl,
+html.ui-refresh .ovl{
+  background:rgba(0,0,0,.45);
+  z-index:100;
+}
+html.ui-refresh .ds-sheet.sheet,
+html.ui-refresh .sheet{
+  background:var(--ui-surface-elevated);
+  border-top:1px solid var(--ui-separator);
+  box-shadow:var(--ui-shadow-md);
+}
+
+/* ── DsChip ── */
+html.ui-refresh .ds-chip.chip.on,
+html.ui-refresh .chip.on{
+  background:var(--ui-accent-soft);
+  border-color:var(--ui-accent);
+  color:var(--ui-accent);
+  font-weight:600;
+}
+
+/* ── DsListItem ── */
+html.ui-refresh .ds-list-item.listItem,
+html.ui-refresh .listItem{
+  color:var(--ui-label);
+  min-height:44px;
+}
+
+/* ── DsToast ── */
+html.ui-refresh .ds-toast.toast{
+  background:var(--ui-surface-elevated);
+  color:var(--ui-label);
+  border:1px solid var(--ui-separator);
+  box-shadow:var(--ui-shadow-md);
+}
+html.ui-refresh button.updbar{
+  font:inherit;
+  cursor:pointer;
+  border:none;
+  appearance:none;
+  -webkit-appearance:none;
+}
+
+/* ── Metric accent (numbers only, no glow on labels) ── */
+html.ui-refresh .dashMetric--accent .dashMetricVal,
+html.ui-refresh .liveHud .liveCell b,
+html.ui-refresh .listItem .big{
+  color:var(--ui-accent);
+}
+html.ui-refresh nav.tabs button[aria-disabled="true"]{
+  opacity:.4;
+  pointer-events:none;
+}

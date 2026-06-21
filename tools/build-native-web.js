@@ -12,6 +12,7 @@ const files = [
   ...manifest.staticAssets,
   "sw.js",
   "version.json",
+  "beta.json",
 ];
 
 function assertInsideRoot(target) {
@@ -49,7 +50,7 @@ function main() {
   fs.writeFileSync(
     path.join(outDir, "native-readiness.json"),
     JSON.stringify({
-      app: "的ノート",
+      app: "Archery-master",
       version,
       generatedAt: new Date().toISOString(),
       runtime: "capacitor-web-assets",

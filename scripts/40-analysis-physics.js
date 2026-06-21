@@ -317,7 +317,7 @@ function adviceModel(sess, setup, st){
   const p=parseFloat(setup&&setup.poundage);
   let vFactor=nudge, hFactor=nudge, notes=[];
   notes.push(`信頼度 ${pct(confidence)}（${st.n}本使用${st.excluded.length?` / 外れ値${st.excluded.length}本除外`:""}）。初回補正率は ${pct(nudge)} です。`);
-  notes.push(`物理エンジン: ${traj.engine}（3D空気抵抗/RK4）。初速 ${traj.phys.speedFps.toFixed(0)}fps${traj.phys.measuredSpeed?"（実測）":"（推定）"}、矢重量 ${traj.phys.massGr.toFixed(0)}gr、Cd ${traj.phys.cd.toFixed(2)}、空気密度 ${traj.phys.rho.toFixed(2)}kg/m³、飛翔 ${traj.tof.toFixed(2)}秒、入射速度 ${traj.impactSpeed.toFixed(1)}m/s、入力充実度 ${pct(traj.modelScore)}。`);
+  notes.push(`飛距離の計算（3D）: 初速 ${traj.phys.speedFps.toFixed(0)}fps${traj.phys.measuredSpeed?"（実測）":"（推定）"}、矢重量 ${traj.phys.massGr.toFixed(0)}gr、Cd ${traj.phys.cd.toFixed(2)}、空気密度 ${traj.phys.rho.toFixed(2)}kg/m³、飛翔 ${traj.tof.toFixed(2)}秒、入射速度 ${traj.impactSpeed.toFixed(1)}m/s、入力充実度 ${pct(traj.modelScore)}。`);
   if(pcal && pcal.score>.2) notes.push(`個人校正: ${pcal.level}（${pct(pcal.score)}）。${pcal.notes.slice(0,2).join(" / ")}`);
   if(traj.wind.speed){
     const windFactor=pcal&&pcal.wind.sample?pcal.wind.factor:1;
@@ -374,7 +374,7 @@ function adviceFor(sess, setup){
   const quality=sessionQuality(sess, setup, st);
   const out={st, lines:[], notes:model.notes, confidence:model.confidence, personal, quality, pcal:model.pcal};
   if(personal && personal.sample>=2) out.notes.unshift(`個人モデル: ${personal.state}（同条件${personal.sample}回 / 安定度${pct(personal.stability||0)}）。`);
-  if(quality.score<.48) out.notes.unshift(`この回の判断信頼度は${quality.label}です。${quality.reasons.join("・")}。`);
+  if(quality.score<.48) out.notes.unshift(`この回の記録材料は${quality.label}です。${quality.reasons.join("・")}。`);
   const TH=Math.max(ringW(sess.faceD,sess.faceType)/8, st.rr*.10); // 無視できるズレのしきい値
   // 上下
   if(Math.abs(st.my)>TH){
@@ -446,7 +446,7 @@ function judgementFor(adv,sess){
   if(st.rr>w*2.8){
     const formCtx=typeof formContextForSession==="function"?formContextForSession(sess):null;
     const formNote=formCtx&&formCtx.score<65?` 直近の射形分析は${formCtx.score}点（${formCtx.phase||"—"}）です。`:"";
-    return {label:"射形優先",tone:"warn",text:`中心は読めますが散りが大きめです。サイト調整は半分以下に抑え、リリース・押し手・照準の再現性を先に見ます。${formNote}`};
+    return {label:"射形を確認",tone:"warn",text:`中心は読めますが散りが大きめです。サイト調整は半分以下に抑え、リリース・押し手・照準の再現性を先に見ます。${formNote}`};
   }
   if(isWindy(sess) && st.sx>st.sy*1.15) return {label:"風を考慮",tone:"hold",text:"横方向の偏りに風の影響が混ざりやすい状況です。無風または風待ちで再確認すると精度が上がります。"};
   if(adv.personal && adv.personal.state==="過去と一致" && (adv.confidence||0)>=.62) return {label:"動かす",tone:"ok",text:"今回の中心と過去の同条件傾向が一致しています。提案量を目安に動かす根拠があります。"};
@@ -467,9 +467,9 @@ function summaryDecisionHtml(adv,sess){
   const reason=move
     ? "方向と量は下に出ます。先に、動かす根拠が十分かを確認します。"
     : "動かさない理由を先に見て、同じ条件で本数を重ねます。";
+  const kicker=j.label==="動かす"||j.label==="保留"||j.label==="射形を確認"?j.label:"サイト調整";
   return `<div class="decisionCard ${tone}">
-    <div class="k">動かすべきか</div>
-    <span class="decisionQuestion">サイトを触る前の判断</span>
+    <div class="k">${esc(kicker)}</div>
     <b>${esc(j.label)}</b>
     <p>${esc(j.text)}</p>
     <span>${reason}</span>
@@ -604,7 +604,7 @@ function personalModelHtml(adv,sess,setup){
 function trustHtml(sess,setup,st){
   const q=sessionQuality(sess,setup,st);
   const color=q.tone==="ok"?"#0f9d58":q.tone==="warn"?"#c62828":"#8a6d1d";
-  return `<div class="kv"><span>判断信頼度</span><span><b style="color:${color}">${q.label}</b>（${pct(q.score)} / ${q.reasons.map(esc).join("・")}）</span></div>`;
+  return `<div class="kv"><span>記録の充実度</span><span><b style="color:${color}">${q.label}</b>（${pct(q.score)} / ${q.reasons.map(esc).join("・")}）</span></div>`;
 }
 function nextActionPlan(sess,adv,setup){
   const plan=[];
@@ -614,7 +614,7 @@ function nextActionPlan(sess,adv,setup){
   if(j && j.label==="動かす") plan.push("提案方向へサイトを動かし、次の1エンドは同じ狙い方で確認する。");
   else if(j && j.label==="少量調整") plan.push("提案量の半分〜7割だけ動かし、中心が戻るか確認する。");
   else if(j && (j.label==="保留" || j.label==="風を考慮")) plan.push("サイトは触らず、同条件で1〜2エンド追加して中心が再現するか見る。");
-  else if(j && j.label==="射形優先") plan.push("サイト調整は控えめにして、リリース・押し手・照準時間の再現性を先に整える。");
+  else if(j && j.label==="射形を確認") plan.push("サイト調整は控えめにして、リリース・押し手・照準時間の再現性を先に整える。");
   if(adv.personal && adv.personal.state==="今回だけの可能性") plan.push("過去傾向と逆なので、風向/射形メモを残して次回の同距離データと比較する。");
   if(adv.personal && adv.personal.state==="過去と一致") plan.push("調整後の中心が過去平均との差から縮むかを、履歴フィルタで同条件比較する。");
   if(q.score<.48) plan.push("この回は信頼度が低め。判断材料として残しつつ、強い結論は次回へ送る。");
@@ -658,25 +658,45 @@ function exportSessionsCsv(){
   db.settings.lastBackupAt=new Date().toISOString();
   save("csv-export");
 }
+function scorecardBadgeNote(sess){
+  if(typeof badgeProgressForSession!=="function") return "";
+  const prog=badgeProgressForSession(sess, db.sessions||[]);
+  if(!prog) return "";
+  const parts=[];
+  if(prog.star){
+    const stars="★".repeat(prog.star.level);
+    parts.push(prog.star.earned?`${stars} ${prog.star.label} 最高${prog.star.best}`:`${stars} 次の★まであと${prog.star.toNext}点`);
+  }
+  if(prog.green){
+    parts.push(prog.green.earned?`🟢 ${prog.green.label} 達成`:`🟢 あと${prog.green.toNext}点`);
+  }
+  return parts.join(" / ");
+}
 function scorecardSvg(sess){
   const all=sess.ends.flat(), total=all.reduce((a,x)=>a+x.s,0), setup=db.setups.find(x=>x.id===sess.setupId);
   const rows=sess.ends.map((end,i)=>({i:i+1, scores:end.map(scoreLabel).join("  "), sum:end.reduce((a,x)=>a+x.s,0)}));
-  const h=210+rows.length*34;
+  const badgeNote=scorecardBadgeNote(sess);
+  const focusNote=(sess.focusPoints&&sess.focusPoints.length)?`意識: ${sess.focusPoints.join(" · ")}`:"";
+  const extraLines=(badgeNote?1:0)+(focusNote?1:0);
+  const tableTop=160+extraLines*22;
+  const h=tableTop+50+rows.length*34;
   const title=`${fmtD(sess.date)} ${sess.dist}m ${roundLabel(sess.round)}`;
   const bg="#f7f8f4", ink="#1c1e1c", green="#1a5c3a";
   return `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="${h}" viewBox="0 0 900 ${h}">
   <rect width="900" height="${h}" fill="${bg}"/>
-  <text x="48" y="62" font-family="sans-serif" font-size="34" font-weight="700" fill="${green}">Archery Note Scorecard</text>
+  <text x="48" y="62" font-family="sans-serif" font-size="34" font-weight="700" fill="${green}">Archery-master Scorecard</text>
   <text x="48" y="102" font-family="sans-serif" font-size="22" fill="${ink}">${esc(title)}</text>
-  <text x="48" y="134" font-family="sans-serif" font-size="18" fill="#667064">${esc(setup?setup.name:"セッティング未指定")} / ${esc(faceLabel(sess))} / ${all.length}射</text>
+  <text x="48" y="134" font-family="sans-serif" font-size="18" fill="#667064">${esc(setup?setup.name:"セッティング未指定")} / ${esc(faceLabel(sess))} / ${all.length}射 / ${esc(bowTypeLabel(sess.bowType))}</text>
+  ${badgeNote?`<text x="48" y="158" font-family="sans-serif" font-size="15" fill="#4b6b55">${esc(badgeNote)}</text>`:""}
+  ${focusNote?`<text x="48" y="${badgeNote?180:158}" font-family="sans-serif" font-size="15" fill="#667064">${esc(focusNote)}</text>`:""}
   <text x="650" y="92" font-family="sans-serif" font-size="48" font-weight="800" fill="${green}" text-anchor="end">${total}</text>
   <text x="666" y="92" font-family="sans-serif" font-size="18" fill="#667064">点</text>
   <text x="650" y="124" font-family="sans-serif" font-size="18" fill="#667064" text-anchor="end">平均 ${all.length?(total/all.length).toFixed(2):"-"} / ${esc(secondaryScoreLabel(sess))} ${secondaryScoreCount(all,sess)}</text>
-  <rect x="48" y="160" width="804" height="34" rx="6" fill="#dde7dc"/>
-  <text x="70" y="183" font-family="sans-serif" font-size="15" font-weight="700" fill="${ink}">End</text>
-  <text x="150" y="183" font-family="sans-serif" font-size="15" font-weight="700" fill="${ink}">Scores</text>
-  <text x="808" y="183" font-family="sans-serif" font-size="15" font-weight="700" fill="${ink}" text-anchor="end">Sum</text>
-  ${rows.map((r,i)=>`<g transform="translate(0 ${202+i*34})">
+  <rect x="48" y="${tableTop}" width="804" height="34" rx="6" fill="#dde7dc"/>
+  <text x="70" y="${tableTop+23}" font-family="sans-serif" font-size="15" font-weight="700" fill="${ink}">End</text>
+  <text x="150" y="${tableTop+23}" font-family="sans-serif" font-size="15" font-weight="700" fill="${ink}">Scores</text>
+  <text x="808" y="${tableTop+23}" font-family="sans-serif" font-size="15" font-weight="700" fill="${ink}" text-anchor="end">Sum</text>
+  ${rows.map((r,i)=>`<g transform="translate(0 ${tableTop+42+i*34})">
     <rect x="48" y="0" width="804" height="28" rx="5" fill="${i%2?"#ffffff":"#eef1ec"}"/>
     <text x="78" y="20" font-family="sans-serif" font-size="17" fill="${ink}" text-anchor="middle">${r.i}</text>
     <text x="150" y="20" font-family="sans-serif" font-size="17" fill="${ink}">${esc(r.scores)}</text>
@@ -686,7 +706,83 @@ function scorecardSvg(sess){
 </svg>`;
 }
 function exportScorecardImage(sess){
-  shareOrDownloadText(`archery-scorecard-${sess.date||today()}-${sess.dist}m.svg`,scorecardSvg(sess),"image/svg+xml;charset=utf-8","Archery Note Scorecard");
+  shareOrDownloadText(`archery-scorecard-${sess.date||today()}-${sess.dist}m.svg`,scorecardSvg(sess),"image/svg+xml;charset=utf-8","Archery-master Scorecard");
+}
+function scorecardSvgHeight(sess){
+  const rows=(sess.ends||[]).length;
+  const badgeNote=scorecardBadgeNote(sess);
+  const focusNote=(sess.focusPoints&&sess.focusPoints.length)?1:0;
+  const extraLines=(badgeNote?1:0)+focusNote;
+  return 160+extraLines*22+50+rows*34;
+}
+async function scorecardPngBlob(sess){
+  if(typeof document==="undefined") return null;
+  const svg=scorecardSvg(sess);
+  const h=scorecardSvgHeight(sess);
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    const url=URL.createObjectURL(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}));
+    img.onload=()=>{
+      const canvas=document.createElement("canvas");
+      canvas.width=900; canvas.height=h;
+      const ctx=canvas.getContext("2d");
+      if(!ctx){ URL.revokeObjectURL(url); reject(new Error("canvas")); return; }
+      ctx.fillStyle="#f7f8f4"; ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(b=>resolve(b),"image/png",0.92);
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error("svg")); };
+    img.src=url;
+  });
+}
+async function shareScorecard(sess){
+  const name=`archery-master-scorecard-${sess.date||today()}-${sess.dist}m.png`;
+  try{
+    const blob=await scorecardPngBlob(sess);
+    if(blob && navigator.canShare && navigator.canShare({files:[new File([blob],name,{type:"image/png"})]})){
+      await navigator.share({title:"Archery-master Scorecard",files:[new File([blob],name,{type:"image/png"})]});
+      nativePulse("success");
+      return true;
+    }
+  }catch(e){}
+  try{
+    const blob=await scorecardPngBlob(sess);
+    if(blob){
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download=name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      nativePulse("light");
+      toast("PNGを保存しました");
+      return true;
+    }
+  }catch(e){}
+  exportScorecardImage(sess);
+  toast("共有できなかったためSVGを出力しました");
+  return false;
+}
+function scorecardPrintHtml(sess){
+  const all=sess.ends.flat(), total=all.reduce((a,x)=>a+x.s,0), setup=db.setups.find(x=>x.id===sess.setupId);
+  const rows=sess.ends.map((end,i)=>`<tr><td>${i+1}</td><td>${end.map(scoreLabel).join(" ")}</td><td>${end.reduce((a,x)=>a+x.s,0)}</td></tr>`).join("");
+  const badgeNote=scorecardBadgeNote(sess);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Archery-master Scorecard</title>
+  <style>@page{size:A4;margin:14mm}body{font-family:sans-serif;color:#1c1e1c}h1{color:#1a5c3a;font-size:22px}table{width:100%;border-collapse:collapse;margin-top:12px}td,th{border:1px solid #ccd5cc;padding:6px 8px;font-size:14px}th{background:#eef1ec}</style>
+  </head><body onload="window.print()">
+  <h1>Archery-master Scorecard</h1>
+  <p><b>${esc(fmtD(sess.date))}</b> ${sess.dist}m / ${esc(roundLabel(sess.round))} / ${esc(faceLabel(sess))} / ${all.length}射</p>
+  <p>${esc(setup?setup.name:"セッティング未指定")} / ${esc(bowTypeLabel(sess.bowType))} / 合計 <b>${total}</b>点</p>
+  ${badgeNote?`<p>${esc(badgeNote)}</p>`:""}
+  ${sess.focusPoints&&sess.focusPoints.length?`<p>意識: ${sess.focusPoints.map(esc).join(" · ")}</p>`:""}
+  <table><tr><th>End</th><th>Scores</th><th>Sum</th></tr>${rows}</table>
+  </body></html>`;
+}
+function openScorecardPrint(sess){
+  const w=window.open("","_blank");
+  if(!w){ toast("印刷ウィンドウを開けませんでした"); return; }
+  w.document.write(scorecardPrintHtml(sess));
+  w.document.close();
 }
 function backupReminderHtml(){
   if(db.sessions.length<3) return "";
@@ -871,7 +967,7 @@ function modelReadinessHtml(setupId){
   if(!setupId) return "";
   const p=modelReadinessProfile(setupId);
   return `<div class="advice" style="background:var(--card);border-color:var(--line)">
-    <div class="note"><b>個人データ準備度: ${p.level}</b>（${pct(p.score)}）</div>
+    <div class="note"><b>履歴の蓄積: ${p.level}</b>（${pct(p.score)}）</div>
     <div class="kv"><span>使える練習</span><span>${p.good}回 / 同条件反復 ${p.repeatGroups}組</span></div>
     <div class="kv"><span>サイト校正材料</span><span>サイト値つき練習 ${p.withSight}回 / 台帳 ${p.sightDists}距離</span></div>
     ${p.next.length?`<div class="note">次に効くデータ: ${esc(p.next.slice(0,3).join("・"))}</div>`:`<div class="note">履歴・サイト値・用具入力の土台がかなり揃っています。</div>`}

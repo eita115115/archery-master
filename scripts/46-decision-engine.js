@@ -9,7 +9,15 @@ function nextShotBrief(sess, adv, setup) {
   const arrows = (sess.ends || []).flat();
   const agg = aggregateSessionStats(arrows);
   const grouping = st && st.rr != null ? Math.max(0, 1 - Math.min(1, st.rr / Math.max(1, ringW(sess.faceD, sess.faceType) * 3))) : 0.5;
-  const formFactor = form ? form.score / 100 : 0.55;
+  let formFactor = 0.55;
+  if (form) {
+    const baseScore = (form.score || 0) / 100;
+    if (form.has_precision && form.confidence_bow_track != null) {
+      formFactor = baseScore * 0.55 + form.confidence_bow_track * 0.45;
+    } else {
+      formFactor = baseScore;
+    }
+  }
   const confidenceFactor = adv ? (adv.confidence || 0.45) : 0.4;
   const qualityFactor = q.score || 0.45;
   const score = Math.round(clamp(
@@ -20,6 +28,7 @@ function nextShotBrief(sess, adv, setup) {
     { k: "データ信頼", v: Math.round(qualityFactor * 100) },
     { k: "提案確度", v: Math.round(confidenceFactor * 100) },
     { k: "射形", v: form ? form.score : null },
+    { k: "L3追跡", v: form && form.confidence_bow_track != null ? Math.round(form.confidence_bow_track * 100) : null },
     { k: "グルーピング", v: Math.round(grouping * 100) },
   ].filter((x) => x.v != null);
   const actions = nextActionPlan(sess, adv, setup);

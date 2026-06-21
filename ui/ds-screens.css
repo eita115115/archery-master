@@ -1,0 +1,422 @@
+/* 的ノート — taste screen patterns (html.ui-refresh). All tabs/sheets. */
+
+/* ── Beta channel chrome ── */
+html.beta-channel header.app .appIdentity{
+  min-width:0;
+  padding-right:56px;
+}
+html.beta-channel header.app .appIdentity .sub{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+html.beta-channel header.app .betaBadge{
+  position:absolute;
+  right:52px;
+  top:50%;
+  transform:translateY(-50%);
+  padding:2px 7px;
+  border-radius:6px;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.04em;
+  color:var(--ui-accent-on,#fff);
+  background:var(--ui-accent);
+  border:1px solid rgba(255,255,255,.2);
+  pointer-events:none;
+  flex-shrink:0;
+}
+
+/* ── Shared: forms, labels, rows ── */
+html.ui-refresh .f,
+html.ui-refresh label.f{
+  display:block;
+  margin:0 0 var(--ui-space-1);
+  font-size:var(--ui-font-caption);
+  font-weight:500;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .inp,
+html.ui-refresh select.inp,
+html.ui-refresh textarea.inp{
+  width:100%;
+  min-height:44px;
+  padding:0 var(--ui-space-3);
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface);
+  color:var(--ui-label);
+  font-size:var(--ui-font-body);
+}
+html.ui-refresh .row{
+  display:flex;
+  gap:var(--ui-space-3);
+  margin-bottom:var(--ui-space-3);
+}
+html.ui-refresh .row > div{
+  flex:1;
+  min-width:0;
+}
+html.ui-refresh .hint,
+html.ui-refresh .note{
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+  line-height:1.45;
+}
+html.ui-refresh .card h2{
+  margin:0 0 var(--ui-space-3);
+  font-size:var(--ui-font-headline);
+  font-weight:600;
+  color:var(--ui-label);
+}
+html.ui-refresh .card h2 .mini{
+  font-size:var(--ui-font-caption);
+  font-weight:500;
+  color:var(--ui-label-secondary);
+}
+
+/* ── Metric boards (stats, history, gear) ── */
+html.ui-refresh .heroMetrics.ds-metricsBoard,
+html.ui-refresh .statsOverview .heroMetrics,
+html.ui-refresh .statsCompare .heroMetrics{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--ui-space-3);
+  margin:0;
+}
+html.ui-refresh .statsOverview .heroMetrics .heroMetric:first-child,
+html.ui-refresh .statsCompare .heroMetrics .heroMetric:first-child{
+  grid-column:1 / -1;
+  padding:var(--ui-space-3) var(--ui-space-4);
+  background:var(--ui-surface-deep);
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+}
+html.ui-refresh .heroMetric.ds-metric,
+html.ui-refresh .heroMetric{
+  padding:var(--ui-space-2) 0;
+}
+html.ui-refresh .ds-metricLabel,
+html.ui-refresh .heroMetric .k{
+  margin:0 0 2px;
+  font-size:var(--ui-font-caption);
+  font-weight:500;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .ds-metricValue,
+html.ui-refresh .heroMetric b{
+  margin:0;
+  display:block;
+  font-size:var(--ui-font-metric-sm);
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  color:var(--ui-label);
+  line-height:1.15;
+}
+html.ui-refresh .statsOverview .heroMetric:first-child b,
+html.ui-refresh .statsCompare .heroMetric:first-child b{
+  font-size:var(--ui-font-metric);
+}
+html.ui-refresh .ds-metricMeta,
+html.ui-refresh .heroMetric span{
+  display:block;
+  margin-top:2px;
+  font-size:12px;
+  color:var(--ui-label-secondary);
+  line-height:1.35;
+}
+
+/* ── History insight strip (hierarchical) ── */
+html.ui-refresh .insightStrip.ds-insightBoard{
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  gap:var(--ui-space-3);
+  margin-bottom:var(--ui-space-4);
+  padding:var(--ui-space-4);
+  background:var(--ui-surface);
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-lg);
+  box-shadow:var(--ui-shadow-sm);
+}
+html.ui-refresh .insightStrip.ds-insightBoard .insightTile:first-child{
+  grid-row:span 2;
+  padding-right:var(--ui-space-4);
+  border-right:1px solid var(--ui-separator);
+}
+html.ui-refresh .insightTile{
+  padding:var(--ui-space-1) 0;
+}
+html.ui-refresh .insightTile .k{
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+  margin-bottom:var(--ui-space-1);
+}
+html.ui-refresh .insightTile b{
+  display:block;
+  font-size:var(--ui-font-metric-sm);
+  font-weight:700;
+  font-variant-numeric:tabular-nums;
+  color:var(--ui-label);
+}
+html.ui-refresh .insightStrip.ds-insightBoard .insightTile:first-child b{
+  font-size:var(--ui-font-metric);
+}
+html.ui-refresh .insightTile span{
+  font-size:12px;
+  color:var(--ui-label-secondary);
+  line-height:1.35;
+}
+html.ui-refresh .insightTile b,
+html.ui-refresh .insightTile span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+html.ui-refresh .targetFocusCard .targetTools h2 .mini{
+  display:block;
+  max-width:100%;
+}
+
+/* ── Filters (history / stats) ── */
+html.ui-refresh .statsFilters,
+html.ui-refresh .card:has(#histList){
+  margin-bottom:var(--ui-space-4);
+}
+html.ui-refresh .statsFilters{
+  padding:var(--ui-space-4);
+}
+html.ui-refresh .statsCompare,
+html.ui-refresh .chartCard{
+  margin-bottom:var(--ui-space-4);
+  padding:var(--ui-space-4);
+}
+html.ui-refresh .chartWrap,
+html.ui-refresh .histBars{
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface-deep);
+  border:1px solid var(--ui-separator);
+  padding:var(--ui-space-2);
+}
+
+/* ── Record: live HUD ── */
+html.ui-refresh .liveHud.ds-liveBoard{
+  margin-bottom:var(--ui-space-4);
+  padding:var(--ui-space-4);
+}
+html.ui-refresh .liveHud .liveGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:var(--ui-space-2);
+}
+html.ui-refresh .liveHud .liveCell:first-child{
+  grid-column:1 / -1;
+  padding:var(--ui-space-3);
+  background:var(--ui-surface-deep);
+}
+html.ui-refresh .liveHud .liveCell:first-child b{
+  font-size:var(--ui-font-metric);
+  color:var(--ui-label);
+}
+html.ui-refresh .liveHud .liveCell{
+  box-shadow:none;
+  padding:var(--ui-space-2) var(--ui-space-3);
+}
+html.ui-refresh .liveHud .liveCell .k{
+  font-size:11px;
+  letter-spacing:0;
+}
+
+/* ── Record: target card, grid, chips ── */
+html.ui-refresh .targetFocusCard{
+  padding:var(--ui-space-4);
+  margin-bottom:var(--ui-space-4);
+}
+html.ui-refresh .gridHeader{
+  font-size:var(--ui-font-headline);
+  font-weight:600;
+  color:var(--ui-label);
+  margin-bottom:var(--ui-space-2);
+}
+html.ui-refresh .gridHeader span{
+  font-size:var(--ui-font-caption);
+  font-weight:500;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .gridCell{
+  min-height:44px;
+  border-radius:var(--ui-radius-md);
+  border:1px solid var(--ui-separator);
+  background:var(--ui-surface);
+  font-weight:600;
+  color:var(--ui-label);
+}
+html.ui-refresh .gridCell.on{
+  background:var(--ui-accent-soft);
+  border-color:var(--ui-accent);
+  color:var(--ui-accent);
+}
+html.ui-refresh .sc{
+  min-width:44px;
+  min-height:44px;
+  border-radius:var(--ui-radius-sm);
+  border:1px solid var(--ui-separator);
+}
+html.ui-refresh .statbar{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--ui-space-2);
+  margin:var(--ui-space-3) 0;
+  padding:var(--ui-space-3);
+  background:var(--ui-surface-deep);
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+}
+html.ui-refresh .statbar .stat b{
+  font-size:var(--ui-font-metric-sm);
+  font-weight:700;
+  color:var(--ui-accent);
+}
+html.ui-refresh .statbar .stat span{
+  font-size:11px;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .targetFocusCard .btnrow + .btnrow{
+  margin-top:var(--ui-space-4);
+  padding-top:var(--ui-space-4);
+  border-top:1px solid var(--ui-separator);
+}
+html.ui-refresh .targetFocusCard .btn.danger{
+  width:100%;
+  background:transparent;
+  color:var(--ui-danger);
+  border:1px solid var(--ui-danger);
+  box-shadow:none;
+}
+html.ui-refresh .nudge{
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-surface-deep);
+  padding:var(--ui-space-3);
+}
+
+/* ── Decision / summary ── */
+html.ui-refresh .decisionCard{
+  padding:var(--ui-space-4);
+  margin-bottom:var(--ui-space-3);
+  border-radius:var(--ui-radius-lg);
+  border:1px solid var(--ui-separator);
+  background:var(--ui-surface);
+}
+html.ui-refresh .decisionCard.ok{
+  border-left:3px solid var(--ui-accent);
+}
+html.ui-refresh .decisionCard.warn{
+  border-left:3px solid var(--ui-warning);
+}
+html.ui-refresh .decisionCard.hold{
+  border-left:3px solid var(--ui-label-secondary);
+}
+html.ui-refresh .decisionCard b{
+  display:block;
+  font-size:var(--ui-font-headline);
+  font-weight:700;
+  color:var(--ui-label);
+  margin:var(--ui-space-1) 0;
+}
+html.ui-refresh .decisionCard p{
+  font-size:var(--ui-font-body);
+  color:var(--ui-label);
+  line-height:1.45;
+  margin:0 0 var(--ui-space-2);
+}
+html.ui-refresh .decisionCard span{
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+}
+
+/* ── Badges, banners ── */
+html.ui-refresh .badge{
+  font-size:11px;
+  font-weight:600;
+  padding:2px 8px;
+  border-radius:6px;
+  background:var(--ui-surface-deep);
+  border:1px solid var(--ui-separator);
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .indoorHalfBanner{
+  margin-bottom:var(--ui-space-3);
+  padding:var(--ui-space-3) var(--ui-space-4);
+  border-radius:var(--ui-radius-md);
+  border:1px solid var(--ui-separator);
+  background:var(--ui-surface);
+  font-size:var(--ui-font-caption);
+  line-height:1.45;
+}
+html.ui-refresh .indoorHalfBanner b{
+  color:var(--ui-label);
+}
+
+/* ── Sheets (all) ── */
+html.ui-refresh .sheet h3{
+  margin:0 0 var(--ui-space-4);
+  font-size:var(--ui-font-title);
+  font-weight:700;
+  color:var(--ui-label);
+  text-align:left;
+}
+html.ui-refresh .sheet .btnrow{
+  margin-top:var(--ui-space-4);
+  display:flex;
+  gap:var(--ui-space-2);
+}
+html.ui-refresh .histDetailSheet .sheet,
+html.ui-refresh .histDetailSheet{
+  padding-bottom:var(--ui-space-4);
+}
+
+/* ── Onboard ── */
+html.ui-refresh .onboardSheet .startPrimary{
+  width:100%;
+}
+
+/* ── Gear / sight tool sheets ── */
+html.ui-refresh .toolSheetHdr{
+  margin-bottom:var(--ui-space-3);
+}
+html.ui-refresh #gearList .listItem,
+html.ui-refresh .coachCard{
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface);
+  padding:var(--ui-space-3);
+  margin-bottom:var(--ui-space-2);
+}
+html.ui-refresh details.adv{
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface-deep);
+  margin-top:var(--ui-space-3);
+}
+
+/* ── Empty states ── */
+html.ui-refresh .empty.ds-emptyBlock{
+  padding:var(--ui-space-5) var(--ui-space-4);
+}
+html.ui-refresh .empty .btn{
+  margin-top:var(--ui-space-3);
+}
+
+/* ── Scan / OCR panels ── */
+html.ui-refresh .scanPanel,
+html.ui-refresh .ocrPanel{
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface-deep);
+  padding:var(--ui-space-3);
+  margin-bottom:var(--ui-space-3);
+}
+html.ui-refresh .scanStatus{
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+}

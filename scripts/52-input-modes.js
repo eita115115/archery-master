@@ -40,15 +40,24 @@ function bindGridInput(s) {
   if (keys) keys.querySelectorAll("button").forEach((btn) => btn.onclick = () => {
     const value = btn.dataset.v;
     if (ui.gridCell >= 0 && s.cur[ui.gridCell]) {
-      Object.assign(s.cur[ui.gridCell], arrowFromGridValue(value));
-      nativePulse("light"); save(); refreshActive();
+      const edited=arrowFromGridValue(value);
+      Object.assign(s.cur[ui.gridCell], edited);
+      if(typeof onArrowScored==="function") onArrowScored(s.cur[ui.gridCell],ui.gridCell);
+      else nativePulse("light");
+      save(); refreshActive();
       return;
     }
     if (!guardEndCapacity(s)) return;
-    s.cur.push(arrowFromGridValue(value));
+    const arrow = arrowFromGridValue(value);
+    if (typeof isJapanIndoorRound === "function" && isJapanIndoorRound(s)) arrow.spotId = s.curSpotId || s.laneSpot || "A";
+    if (s.faceType === "quad") arrow.spotId = s.curSpotId || s.laneSpot || "A";
+    if (typeof isTeamSetRound === "function" && isTeamSetRound(s) && typeof tagTeamArrow === "function") tagTeamArrow(arrow, s.cur.length);
+    s.cur.push(arrow);
     ui.freshArrow = s.cur.length - 1;
     ui.gridCell = s.cur.length - 1;
-    nativePulse("light"); save(); refreshActive();
+    if(typeof onArrowScored==="function") onArrowScored(arrow,ui.freshArrow);
+    else nativePulse("light");
+    save(); refreshActive();
   });
   const grid = $("#scoreGrid");
   if (grid) grid.querySelectorAll(".gridCell").forEach((cell) => cell.onclick = () => {
@@ -75,8 +84,10 @@ function visionHitsToArrows(result, s) {
     const ny = (tcy - ar.y / 100) / tr;
     const x = nx * faceRadiusCm;
     const y = ny * faceRadiusCm;
-    const hit = scoreAt(x, y, s.faceD, s.faceType, shaft);
-    return Object.assign({ x, y }, hit);
+    const hit = scoreAt(x, y, s.faceD, s.faceType, shaft, scoreOptsFromSession(s));
+    const arrow = Object.assign({ x, y }, hit);
+    if (typeof isJapanIndoorRound === "function" && isJapanIndoorRound(s)) arrow.spotId = s.curSpotId || s.laneSpot || "A";
+    return arrow;
   });
 }
 
@@ -250,5 +261,5 @@ function bindActiveInputMode(s) {
   if (ui.inputMode === "live") bindLiveScanMode(s);
   else if (ui.inputMode === "video") bindVideoScanMode(s);
   else if (ui.inputMode === "ocr") bindOcrScanMode(s);
-  if (ui.inputMode === "grid") bindGridInput(s);
+  if (ui.inputMode === "grid" && !(s && s.pairMode)) bindGridInput(s);
 }

@@ -2,8 +2,57 @@
 /* Archery Note: scoring and grouping math */
 /* ============ scoring ============ */
 function isFieldFace(faceType){ return faceType==="field"; }
+function isQuadFace(faceType){ return faceType==="quad"; }
+function usesInnerX(opts){
+  const o=normalizeScoreOpts(opts);
+  if(o.compound) return true;
+  if(o.indoor) return false;
+  return true;
+}
 function ringW(faceD,faceType){ return isFieldFace(faceType) ? faceD/12 : faceD/20; }
 const SPOT_Y=[22,0,-22]; /* 三つ目的のスポット中心(上・中・下, cm, y上向き) */
+const SPOT_QUAD=[
+  {id:"A",x:-22,y:22},
+  {id:"B",x:22,y:22},
+  {id:"C",x:-22,y:-22},
+  {id:"D",x:22,y:-22}
+]; /* 四枚40cm: 前半は上A/B・下C/D（§3.3） */
+function resolveQuadHalf(half){ return half==="second"?"second":"first"; }
+function quadSpotsForHalf(half){
+  if(resolveQuadHalf(half)==="second"){
+    return [
+      {id:"C",x:-22,y:22,spot:2},
+      {id:"D",x:22,y:22,spot:3},
+      {id:"A",x:-22,y:-22,spot:0},
+      {id:"B",x:22,y:-22,spot:1}
+    ];
+  }
+  return SPOT_QUAD.map((c,i)=>({id:c.id,x:c.x,y:c.y,spot:i}));
+}
+function quadSpotCenter(spotIndex,half){
+  const spots=quadSpotsForHalf(half);
+  return spots.find(s=>s.spot===spotIndex)||spots[spotIndex]||SPOT_QUAD[spotIndex];
+}
+function quadArrowGlobal(a,half){
+  const idx=a.spot!=null?a.spot:SPOT_QUAD.findIndex(s=>s.id===(a.spotId||"A"));
+  const c=quadSpotCenter(idx>=0?idx:0,half);
+  return {x:(a.x||0)+c.x,y:(a.y||0)+c.y};
+}
+function quadHalfLabel(half){ return resolveQuadHalf(half)==="second"?"後半":"前半"; }
+function isQuadSession(sess){ return !!(sess&&sess.faceType==="quad"); }
+function isQuadHalfRound(sess){
+  return isQuadSession(sess)&&(sess.round==="quad60_jp"||(roundTotalEnds(sess)||0)>=20);
+}
+function quadHalfForEndIndex(sess,endIdx){
+  if(!isQuadSession(sess)) return "first";
+  const switchAt=typeof sess.quadHalfSwitchEnd==="number"?sess.quadHalfSwitchEnd:10;
+  return endIdx>=switchAt?"second":"first";
+}
+function ensureQuadHalf(sess){
+  if(!isQuadSession(sess)) return sess;
+  if(!sess.quadHalf) sess.quadHalf="first";
+  return sess;
+}
 function arrowMarkRadius(faceD){ return faceD/85; }
 function targetLineHalfWidth(faceD,faceType){
   if(isFieldFace(faceType)) return faceD/900;
@@ -14,7 +63,18 @@ function lineCutRadius(faceD,faceType){
 }
 /* 線かみ(ラインカッター)判定: アプリ上の矢円が線に少しでも触れていれば内側の点数。
    touchCm = 画面上の矢円半径 + 的線の半分の太さ(cm)。 */
-function scoreAt(relX,relY,faceD,faceType,touchRadiusCm){
+function normalizeScoreOpts(opts){
+  opts=opts||{};
+  const bow=opts.bowType||"recurve";
+  const indoor=opts.scoring==="indoor_jp"||opts.scoring==="indoor_wa"||opts.environment==="indoor";
+  return {bowType:bow, scoring:opts.scoring||(indoor?"indoor_jp":"outdoor"), indoor, compound:bow==="compound", barebow:bow==="barebow", recurve:bow==="recurve"||bow==="barebow"||bow==="yumi"};
+}
+function scoreOptsFromSession(sess){
+  if(!sess) return {};
+  return {bowType:sess.bowType||"recurve", environment:sess.environment||"outdoor", scoring:sess.scoring||(sess.environment==="indoor"?"indoor_jp":"outdoor"), quadHalf:sess.quadHalf||"first"};
+}
+function scoreAt(relX,relY,faceD,faceType,touchRadiusCm,opts){
+  const o=normalizeScoreOpts(opts);
   const w=ringW(faceD,faceType);
   const touchCm=touchRadiusCm==null ? lineCutRadius(faceD,faceType) : touchRadiusCm;
   const r=Math.max(0, Math.hypot(relX,relY)-touchCm);
@@ -23,30 +83,217 @@ function scoreAt(relX,relY,faceD,faceType,touchRadiusCm){
     if(r<=w) return {s:6,X:false};
     return {s:Math.max(0,7-Math.ceil(r/w)),X:false};
   }
-  if(r<=w/2) return {s:10,X:true};
+  if(r<=w/2){
+    if(o.compound) return {s:10,X:true};
+    if(!usesInnerX(o)) return {s:10,X:false};
+    return {s:10,X:true};
+  }
   let s=11-Math.ceil(r/w);
   if(faceType==="triple" && s<6) s=0;
+  if(o.compound && s>=10) s=9;
+  if(o.compound && !o.indoor && faceD===48 && faceType==="single" && s>0 && s<5) s=0;
   if(s<1) s=0;
   return {s:Math.min(10,Math.max(0,s)),X:false};
 }
 function scoreRank(hit){ return hit.s*2+(hit.X?1:0); }
-function isLineCutting(relX,relY,faceD,faceType){
-  const center=scoreAt(relX,relY,faceD,faceType,0);
-  const cut=scoreAt(relX,relY,faceD,faceType,lineCutRadius(faceD,faceType));
+function isLineCutting(relX,relY,faceD,faceType,opts){
+  const center=scoreAt(relX,relY,faceD,faceType,0,opts);
+  const cut=scoreAt(relX,relY,faceD,faceType,lineCutRadius(faceD,faceType),opts);
   return scoreRank(cut)>scoreRank(center);
 }
-function isLineCuttingFromGlobal(gx,gy,faceD,faceType){
-  if(faceType!=="triple") return isLineCutting(gx,gy,faceD,faceType);
-  let spot=0,best=Infinity;
-  SPOT_Y.forEach((c,i)=>{ const d=Math.hypot(gx,gy-c); if(d<best){best=d;spot=i;} });
-  return isLineCutting(gx,gy-SPOT_Y[spot],faceD,"triple");
+function isLineCuttingFromGlobal(gx,gy,faceD,faceType,opts){
+  if(faceType==="triple"){
+    let spot=0,best=Infinity;
+    SPOT_Y.forEach((c,i)=>{ const d=Math.hypot(gx,gy-c); if(d<best){best=d;spot=i;} });
+    return isLineCutting(gx,gy-SPOT_Y[spot],faceD,"triple",opts);
+  }
+  if(faceType==="quad"){
+    const spots=quadSpotsForHalf(opts.quadHalf);
+    let spot=0,best=Infinity;
+    spots.forEach((c,i)=>{ const d=Math.hypot(gx-c.x,gy-c.y); if(d<best){best=d;spot=i;} });
+    const c=spots[spot];
+    return isLineCutting(gx-c.x,gy-c.y,faceD,"single",opts);
+  }
+  return isLineCutting(gx,gy,faceD,faceType,opts);
 }
-function hitFromGlobal(gx,gy,faceD,faceType,touchRadiusCm){
-  if(faceType!=="triple"){ return Object.assign({x:gx,y:gy}, scoreAt(gx,gy,faceD,faceType,touchRadiusCm)); }
-  let spot=0,best=Infinity;
-  SPOT_Y.forEach((c,i)=>{ const d=Math.hypot(gx,gy-c); if(d<best){best=d;spot=i;} });
-  const rx=gx, ry=gy-SPOT_Y[spot];
-  return Object.assign({x:rx,y:ry,spot}, scoreAt(rx,ry,faceD,"triple",touchRadiusCm));
+function hitFromGlobal(gx,gy,faceD,faceType,touchRadiusCm,opts){
+  if(faceType==="triple"){
+    let spot=0,best=Infinity;
+    SPOT_Y.forEach((c,i)=>{ const d=Math.hypot(gx,gy-c); if(d<best){best=d;spot=i;} });
+    const rx=gx, ry=gy-SPOT_Y[spot];
+    return Object.assign({x:rx,y:ry,spot}, scoreAt(rx,ry,faceD,"triple",touchRadiusCm,opts));
+  }
+  if(faceType==="quad"){
+    const spots=quadSpotsForHalf(opts.quadHalf);
+    let spot=0,best=Infinity;
+    spots.forEach((c,i)=>{ const d=Math.hypot(gx-c.x,gy-c.y); if(d<best){best=d;spot=i;} });
+    const c=spots[spot];
+    const rx=gx-c.x, ry=gy-c.y;
+    return Object.assign({x:rx,y:ry,spot:c.spot,spotId:c.id}, scoreAt(rx,ry,faceD,"single",touchRadiusCm,opts));
+  }
+  return Object.assign({x:gx,y:gy}, scoreAt(gx,gy,faceD,faceType,touchRadiusCm,opts));
+}
+function usesXScoring(sess){
+  if(typeof sessionUsesX==="function") return sessionUsesX(sess);
+  if(!sess||sess.faceType==="field") return false;
+  if(sess.bowType==="compound") return false;
+  if(sess.environment==="indoor"||sess.scoring==="indoor_jp") return false;
+  return true;
+}
+function gridKeysForSession(sess){
+  const s=sess||{};
+  if(s.faceType==="field") return ["6","5","4","3","2","1","M"];
+  const indoor=s.environment==="indoor"||s.scoring==="indoor_jp";
+  const compound=s.bowType==="compound";
+  if(compound && !indoor && s.faceD===48) return ["10","9","8","7","6","5"];
+  if(compound||indoor) return ["10","9","8","7","6","M"];
+  return GRID_SCORE_KEYS;
+}
+function gridKeysHtml(sess){
+  const keys=gridKeysForSession(sess);
+  const cols=keys.length;
+  return `<div class="gridKeys" id="gridKeys" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${keys.map(v=>{ const z=gridZoneStyle(v); return `<button type="button" data-v="${v}" style="background:${z.bg};color:${z.fg}">${v}</button>`; }).join("")}</div>`;
+}
+function isJapanIndoorRound(sess){
+  return sess&&(sess.round==="18m60_jp"||sess.round==="18m60_jp_x2"||(sess.environment==="indoor"&&sess.dist===18&&sess.faceType==="triple"));
+}
+function usesAbCdHud(sess){
+  return isJapanIndoorRound(sess)||(sess&&sess.round==="70m72");
+}
+function indoorShootOrderLabel(endIndex){
+  return endIndex%2===0?"AB先":"CD先";
+}
+function isSetMatchRound(sess){
+  return sess&&(sess.round==="setMatch5"||sess.round==="teamSet4"||!!(sess.matchMeta&&sess.matchMeta.sets));
+}
+function isTeamSetRound(sess){
+  return sess&&(sess.round==="teamSet4"||!!(sess.matchMeta&&sess.matchMeta.team));
+}
+function ensureMatchMeta(sess){
+  if(!sess.matchMeta) sess.matchMeta={selfSetPts:0,oppSetPts:0,sets:[],team:false};
+  return sess.matchMeta;
+}
+function applySetMatchEnd(sess,endArrows,oppTotal){
+  const meta=ensureMatchMeta(sess);
+  const selfTotal=endTotalPoints(endArrows,sess.faceType);
+  const opp=Math.max(0,+oppTotal||0);
+  let selfPt=0, oppPt=0;
+  if(selfTotal>opp){ selfPt=2; oppPt=0; }
+  else if(selfTotal===opp){ selfPt=1; oppPt=1; }
+  else { selfPt=0; oppPt=2; }
+  meta.selfSetPts+=selfPt;
+  meta.oppSetPts+=oppPt;
+  meta.sets.push({self:selfTotal,opp, selfPt,oppPt});
+  return {selfTotal,opp,selfPt,oppPt,meta};
+}
+function setMatchHudLabel(sess){
+  const meta=ensureMatchMeta(sess);
+  const setNum=meta.sets.length+1;
+  const total=roundTotalEnds(sess)||5;
+  return `セット ${setNum}/${total} · ${meta.selfSetPts}-${meta.oppSetPts}pt`;
+}
+function validateSpotEnd(end){
+  const by={};
+  const warnings=[];
+  (end||[]).forEach((a,i)=>{
+    if(a.spot==null) return;
+    if(by[a.spot]!=null) warnings.push({spot:a.spot,indices:[by[a.spot],i]});
+    else by[a.spot]=i;
+  });
+  return warnings;
+}
+function validateTripleEnd(end){ return validateSpotEnd(end); }
+function validateQuadEnd(end){ return validateSpotEnd(end); }
+function effectiveSpotEndArrows(end){
+  const by={};
+  const loose=[];
+  (end||[]).forEach(a=>{
+    if(a.spot==null){ loose.push(a); return; }
+    const prev=by[a.spot];
+    if(!prev||scoreRank(a)<scoreRank(prev)) by[a.spot]=a;
+  });
+  return loose.concat(Object.values(by));
+}
+function effectiveTripleEndArrows(end){ return effectiveSpotEndArrows(end); }
+function effectiveQuadEndArrows(end){ return effectiveSpotEndArrows(end); }
+function effectiveTripleEndScore(end){
+  return effectiveTripleEndArrows(end).reduce((sum,a)=>sum+(a.s||0),0);
+}
+function effectiveQuadEndScore(end){
+  return effectiveQuadEndArrows(end).reduce((sum,a)=>sum+(a.s||0),0);
+}
+function endTotalPoints(end,faceType){
+  if(faceType==="triple") return effectiveTripleEndScore(end);
+  if(faceType==="quad") return effectiveQuadEndScore(end);
+  return (end||[]).reduce((sum,a)=>sum+(a.s||0),0);
+}
+function sessionTotalPoints(sess){
+  if(!sess) return 0;
+  if(sess.purpose==="volume") return 0;
+  const ends=(sess.ends||[]).reduce((sum,end)=>sum+endTotalPoints(end,sess.faceType),0);
+  const cur=endTotalPoints(sess.cur||[],sess.faceType);
+  return ends+cur;
+}
+function sessionArrowCount(sess){
+  return sessionArrows(sess).length;
+}
+function sessionStats(sess){
+  if(!sess) return {total:0,xCount:0,tenCount:0,hitCount:0,avg:0,count:0,volume:false};
+  if(sess.purpose==="volume"){
+    const count=sessionArrowCount(sess);
+    return {total:0,xCount:0,tenCount:0,hitCount:count,avg:0,count,volume:true,arrowCount:count};
+  }
+  const arrows=[];
+  const effEnd=(end)=>sess.faceType==="triple"?effectiveTripleEndArrows(end):sess.faceType==="quad"?effectiveQuadEndArrows(end):end;
+  (sess.ends||[]).forEach(end=>arrows.push(...effEnd(end)));
+  const curRaw=sess.cur||[];
+  const curEff=effEnd(curRaw);
+  arrows.push(...curEff);
+  const total=sessionTotalPoints(sess);
+  const xCount=arrows.filter(a=>a.X).length;
+  const tenCount=arrows.filter(a=>a.s===10).length;
+  const hitCount=arrows.filter(a=>(a.s||0)>0).length;
+  return {total,xCount,tenCount,hitCount,avg:arrows.length?total/arrows.length:0,count:sessionArrowCount(sess),volume:false};
+}
+function defaultTimerSeconds(sess){
+  if(!sess||sess.purpose==="volume") return null;
+  const r=typeof roundMeta==="function"?roundMeta(sess.round):null;
+  if(r&&r.timer) return r.timer;
+  const per=sess.perEnd||6;
+  if(per>=6) return sess.dist>=50?240:180;
+  if(per>=3) return 120;
+  return 90;
+}
+function formatTimerSec(sec){
+  const s=Math.max(0,Math.floor(sec||0));
+  const m=Math.floor(s/60);
+  return `${m}:${String(s%60).padStart(2,"0")}`;
+}
+function timerRemainingSec(sess){
+  if(!sess||!sess.timerEndAt) return null;
+  return Math.max(0,Math.ceil((sess.timerEndAt-Date.now())/1000));
+}
+function resetEndTimer(sess){
+  if(!sess||sess.purpose==="volume") return;
+  const sec=defaultTimerSeconds(sess);
+  if(!sec) return;
+  sess.timerSec=sec;
+  sess.timerEndAt=Date.now()+sec*1000;
+}
+function timerEarlyTargetSec(){
+  const t=db&&db.settings&&db.settings.timerEarlyTarget;
+  return typeof t==="number"&&t>0?t:30;
+}
+function recordTimerEarlyEnd(sess){
+  if(!sess||sess.purpose==="volume") return;
+  const rem=timerRemainingSec(sess);
+  if(rem==null) return;
+  if(rem>=timerEarlyTargetSec()) sess.timerEarlyCount=(sess.timerEarlyCount||0)+1;
+}
+function maybeToastSpotCollision(sess,end){
+  if(!sess||sess.faceType!=="triple"&&sess.faceType!=="quad") return;
+  const fn=sess.faceType==="quad"?validateQuadEnd:validateTripleEnd;
+  if(typeof fn==="function"&&fn(end||[]).length) toast("同じ的に2本 — 低い方のみ有効です");
 }
 function zoneStyle(s,X,faceType){
   if(isFieldFace(faceType)){
@@ -69,6 +316,7 @@ function gridZoneStyle(label){
   if(label==="8") return {bg:"#4caf50",fg:"#fff"};
   if(label==="7") return {bg:"#26a69a",fg:"#fff"};
   if(label==="6") return {bg:"#9e9e9e",fg:"#fff"};
+  if(label==="5") return {bg:"#795548",fg:"#fff"};
   if(label==="M") return {bg:"#e53935",fg:"#fff"};
   return {bg:"#bdbdbd",fg:"#333"};
 }
