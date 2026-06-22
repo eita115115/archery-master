@@ -385,6 +385,7 @@ function applyTheme(){
   const root=document.documentElement;
   root.classList.remove("light","dark","auto");
   root.classList.add(t);
+  if(typeof syncViewportChrome==="function") syncViewportChrome();
 }
 function settingsIconHtml(id){
   return `<svg class="ic-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="ui/icons.svg#${id}"/></svg>`;

@@ -4,7 +4,7 @@
 const KEY="archeryNote.v1";
 const SNAP_KEY="archeryNote.snapshots.v1";
 const SCHEMA_VER=3;
-const APP_VER=81;
+const APP_VER=82;
 const TRASH_LIMIT=50;
 const STORAGE_ADAPTER_VER="storage-adapter v32";
 const ENGINE_VER="RK4-3D JS core v32";
@@ -151,6 +151,41 @@ function nativePulse(kind){
   }catch(e){}
   return false;
 }
+function resolveThemeAppearance(){
+  const t=(typeof db!=="undefined"&&db.settings&&db.settings.theme)||"auto";
+  if(t==="light") return "light";
+  if(t==="dark") return "dark";
+  try{
+    return window.matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";
+  }catch(e){
+    return "dark";
+  }
+}
+function viewportChromePalette(){
+  const neon=typeof document!=="undefined"&&document.documentElement.classList.contains("ui-refresh");
+  const appearance=resolveThemeAppearance();
+  if(neon){
+    return appearance==="light"
+      ?{theme:"#DCEAE7",nativeBg:"#DCEAE7",statusStyle:"LIGHT",appleBar:"default"}
+      :{theme:"#020506",nativeBg:"#020506",statusStyle:"DARK",appleBar:"black-translucent"};
+  }
+  return appearance==="light"
+    ?{theme:"#F4F6F8",nativeBg:"#F4F6F8",statusStyle:"LIGHT",appleBar:"default"}
+    :{theme:"#0E1012",nativeBg:"#0E1012",statusStyle:"DARK",appleBar:"black-translucent"};
+}
+function syncViewportChrome(){
+  const palette=viewportChromePalette();
+  document.querySelectorAll('meta[name="theme-color"]').forEach(meta=>{
+    meta.setAttribute("content",palette.theme);
+  });
+  const apple=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+  if(apple) apple.setAttribute("content",palette.appleBar);
+  const sb=capPlugin("StatusBar");
+  try{
+    if(sb&&typeof sb.setBackgroundColor==="function") sb.setBackgroundColor({color:palette.nativeBg}).catch(()=>{});
+    if(sb&&typeof sb.setStyle==="function") sb.setStyle({style:palette.statusStyle}).catch(()=>{});
+  }catch(e){}
+}
 function updateAppChrome(){
   const rt=runtimeKind();
   const st=$("#appStatus");
@@ -158,11 +193,7 @@ function updateAppChrome(){
     const dot=rt.kind==="Native"?"native":"";
     st.innerHTML=`<span class="statusDot ${dot}"></span><span>${esc(rt.label)}</span>`;
   }
-  const sb=capPlugin("StatusBar");
-  try{
-    if(sb && typeof sb.setBackgroundColor==="function") sb.setBackgroundColor({color:"#17643d"}).catch(()=>{});
-    if(sb && typeof sb.setStyle==="function") sb.setStyle({style:"DARK"}).catch(()=>{});
-  }catch(e){}
+  syncViewportChrome();
 }
 function nativeReadinessProfile(){
   const counts=dataCounts();

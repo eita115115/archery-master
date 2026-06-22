@@ -68,6 +68,15 @@ async function matonoteStartup(){
   }
   applyTheme();
   if(typeof syncUiRefreshClass==="function") syncUiRefreshClass();
+  if(typeof syncViewportChrome==="function") syncViewportChrome();
+  try{
+    const mq=window.matchMedia("(prefers-color-scheme:dark)");
+    const onScheme=()=>{
+      if((db.settings.theme||"auto")==="auto"&&typeof syncViewportChrome==="function") syncViewportChrome();
+    };
+    if(typeof mq.addEventListener==="function") mq.addEventListener("change",onScheme);
+    else if(typeof mq.addListener==="function") mq.addListener(onScheme);
+  }catch(e){}
   if(typeof removeOverlay==="function") document.querySelectorAll(".ovl").forEach(removeOverlay);
   if(typeof clearMainInert==="function") clearMainInert();
   if(typeof ensureUiDepth==="function") ensureUiDepth(db.settings);

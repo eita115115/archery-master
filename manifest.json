@@ -4,8 +4,8 @@
   "description": "アーチェリーの得点、着弾、用具を端末に記録する練習ノート。",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#05090B",
-  "theme_color": "#05090B",
+  "background_color": "#020506",
+  "theme_color": "#020506",
   "lang": "ja",
   "icons": [
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },

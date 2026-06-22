@@ -1,4 +1,4 @@
-const CACHE = "matonote-v81";
+const CACHE = "matonote-v82";
 
 function buildAssetList(manifest) {
   const scripts = (manifest.scripts || []).map((f) => `./${f}`);
