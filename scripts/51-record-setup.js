@@ -328,6 +328,8 @@ function openLaunchSheet(ctx){
   ovl.className="ovl launchSheetOvl";
   ovl.innerHTML=`<div class="sheet launchSheet"><div id="launchSheetMount"></div></div>`;
   document.body.appendChild(ovl);
+  if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector(".launchSheet h2") });
   const mount=ovl.querySelector("#launchSheetMount");
   const close=()=>removeOverlay(ovl);
   renderRecordSetup(mount,Object.assign({},ctx,{

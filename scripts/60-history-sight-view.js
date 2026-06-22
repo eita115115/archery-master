@@ -231,6 +231,9 @@ function openHistDetail(id){
     </div>
   </div>`;
   document.body.appendChild(ovl);
+  if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector("h3") });
+  ovl.onclick=e=>{ if(e.target===ovl) removeOverlay(ovl); };
   plotSession(sess, ovl.querySelector("#hPlot"));
   ovl.querySelector("#hClose").onclick=()=>removeOverlay(ovl);
   ovl.querySelector("#hEdit").onclick=()=>{

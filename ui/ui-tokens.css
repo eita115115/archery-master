@@ -45,6 +45,8 @@ html.ui-refresh{
   --ui-dur-fast:.2s;
   --ui-dur-med:.34s;
   --ui-dur-celebrate:.52s;
+  --ui-tab-bar-height:62px;
+  --ui-score-dock-height:58px;
   --bg:var(--ui-bg);
   --card:var(--ui-surface);
   --ink:var(--ui-label);
@@ -110,6 +112,7 @@ html.ui-refresh body{
 }
 html.ui-refresh main{
   padding:var(--ui-space-4) var(--ui-space-4) var(--ui-space-6);
+  scroll-padding-bottom:calc(var(--ui-tab-bar-height) + env(safe-area-inset-bottom) + var(--ui-score-dock-height) + var(--ui-space-3));
 }
 html.ui-refresh header.app,
 html.ui-refresh nav.tabs{

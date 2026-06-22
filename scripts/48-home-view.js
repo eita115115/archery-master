@@ -131,10 +131,12 @@ function renderHome(m){
       <span class="homeSightConditionText ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
       <span class="homeSightConditionArrow" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-chevron-right"/></svg></span>
     </button>
-    <button class="homeSightStart" id="quickStart" type="button" aria-label="記録を始める">
-      <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
-      <span class="homeSightStartLabel">記録を始める</span>
-    </button>
+    <div class="homeSightStartWrap">
+      <button class="homeSightStart" id="quickStart" type="button" aria-label="記録を始める">
+        <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+      </button>
+      <p class="homeSightStartLabel" aria-hidden="true">記録を始める</p>
+    </div>
   </section>
   ${homeFeedHtml()}
   ${last?recordFastActionsHtml(last,defDist,defFace,setup):""}

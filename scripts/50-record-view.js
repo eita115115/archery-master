@@ -125,6 +125,14 @@ function renderActive(m){
     <div class="targetTools">
       <h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini ds-truncate">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>
       ${inputModeBarHtml()}
+      <div class="recordActionBar" id="recordActionBar">
+        <div class="statbar" id="statbar"></div>
+        <div class="btnrow">
+          <button class="btn ghost" id="bUndo">↩ 1本取消</button>
+          <button class="btn sec" id="bEnd">エンド確定</button>
+        </div>
+        <div class="btnrow"><button class="btn danger" id="bFinish">セッション終了</button></div>
+      </div>
       ${s._edit?`<div class="editMetaBar">
         <label class="f">ラウンド</label><select class="inp sm" id="editRound">${ROUND_TYPES.map(r=>`<option value="${r.id}" ${(s.round||"free")===r.id?"selected":""}>${r.label}</option>`).join("")}</select>
         <label class="f">日付</label><input class="inp sm" id="editDate" type="date" value="${esc(s.date||"")}">
@@ -177,12 +185,6 @@ function renderActive(m){
       <div class="shotMeta" id="shotMeta"></div>
       <button class="btn sm ghost" id="nudgeDone">選択解除</button>
     </div>
-    <div class="statbar" id="statbar"></div>
-    <div class="btnrow">
-      <button class="btn ghost" id="bUndo">↩ 1本取消</button>
-      <button class="btn sec" id="bEnd">エンド確定</button>
-    </div>
-    <div class="btnrow"><button class="btn danger" id="bFinish">セッション終了</button></div>
   </div>
   <div class="card"><h2>エンド一覧</h2><div id="endsTbl"></div></div>`;
   if(ui.inputMode!=="grid") attachTargetInput(s);
@@ -643,6 +645,8 @@ function openSummary(sess,isNew,opts){
   </div>`;
   document.body.appendChild(ovl);
   if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector("h3") });
+  ovl.onclick=e=>{ if(e.target===ovl) removeOverlay(ovl); };
   if(opts.newBest&&typeof celebrateBest==="function"){
     celebrateBest({total:opts.total,prev:opts.prevBest,key:opts.key,label:"自己ベスト更新"});
   }

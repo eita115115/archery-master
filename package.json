@@ -1,6 +1,6 @@
 {
   "name": "archery-master",
-  "version": "0.82.0",
+  "version": "0.83.0",
   "private": true,
   "description": "Archery scoring, sight adjustment, and equipment notebook with a native-ready shell.",
   "scripts": {
@@ -18,6 +18,7 @@
     "check:all": "node tools/check-app.js && node tools/check-vision.js && node tools/check-ocr.js && node tools/check-form.js && node tools/check-decision.js && node tools/check-integration.js && node tools/simulate-vision.js && node tools/simulate-form.js",
     "check:ui": "node tools/check-ui.js",
     "check:interactions": "node tools/check-interactions.js",
+    "check:buttons": "node tools/check-buttons.js",
     "check:ui-layer": "node tools/check-ui-layer.js",
     "check:beta": "node tools/check-beta.js",
     "beta:prep": "node tools/check-beta.js --prep",
