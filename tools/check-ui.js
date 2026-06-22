@@ -358,12 +358,37 @@ async function screenshot(browser, view) {
       assert(!inertValue.inertAfterSettings, `${view.name} main must not stay inert after settings close`);
       assert(inertValue.overlayCount === 0, `${view.name} stale overlays after settings: ${inertValue.overlayCount}`);
       assert(inertValue.onRecord, `${view.name} quickStart must work after settings close`);
+      const modeSwitch = await client.send("Runtime.evaluate", {
+        expression: `(async () => {
+          db.settings.expertMode = true;
+          if (typeof render === "function") render();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const tap = document.querySelector('#inputModeBar .modeBtn[data-mode="tap"]');
+          if (!tap) return { error: "tap mode button missing", bar: document.querySelector("#inputModeBar")?.innerHTML?.slice(0, 240) };
+          tap.click();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          return {
+            inputMode: ui.inputMode,
+            gridOn: document.querySelector("#gridSheet")?.classList.contains("on"),
+            tgWrapOff: document.querySelector("#tgWrap")?.classList.contains("off"),
+          };
+        })()`,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      const modeValue = modeSwitch.result.value;
+      assert(!modeValue.error, `${view.name} input mode switch failed: ${modeValue.error}`);
+      assert(modeValue.inputMode === "tap", `${view.name} tap mode must activate: ${JSON.stringify(modeValue)}`);
+      assert(!modeValue.gridOn, `${view.name} grid sheet must hide in tap mode`);
+      assert(!modeValue.tgWrapOff, `${view.name} target wrap must show in tap mode`);
       const recordInput = await client.send("Runtime.evaluate", {
         expression: `(async () => {
           if (view !== "record") {
             document.querySelector("#quickStart")?.click();
             await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           }
+          document.querySelector('#inputModeBar .modeBtn[data-mode="grid"]')?.click();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
           for (const value of ["10", "9", "8"]) {
             const button = document.querySelector('#gridKeys button[data-v="' + value + '"]');
             if (!button) return { error: "missing score button " + value };

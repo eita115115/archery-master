@@ -85,14 +85,15 @@ function openInputMoreSheet(){
   </div>`;
   document.body.appendChild(ovl);
   if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
+  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector("h3") });
   ovl.querySelectorAll("[data-mode]").forEach(b=>b.onclick=()=>{
     ui.inputMode=b.dataset.mode;
     ui.scanResult=null;
     dismissTargetHint();
-    ovl.remove();
+    removeOverlay(ovl);
     renderActive();
   });
-  ovl.onclick=e=>{ if(e.target===ovl) ovl.remove(); };
+  ovl.onclick=e=>{ if(e.target===ovl) removeOverlay(ovl); };
 }
 function activeGuideHtml(){
   if(db.settings.activeGuideSeen) return "";
@@ -106,6 +107,8 @@ function activeGuideHtml(){
   </details>`;
 }
 function renderActive(m){
+  m=m||$("#main");
+  if(!m||!db.active) return;
   stopAllInputModes();
   ui.hudSnap=null;
   const s=db.active;
