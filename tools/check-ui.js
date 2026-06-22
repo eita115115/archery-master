@@ -94,7 +94,10 @@ function staticUiChecks() {
   assertForbiddenUiCopy(appJs);
   assert(appJs.includes("onboardSheetHtml") && appJs.includes("射形の確認"), "UI-P4 onboard/form copy missing");
   assert(/<meta name="viewport"[^>]*width=device-width/.test(html), "Viewport meta missing");
-  assert(/maximum-scale=5/.test(html) && !/user-scalable=no/.test(html), "Viewport must allow zoom for accessibility");
+  assert(/maximum-scale=1/.test(html) && /user-scalable=no/.test(html), "Viewport must be fully locked");
+  assert(html.includes('name="apple-mobile-web-app-capable" content="yes"') && html.includes('name="apple-mobile-web-app-status-bar-style" content="black-translucent"'), "iPhone standalone status bar metadata missing");
+  assert(css.includes("overscroll-behavior:none") && css.includes("grid-template-rows:auto minmax(0,1fr)") && css.includes("touch-action:pan-y"), "Locked app-shell CSS missing");
+  assert(appJs.includes('document.addEventListener("gesturestart"') && appJs.includes("touches.length>1"), "iOS viewport gesture guard missing");
   assert(html.includes('<link rel="stylesheet" href="style.css">'), "style.css link missing");
   assert(html.includes("ui/ui-tokens.css") && html.includes("ui/ds-components.css") && html.includes("ui/ds-screens.css") && html.includes("ui/ui-motion.css") && html.includes("ui/ui-overrides.css"), "UI layer CSS links missing");
   assert(appScripts.includes("scripts/ui/ds-primitives.js"), "ds-primitives.js not wired");
@@ -301,6 +304,11 @@ async function screenshot(browser, view) {
         const tabs = [...document.querySelectorAll("nav.tabs button")].map(b => b.getBoundingClientRect());
         const homeBtn = document.querySelector('nav.tabs button[data-v="home"]');
         const mainText = document.querySelector("#main")?.innerText || "";
+        const htmlStyle = getComputedStyle(document.documentElement);
+        const bodyStyle = getComputedStyle(document.body);
+        const main = document.querySelector("#main");
+        const mainStyle = main && getComputedStyle(main);
+        window.scrollTo(40, 40);
         return {
           vw,
           overflow,
@@ -309,6 +317,20 @@ async function screenshot(browser, view) {
           homeOn: !!homeBtn?.classList.contains("on"),
           gear: gear && { left: gear.left, right: gear.right, width: gear.width },
           tabs: tabs.map(t => ({ left: t.left, right: t.right, width: t.width })),
+          shell: {
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
+            innerHeight: window.innerHeight,
+            htmlOverflowX: htmlStyle.overflowX,
+            htmlOverflowY: htmlStyle.overflowY,
+            bodyOverflowX: bodyStyle.overflowX,
+            bodyOverflowY: bodyStyle.overflowY,
+            bodyHeight: document.body.getBoundingClientRect().height,
+            mainOverflowX: mainStyle && mainStyle.overflowX,
+            mainOverflowY: mainStyle && mainStyle.overflowY,
+            mainScrollWidth: main && main.scrollWidth,
+            mainClientWidth: main && main.clientWidth,
+          },
         };
       })()`,
       returnByValue: true,
@@ -320,6 +342,14 @@ async function screenshot(browser, view) {
     assert(value.overflow <= 1, `${view.name} has horizontal overflow: ${JSON.stringify(value)}`);
     assert(value.gear && value.gear.left >= 0 && value.gear.right <= value.vw + 1, `${view.name} settings button is clipped: ${JSON.stringify(value.gear)}`);
     assert(value.tabs.length === 5 && value.tabs.every(t => t.left >= -1 && t.right <= value.vw + 1 && t.width > 28), `${view.name} tab bar is clipped: ${JSON.stringify(value.tabs)}`);
+    if (view.width <= 520) {
+      assert(value.shell.scrollX === 0 && value.shell.scrollY === 0, `${view.name} document must not scroll: ${JSON.stringify(value.shell)}`);
+      assert(value.shell.htmlOverflowX === "hidden" && value.shell.htmlOverflowY === "hidden", `${view.name} html must be locked: ${JSON.stringify(value.shell)}`);
+      assert(value.shell.bodyOverflowX === "hidden" && value.shell.bodyOverflowY === "hidden", `${view.name} body must be locked: ${JSON.stringify(value.shell)}`);
+      assert(Math.abs(value.shell.bodyHeight - value.shell.innerHeight) <= 1, `${view.name} body must match viewport height: ${JSON.stringify(value.shell)}`);
+      assert(value.shell.mainOverflowY === "auto", `${view.name} main must own vertical scrolling: ${JSON.stringify(value.shell)}`);
+      assert(value.shell.mainScrollWidth <= value.shell.mainClientWidth + 1, `${view.name} main has horizontal overflow: ${JSON.stringify(value.shell)}`);
+    }
     const capture = await client.send("Page.captureScreenshot", { format: "png", fromSurface: true, captureBeyondViewport: false });
     fs.writeFileSync(shot, Buffer.from(capture.data, "base64"));
     assert(fs.existsSync(shot), `Screenshot was not created: ${shot}`);

@@ -14,3 +14,10 @@ if(!Array.prototype.flatMap){
 if(!Object.values){ Object.values=o=>Object.keys(o).map(k=>o[k]); }
 if(!Number.isFinite){ Number.isFinite=v=>typeof v==="number" && isFinite(v); }
 if(!Math.hypot){ Math.hypot=function(){ let s=0; for(let i=0;i<arguments.length;i++) s+=arguments[i]*arguments[i]; return Math.sqrt(s); }; }
+
+function preventViewportScale(e){ e.preventDefault(); }
+document.addEventListener("gesturestart",preventViewportScale,{passive:false});
+document.addEventListener("gesturechange",preventViewportScale,{passive:false});
+document.addEventListener("touchmove",e=>{
+  if(e.touches&&e.touches.length>1) preventViewportScale(e);
+},{passive:false});
