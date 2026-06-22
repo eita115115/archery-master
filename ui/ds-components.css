@@ -107,6 +107,12 @@ html.ui-refresh .ds-truncate{
   white-space:nowrap;
 }
 
+/* ── Judgement lines (sight / analysis) ── */
+html.ui-refresh .judgementNote b{font-weight:700;}
+html.ui-refresh .judgement--ok b{color:var(--ui-accent);}
+html.ui-refresh .judgement--warn b{color:var(--ui-danger);}
+html.ui-refresh .judgement--hold b{color:var(--ui-label);}
+
 /* ── DsOverlay / DsSheet ── */
 html.ui-refresh .ds-overlay.ovl,
 html.ui-refresh .ovl{

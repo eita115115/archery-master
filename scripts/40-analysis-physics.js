@@ -456,8 +456,8 @@ function judgementFor(adv,sess){
 function judgementHtml(adv,sess){
   const j=judgementFor(adv,sess);
   if(!j) return "";
-  const color=j.tone==="ok"?"#0f9d58":j.tone==="warn"?"#c62828":"#8a6d1d";
-  return `<div class="note" style="margin-top:6px"><b style="color:${color}">判断: ${j.label}</b> — ${esc(j.text)}</div>`;
+  const tone=j.tone==="ok"?"judgement--ok":j.tone==="warn"?"judgement--warn":"judgement--hold";
+  return `<div class="note judgementNote ${tone}" style="margin-top:6px"><b>判断: ${esc(j.label)}</b> — ${esc(j.text)}</div>`;
 }
 function summaryDecisionHtml(adv,sess){
   const j=judgementFor(adv,sess);

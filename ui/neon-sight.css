@@ -309,6 +309,9 @@ html.ui-refresh .an-advancedStats > summary{color:var(--neon-muted);letter-spaci
 html.ui-refresh .card,
 html.ui-refresh .pageHero,
 html.ui-refresh .an-analysisHero,
+html.ui-refresh .an-heroCard,
+html.ui-refresh .an-metricTile,
+html.ui-refresh .an-chartCard,
 html.ui-refresh .chartCard,
 html.ui-refresh .histDetailPlot,
 html.ui-refresh .liveHud.compactHud:not(.ds-liveBoard){
@@ -316,6 +319,32 @@ html.ui-refresh .liveHud.compactHud:not(.ds-liveBoard){
   border:1px solid var(--neon-line);
   box-shadow:var(--ui-shadow-sm);
 }
+html.ui-refresh .an-analysisHero--ok{border-left-color:var(--neon-teal);}
+html.ui-refresh .an-analysisHero--warn{border-left-color:var(--ui-danger);}
+html.ui-refresh .an-analysisHeroK,
+html.ui-refresh .an-analysisHeroSub{color:var(--neon-muted);}
+html.ui-refresh .an-analysisHeroV{color:var(--neon-text);}
+html.ui-refresh .an-analysisPill.on,
+html.ui-refresh .an-analysisPill.on:hover{
+  background:rgba(120,243,226,.1);
+  color:var(--neon-teal);
+  border-color:var(--neon-teal);
+  box-shadow:0 0 14px rgba(120,243,226,.1);
+}
+html.ui-refresh .an-heroValue{color:var(--neon-teal);}
+html.ui-refresh .an-metricTile .v{color:var(--neon-text);}
+html.ui-refresh .an-metricTile--accent .v{color:var(--neon-teal);}
+html.ui-refresh .an-chartCard h3{color:var(--neon-text);}
+html.ui-refresh .decisionCard,
+html.ui-refresh .decisionCard.ok,
+html.ui-refresh .decisionCard.warn,
+html.ui-refresh .decisionCard.hold{
+  background:linear-gradient(180deg,rgba(11,23,29,.94),rgba(6,13,17,.94));
+  border-color:var(--neon-line);
+}
+html.ui-refresh .decisionCard.ok{border-left-color:var(--neon-teal);}
+html.ui-refresh .decisionCard.warn{border-left-color:var(--ui-danger);}
+html.ui-refresh .decisionCard.hold{border-left-color:var(--neon-muted);}
 html.ui-refresh .pageHero{border-left:2px solid var(--neon-teal);}
 html.ui-refresh .pageHero .kicker,
 html.ui-refresh .an-screenTitle,

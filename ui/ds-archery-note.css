@@ -6,7 +6,7 @@ html.ui-refresh .an-analysisHero{
   padding:var(--ui-space-4);
   border-left:4px solid var(--ui-accent);
 }
-html.ui-refresh .an-analysisHero--ok{border-left-color:#0F9D58;}
+html.ui-refresh .an-analysisHero--ok{border-left-color:var(--ui-accent);}
 html.ui-refresh .an-analysisHero--warn{border-left-color:var(--ui-danger);}
 html.ui-refresh .an-analysisHeroK{
   margin:0 0 var(--ui-space-1);
@@ -37,7 +37,9 @@ html.ui-refresh .an-analysisPill{
   font-weight:700;
 }
 html.ui-refresh .an-analysisPill.on{
-  background:var(--an-blue);
+  background:var(--ui-accent-soft);
+  color:var(--ui-accent);
+  border:1px solid var(--ui-accent);
 }
 html.ui-refresh .an-analysisPillIcon{
   font-size:12px;
@@ -48,13 +50,6 @@ html.ui-refresh .an-analysisMount .card{
 }
 html.ui-refresh nav.tabs button[data-v="analysis"] .ic-svg{
   opacity:.88;
-}
-html.ui-refresh nav.tabs button[data-v="analysis"].on{
-  color:var(--an-blue);
-  border-top-color:var(--an-blue);
-}
-html.ui-refresh nav.tabs button[data-v="analysis"].on .ic-svg{
-  color:var(--an-blue);
 }
 html.ui-refresh nav.tabs{
   display:grid;
@@ -70,11 +65,10 @@ html.ui-refresh nav.tabs button{
 }
 
 html.ui-refresh{
-  --an-blue:#3B82F6;
-  --an-blue-soft:rgba(59,130,246,.1);
-  --an-navy:#1B3152;
-  --an-pill-bg:#ECEEF2;
-  --an-score-grad:linear-gradient(90deg,#F2C94C 0%,#F2994A 52%,#EB5757 100%);
+  --an-blue:var(--ui-accent);
+  --an-blue-soft:var(--ui-accent-soft);
+  --an-navy:var(--ui-label);
+  --an-pill-bg:var(--ui-fill-secondary);
 }
 
 /* ── Screen titles (データ / サマリー / 統計) ── */
@@ -135,8 +129,9 @@ html.ui-refresh .an-pill{
   cursor:pointer;
 }
 html.ui-refresh .an-pill.on{
-  background:var(--an-navy);
-  color:#fff;
+  background:var(--ui-accent-soft);
+  color:var(--ui-accent);
+  border:1px solid var(--ui-accent);
 }
 html.ui-refresh .an-pillRow--wrap{
   flex-wrap:wrap;
@@ -165,7 +160,7 @@ html.ui-refresh .an-heroValue{
   font-weight:700;
   line-height:1;
   font-variant-numeric:tabular-nums;
-  color:var(--an-navy);
+  color:var(--ui-accent);
 }
 html.ui-refresh .an-heroSub{
   margin-left:6px;
@@ -219,7 +214,7 @@ html.ui-refresh .an-metricTile .v{
   color:var(--ui-label);
 }
 html.ui-refresh .an-metricTile--accent .v{
-  color:#E6A817;
+  color:var(--ui-accent);
 }
 
 /* ── Chart / trend card ── */
@@ -355,10 +350,10 @@ html.ui-refresh .an-betaBanner{
   margin:0 0 var(--ui-space-3);
   padding:var(--ui-space-3) var(--ui-space-4);
   border-radius:var(--ui-radius-lg);
-  background:#FEF3C7;
-  border:1px solid rgba(180,83,9,.12);
+  background:var(--ui-accent-soft);
+  border:1px solid var(--ui-separator);
   font-size:var(--ui-font-caption);
-  color:#92400E;
+  color:var(--ui-label-secondary);
 }
 html.ui-refresh .an-betaTag{
   flex:0 0 auto;
@@ -367,8 +362,8 @@ html.ui-refresh .an-betaTag{
   font-size:10px;
   font-weight:800;
   letter-spacing:.05em;
-  background:#D97706;
-  color:#fff;
+  background:var(--ui-accent);
+  color:var(--ui-accent-on);
 }
 html.ui-refresh .an-limitBanner{
   display:flex;
@@ -377,8 +372,8 @@ html.ui-refresh .an-limitBanner{
   margin:0 0 var(--ui-space-3);
   padding:var(--ui-space-3) var(--ui-space-4);
   border-radius:var(--ui-radius-lg);
-  background:var(--an-blue-soft);
-  border:1px solid rgba(59,130,246,.15);
+  background:var(--ui-accent-soft);
+  border:1px solid var(--ui-separator);
   font-size:var(--ui-font-caption);
   color:var(--ui-label-secondary);
 }
@@ -416,8 +411,8 @@ html.ui-refresh .an-roundIcon{
   font-weight:700;
   color:#fff;
 }
-html.ui-refresh .an-roundIcon--indoor{background:#5B9FD4;}
-html.ui-refresh .an-roundIcon--outdoor{background:#34C759;}
+html.ui-refresh .an-roundIcon--indoor{background:var(--ui-accent-pressed);}
+html.ui-refresh .an-roundIcon--outdoor{background:var(--ui-accent);}
 html.ui-refresh .an-roundBody{flex:1 1 auto;min-width:0;}
 html.ui-refresh .an-roundTitle{
   margin:0;
@@ -462,8 +457,8 @@ html.ui-refresh .an-galleryCta{
   min-height:52px;
   margin-top:var(--ui-space-3);
   border-radius:var(--ui-radius-lg);
-  background:var(--an-navy);
-  color:#fff;
+  background:var(--ui-accent);
+  color:var(--ui-accent-on);
   font-size:var(--ui-font-body);
   font-weight:600;
   border:none;
@@ -482,7 +477,7 @@ html.ui-refresh .an-advancedStats > summary{
   padding:var(--ui-space-3) 0;
   font-size:var(--ui-font-caption);
   font-weight:600;
-  color:var(--an-blue);
+  color:var(--ui-label-secondary);
   cursor:pointer;
   list-style:none;
 }
