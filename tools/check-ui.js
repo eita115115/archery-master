@@ -98,7 +98,7 @@ function staticUiChecks() {
   assert(html.includes('<link rel="stylesheet" href="style.css">'), "style.css link missing");
   assert(html.includes("ui/ui-tokens.css") && html.includes("ui/ds-components.css") && html.includes("ui/ds-screens.css") && html.includes("ui/ui-motion.css") && html.includes("ui/ui-overrides.css"), "UI layer CSS links missing");
   assert(appScripts.includes("scripts/ui/ds-primitives.js"), "ds-primitives.js not wired");
-  assert(surface.includes("mountOverlay") && surface.includes("mountSheetA11y"), "Design system primitives missing");
+  assert(surface.includes("mountOverlay") && surface.includes("mountSheetA11y") && surface.includes("removeOverlay"), "Design system primitives missing");
   assert(appScripts.every((file) => html.includes(`<script src="${file}"></script>`)) && !/<script>([\s\S]*?)<\/script>/.test(html), "index.html scripts must match app-scripts.json");
   assert(!fs.existsSync(path.join(root, "app.js")), "Legacy app.js should not remain after script split");
   assert(/<nav class="tabs" id="tabs"[^>]*>/.test(html), "Tab bar missing");
@@ -327,10 +327,43 @@ async function screenshot(browser, view) {
     assert(size.width === view.width && size.height === view.height, `Unexpected screenshot size for ${view.name}: ${size.width}x${size.height}`);
     assert(size.bytes > 12000, `Screenshot too small for ${view.name}: ${size.bytes} bytes`);
     if (view.name === "iphone-390") {
-      const recordInput = await client.send("Runtime.evaluate", {
+      const inertGuard = await client.send("Runtime.evaluate", {
         expression: `(async () => {
+          const main = document.querySelector("#main");
+          const openSettings = () => document.querySelector("#btnSettings")?.click();
+          openSettings();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const snap = document.querySelector("#dSnapNow");
+          if (!snap) return { error: "settings sheet missing #dSnapNow" };
+          snap.click();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const close = document.querySelector("#setClose");
+          if (!close) return { error: "settings sheet missing #setClose after snap" };
+          close.click();
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const inertAfterSettings = main?.hasAttribute("inert");
           document.querySelector("#quickStart")?.click();
           await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          return {
+            inertAfterSettings,
+            onRecord: view === "record",
+            overlayCount: document.querySelectorAll(".ovl").length,
+          };
+        })()`,
+        awaitPromise: true,
+        returnByValue: true,
+      });
+      const inertValue = inertGuard.result.value;
+      assert(!inertValue.error, `${view.name} settings inert guard failed: ${inertValue.error}`);
+      assert(!inertValue.inertAfterSettings, `${view.name} main must not stay inert after settings close`);
+      assert(inertValue.overlayCount === 0, `${view.name} stale overlays after settings: ${inertValue.overlayCount}`);
+      assert(inertValue.onRecord, `${view.name} quickStart must work after settings close`);
+      const recordInput = await client.send("Runtime.evaluate", {
+        expression: `(async () => {
+          if (view !== "record") {
+            document.querySelector("#quickStart")?.click();
+            await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          }
           for (const value of ["10", "9", "8"]) {
             const button = document.querySelector('#gridKeys button[data-v="' + value + '"]');
             if (!button) return { error: "missing score button " + value };

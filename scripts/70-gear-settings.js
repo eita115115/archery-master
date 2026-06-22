@@ -363,13 +363,12 @@ function openToolSheet(kind,fromSettings){
   const main=$("#toolSheetMain");
   const closeTool=()=>{
     if(kind==="form"&&typeof stopFormCoach==="function") stopFormCoach();
-    ovl.remove();
+    removeOverlay(ovl);
     if(fromSettings) openSettings();
     else render();
   };
   if(kind==="sight"||kind==="form"){
-    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
-    ovl.remove();
+    removeOverlay(ovl);
     if(typeof openAnalysisTab==="function") openAnalysisTab(kind==="form"?"form":"sight");
     else showView("analysis");
     return;
@@ -462,8 +461,7 @@ function openSettings(){
   if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
   if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector("h3") });
   ovl.querySelectorAll("[data-tool]").forEach(b=>b.onclick=()=>{
-    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
-    ovl.remove(); openToolSheet(b.dataset.tool,true);
+    removeOverlay(ovl); openToolSheet(b.dataset.tool,true);
   });
   if(typeof wireChipGroup==="function"){
     wireChipGroup(ovl.querySelector("#thChips"),".chip",c=>{
@@ -480,15 +478,11 @@ function openSettings(){
   if(expertToggle) expertToggle.onchange=e=>{ db.settings.expertMode=!!e.target.checked; save(); };
   const setOnboard=ovl.querySelector("#setOnboard");
   if(setOnboard) setOnboard.onclick=()=>{
-    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
-    ovl.remove();
+    removeOverlay(ovl);
     if(typeof openOnboard==="function") openOnboard(true);
     else toast("オンボーディングを読み込めませんでした");
   };
-  ovl.querySelector("#setClose").onclick=()=>{
-    if(ovl._dsA11yTeardown) ovl._dsA11yTeardown();
-    ovl.remove(); render();
-  };
+  ovl.querySelector("#setClose").onclick=()=>{ removeOverlay(ovl); render(); };
   ovl.querySelector("#dExp").onclick=()=>{
     db.settings.lastBackupAt=new Date().toISOString();
     save({reason:"json-export",forceSnapshot:true});
@@ -505,9 +499,9 @@ function openSettings(){
       toast(e&&e.message?e.message:"準備に失敗しました");
     }
     aiBtn.disabled=false; aiBtn.textContent="オフライン用データをダウンロード";
-    ovl.remove(); openSettings();
+    removeOverlay(ovl); openSettings();
   };
-  ovl.querySelector("#dSnapNow").onclick=()=>{ writeSafetySnapshot("manual",true); toast("現在のデータをバックアップしました"); ovl.remove(); openSettings(); };
+  ovl.querySelector("#dSnapNow").onclick=()=>{ writeSafetySnapshot("manual",true); toast("現在のデータをバックアップしました"); removeOverlay(ovl); openSettings(); };
   ovl.querySelector("#dSnapRestore").onclick=()=>{
     const sel=ovl.querySelector("#dSnapSel");
     const snap=readSnapshots()[sel?+sel.value:0];
@@ -516,7 +510,7 @@ function openSettings(){
       writeSafetySnapshot("restore-before",true);
       db=normalizeDb(snap.data);
       save({reason:"restore",forceSnapshot:true});
-      applyTheme(); ovl.remove(); render(); toast("バックアップデータを復元しました");
+      applyTheme(); removeOverlay(ovl); render(); toast("バックアップデータを復元しました");
     }
   };
   ovl.querySelector("#dImp").onclick=()=>ovl.querySelector("#dFile").click();
@@ -528,18 +522,18 @@ function openSettings(){
       if(!d.sessions||!d.setups) throw 0;
       if(confirm(`読み込むと現在のデータは置き換わります。\n（練習${d.sessions.length}回 / セッティング${d.setups.length}件）よろしいですか？`)){
         writeSafetySnapshot("import-before",true);
-        db=normalizeDb(d); save({reason:"import",forceSnapshot:true}); applyTheme(); ovl.remove(); render(); toast("読み込みました");
+        db=normalizeDb(d); save({reason:"import",forceSnapshot:true}); applyTheme(); removeOverlay(ovl); render(); toast("読み込みました");
       }
     }catch(_){ toast("ファイルを読み込めませんでした"); } };
     r.readAsText(f);
   };
   ovl.querySelectorAll("[data-restore-trash]").forEach(b=>b.onclick=()=>{
-    if(restoreTrash(b.dataset.restoreTrash)){ ovl.remove(); render(); openSettings(); toast("復元しました"); }
+    if(restoreTrash(b.dataset.restoreTrash)){ removeOverlay(ovl); render(); openSettings(); toast("復元しました"); }
   });
   const tc=ovl.querySelector("#trashClear");
   if(tc) tc.onclick=()=>{
     if(confirm("ゴミ箱の中身を完全に削除しますか？")){
-      db.trash=[]; save({reason:"clear-trash",forceSnapshot:true}); ovl.remove(); openSettings(); toast("ゴミ箱を空にしました");
+      db.trash=[]; save({reason:"clear-trash",forceSnapshot:true}); removeOverlay(ovl); openSettings(); toast("ゴミ箱を空にしました");
     }
   };
 }
@@ -574,7 +568,7 @@ function openSetupWizard(){
   </div>`;
   document.body.appendChild(ovl);
   bindChoiceFields(ovl);
-  ovl.querySelector("#wCancel").onclick=()=>ovl.remove();
+  ovl.querySelector("#wCancel").onclick=()=>removeOverlay(ovl);
   ovl.querySelector("#wSave").onclick=()=>{
     const name=ovl.querySelector("#wName").value.trim();
     if(!name){ toast("名前を入力してください"); return; }
@@ -602,7 +596,7 @@ function openSetupWizard(){
       if(v||h) db.sightMarks.push({id:uid(),setupId:n.id,dist:d,v,h,date:today(),ts:Date.now(),note:"初回セットアップ"});
     });
     ui.sightSel.setupId=n.id;
-    save({reason:"setup-wizard",forceSnapshot:true}); ovl.remove(); render(); toast("初回セットアップを保存しました");
+    save({reason:"setup-wizard",forceSnapshot:true}); removeOverlay(ovl); render(); toast("初回セットアップを保存しました");
   };
 }
 function openGearDetail(id){
@@ -624,15 +618,15 @@ function openGearDetail(id){
     </div>
   </div>`;
   document.body.appendChild(ovl);
-  ovl.querySelector("#gClose").onclick=()=>ovl.remove();
-  ovl.querySelector("#gEdit").onclick=()=>{ ovl.remove(); openGearForm(id); };
+  ovl.querySelector("#gClose").onclick=()=>removeOverlay(ovl);
+  ovl.querySelector("#gEdit").onclick=()=>{ removeOverlay(ovl); openGearForm(id); };
   ovl.querySelector("#gDel").onclick=()=>{
     if(confirm(`「${s.name}」を削除しますか？\n（練習記録・サイト台帳との紐付けが外れます）`)){
       const marks=db.sightMarks.filter(x=>x.setupId===id);
       trashItem("setupBundle",s.name,{setup:s,sightMarks:marks});
       db.setups=db.setups.filter(x=>x.id!==id);
       db.sightMarks=db.sightMarks.filter(x=>x.setupId!==id);
-      save({reason:"delete-setup",forceSnapshot:true}); ovl.remove(); render(); toast("削除しました。設定から復元できます");
+      save({reason:"delete-setup",forceSnapshot:true}); removeOverlay(ovl); render(); toast("削除しました。設定から復元できます");
     }
   };
 }
@@ -648,7 +642,7 @@ function openGearForm(id){
   </div>`;
   document.body.appendChild(ovl);
   bindChoiceFields(ovl);
-  ovl.querySelector("#gfCancel").onclick=()=>ovl.remove();
+  ovl.querySelector("#gfCancel").onclick=()=>removeOverlay(ovl);
   ovl.querySelector("#gfInfer").onclick=()=>{
     const vals={};
     GEAR_FIELDS.forEach(([k])=>vals[k]=ovl.querySelector("#gf_"+k).value.trim());
@@ -686,6 +680,6 @@ function openGearForm(id){
       db.setups.push(n);
       if(!ui.sightSel.setupId) ui.sightSel.setupId=n.id;
     }
-    save(); ovl.remove(); render();
+    save(); removeOverlay(ovl); render();
   };
 }

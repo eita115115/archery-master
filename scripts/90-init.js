@@ -68,6 +68,8 @@ async function matonoteStartup(){
   }
   applyTheme();
   if(typeof syncUiRefreshClass==="function") syncUiRefreshClass();
+  if(typeof removeOverlay==="function") document.querySelectorAll(".ovl").forEach(removeOverlay);
+  if(typeof clearMainInert==="function") clearMainInert();
   if(typeof ensureUiDepth==="function") ensureUiDepth(db.settings);
   if(typeof openSettings==="function") $("#btnSettings").onclick=openSettings;
   $("#updBar").onclick=freshReload;

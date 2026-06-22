@@ -40,6 +40,41 @@ function dsFocusables(root){
     .filter(el=>!el.disabled&&el.offsetParent!==null&&!el.closest("[hidden]"));
 }
 
+function clearMainInert(){
+  const main=document.getElementById("main");
+  if(!main) return;
+  if(!document.querySelector(".ovl")) main.removeAttribute("inert");
+}
+
+function teardownOverlayA11y(ovl){
+  if(!ovl||ovl._dsA11yDone) return;
+  if(typeof ovl._dsA11yTeardown==="function") ovl._dsA11yTeardown();
+  else clearMainInert();
+}
+
+function removeOverlay(ovl){
+  if(!ovl) return;
+  teardownOverlayA11y(ovl);
+  if(ovl.parentNode) ovl.remove();
+  else clearMainInert();
+}
+
+function initOverlayInertGuard(){
+  if(typeof document==="undefined"||document.body._dsInertGuard) return;
+  document.body._dsInertGuard=true;
+  const obs=new MutationObserver(muts=>{
+    muts.forEach(m=>{
+      m.removedNodes.forEach(node=>{
+        if(node.nodeType!==1) return;
+        if(node.classList&&node.classList.contains("ovl")) teardownOverlayA11y(node);
+        if(node.querySelectorAll) node.querySelectorAll(".ovl").forEach(teardownOverlayA11y);
+      });
+    });
+    clearMainInert();
+  });
+  obs.observe(document.body,{childList:true,subtree:true});
+}
+
 function mountSheetA11y(ovl, opts){
   const o=opts||{};
   if(!ovl||!dsUiActive()) return ()=>{};
@@ -64,7 +99,7 @@ function mountSheetA11y(ovl, opts){
     if(e.key==="Escape"){
       e.preventDefault();
       if(typeof o.onClose==="function") o.onClose();
-      else ovl.remove();
+      else removeOverlay(ovl);
     }
     if(e.key==="Tab"&&focusables.length){
       const i=focusables.indexOf(document.activeElement);
@@ -75,8 +110,10 @@ function mountSheetA11y(ovl, opts){
   ovl.addEventListener("keydown",onKey);
 
   const teardown=()=>{
+    if(ovl._dsA11yDone) return;
+    ovl._dsA11yDone=true;
     ovl.removeEventListener("keydown",onKey);
-    if(main) main.removeAttribute("inert");
+    clearMainInert();
     if(prevFocus&&typeof prevFocus.focus==="function") prevFocus.focus();
   };
   ovl._dsA11yTeardown=teardown;
@@ -92,8 +129,7 @@ function mountOverlay(html, opts){
   if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
   const teardown=mountSheetA11y(ovl,o);
   const dismiss=()=>{
-    if(typeof teardown==="function") teardown();
-    ovl.remove();
+    removeOverlay(ovl);
     if(typeof o.onDismiss==="function") o.onDismiss();
   };
   if(o.dismissOnBackdrop!==false){
@@ -108,6 +144,10 @@ if(typeof window!=="undefined"){
   window.dsButton=dsButton;
   window.dsBtnRow=dsBtnRow;
   window.wireChipGroup=wireChipGroup;
+  window.clearMainInert=clearMainInert;
+  window.removeOverlay=removeOverlay;
   window.mountSheetA11y=mountSheetA11y;
   window.mountOverlay=mountOverlay;
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",initOverlayInertGuard);
+  else initOverlayInertGuard();
 }
