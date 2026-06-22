@@ -1139,3 +1139,56 @@ html.ui-refresh .updbar{
   bottom:calc(60px + env(safe-area-inset-bottom));
   border-radius:var(--ui-radius-md);
 }
+
+/* ── Form tracking HUD (analysis sub-tab) ── */
+html.ui-refresh .formVideoWrap{
+  border:1px solid var(--ui-separator);
+  box-shadow:inset 0 0 48px rgba(120,243,226,.05),0 0 28px rgba(120,243,226,.07);
+  background:#04080a;
+}
+html.ui-refresh .formTrailLegend{
+  position:absolute;
+  left:10px;
+  bottom:10px;
+  z-index:2;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:6px 8px;
+  border-radius:8px;
+  background:rgba(4,8,10,.72);
+  border:1px solid rgba(120,243,226,.18);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  pointer-events:none;
+}
+html.ui-refresh .formTrailKey{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:2px 7px 2px 4px;
+  border-radius:6px;
+  font-size:10px;
+  font-weight:650;
+  letter-spacing:.04em;
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .formTrailKey::before{
+  content:"";
+  width:14px;
+  height:3px;
+  border-radius:2px;
+  box-shadow:0 0 8px currentColor;
+}
+html.ui-refresh .formTrailKey--head::before{
+  background:#ff6c8c;
+  color:#ff6c8c;
+}
+html.ui-refresh .formTrailKey--bow::before{
+  background:#ffb84d;
+  color:#ffb84d;
+}
+html.ui-refresh .formTrailKey--draw::before{
+  background:var(--ui-accent);
+  color:var(--ui-accent);
+}

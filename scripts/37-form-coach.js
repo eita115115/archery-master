@@ -21,7 +21,7 @@ const ELITE_FORM_REFERENCE = Object.freeze({
 
 let formMetricsEma = null;
 const FORM_EMA_ALPHA = 0.38;
-const FORM_TRAIL_LEN = 24;
+const FORM_TRAIL_LEN = 32;
 const FORM_PHASE_ORDER = ["SETUP", "DRAWING", "ANCHORING", "FULL_DRAW", "RELEASE", "FOLLOW"];
 
 function gaussianScore(value, ideal, sigma) {
@@ -250,18 +250,146 @@ function pushFormTrail(trails, key, point) {
   if (trails[key].length > FORM_TRAIL_LEN) trails[key].shift();
 }
 
-function drawTrailPath(ctx, trail, w, h, color) {
+const FORM_TRAIL_STYLE = Object.freeze({
+  head: { core: "rgba(255,108,140,1)", glow: "rgba(255,108,140,0.42)", dot: "rgba(255,108,140,1)" },
+  bow: { core: "rgba(255,184,77,1)", glow: "rgba(255,184,77,0.42)", dot: "rgba(255,184,77,1)" },
+  draw: { core: "rgba(120,243,226,1)", glow: "rgba(120,243,226,0.45)", dot: "rgba(120,243,226,1)" },
+});
+
+function formTrailPoints(trail, w, h) {
+  return (trail || []).map((p) => ({ x: p.x * w, y: p.y * h }));
+}
+
+function strokeTrailSegments(ctx, pts, style, width, alphaMin, alphaMax) {
+  if (!pts || pts.length < 2 || !style) return;
+  const n = pts.length;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = width;
+  for (let i = 1; i < n; i++) {
+    const t = i / (n - 1);
+    const alpha = alphaMin + (alphaMax - alphaMin) * t;
+    ctx.globalAlpha = alpha;
+    ctx.strokeStyle = style.core;
+    ctx.beginPath();
+    ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+    ctx.lineTo(pts[i].x, pts[i].y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawTrailPath(ctx, trail, w, h, styleKey) {
   if (!trail || trail.length < 2) return;
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2.5;
+  const style = FORM_TRAIL_STYLE[styleKey] || FORM_TRAIL_STYLE.draw;
+  const pts = formTrailPoints(trail, w, h);
+  const n = pts.length;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.shadowBlur = 16;
+  ctx.shadowColor = style.glow;
+  ctx.strokeStyle = style.glow;
+  ctx.globalAlpha = 0.5;
+  ctx.lineWidth = 7;
   ctx.beginPath();
-  trail.forEach((p, i) => {
-    const x = p.x * w;
-    const y = p.y * h;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
+  pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
   ctx.stroke();
+  ctx.restore();
+
+  ctx.save();
+  strokeTrailSegments(ctx, pts, style, 3.2, 0.22, 1);
+  ctx.restore();
+
+  const last = pts[n - 1];
+  ctx.save();
+  ctx.shadowBlur = 12;
+  ctx.shadowColor = style.dot;
+  ctx.fillStyle = style.dot;
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 5.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,250,0.92)";
+  ctx.lineWidth = 1.6;
+  ctx.shadowBlur = 0;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawFormHudGrid(ctx, w, h) {
+  ctx.save();
+  ctx.strokeStyle = "rgba(120,243,226,0.07)";
+  ctx.lineWidth = 1;
+  const step = Math.max(22, Math.round(Math.min(w, h) / 14));
+  for (let x = 0; x <= w; x += step) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, h);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= h; y += step) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = "rgba(120,243,226,0.14)";
+  ctx.beginPath();
+  ctx.moveTo(w * 0.5, 0);
+  ctx.lineTo(w * 0.5, h);
+  ctx.moveTo(0, h * 0.5);
+  ctx.lineTo(w, h * 0.5);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawSkeletonGlow(ctx, p1, p2, w, h, color, width) {
+  if (!p1 || !p2) return;
+  const x1 = p1.x * w;
+  const y1 = p1.y * h;
+  const x2 = p2.x * w;
+  const y2 = p2.y * h;
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.shadowBlur = 10;
+  ctx.shadowColor = color;
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.38;
+  ctx.lineWidth = (width || 3) + 4;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.strokeStyle = color;
+  ctx.globalAlpha = 0.92;
+  ctx.lineWidth = width || 3;
+  ctx.beginPath();
+  ctx.moveTo(x1, y1);
+  ctx.lineTo(x2, y2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawJointNode(ctx, p, w, h, color) {
+  if (!p) return;
+  const x = p.x * w;
+  const y = p.y * h;
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.shadowBlur = 8;
+  ctx.shadowColor = color;
+  ctx.beginPath();
+  ctx.arc(x, y, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(244,251,250,0.85)";
+  ctx.lineWidth = 1.2;
+  ctx.shadowBlur = 0;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawFormOverlay(canvas, landmarks, metrics, phase, opts) {
@@ -273,6 +401,7 @@ function drawFormOverlay(canvas, landmarks, metrics, phase, opts) {
   const mir = !!(opts && opts.mirror);
   const fx = (p) => (p ? { x: mir ? 1 - p.x : p.x, y: p.y } : p);
   ctx.clearRect(0, 0, w, h);
+  drawFormHudGrid(ctx, w, h);
   const bS = fx(righty ? l[FORM_LM.LEFT_SHOULDER] : l[FORM_LM.RIGHT_SHOULDER]);
   const bE = fx(righty ? l[FORM_LM.LEFT_ELBOW] : l[FORM_LM.RIGHT_ELBOW]);
   const bW = fx(righty ? l[FORM_LM.LEFT_WRIST] : l[FORM_LM.RIGHT_WRIST]);
@@ -282,16 +411,38 @@ function drawFormOverlay(canvas, landmarks, metrics, phase, opts) {
   const nose = fx(l[FORM_LM.NOSE]);
   const trails = (opts && opts.trails) || null;
   if (trails) {
-    drawTrailPath(ctx, trails.head, w, h, "rgba(239,68,68,0.82)");
-    drawTrailPath(ctx, trails.bow, w, h, "rgba(234,179,8,0.82)");
-    drawTrailPath(ctx, trails.draw, w, h, "rgba(59,130,246,0.82)");
+    drawTrailPath(ctx, trails.head, w, h, "head");
+    drawTrailPath(ctx, trails.bow, w, h, "bow");
+    drawTrailPath(ctx, trails.draw, w, h, "draw");
   }
-  ctx.strokeStyle = "rgba(14,165,233,0.75)"; ctx.lineWidth = 3;
-  [[bS, bE], [bE, bW], [dS, dE], [dE, dW], [bS, dS], [bS, nose], [dS, nose]].forEach(([p1, p2]) => {
-    if (p1 && p2) { ctx.beginPath(); ctx.moveTo(p1.x * w, p1.y * h); ctx.lineTo(p2.x * w, p2.y * h); ctx.stroke(); }
+  const bowColor = "rgba(255,184,77,0.95)";
+  const drawColor = "rgba(120,243,226,0.95)";
+  const torsoColor = "rgba(164,184,185,0.82)";
+  [[bS, bE, bowColor], [bE, bW, bowColor], [dS, dE, drawColor], [dE, dW, drawColor], [bS, dS, torsoColor], [bS, nose, torsoColor], [dS, nose, torsoColor]].forEach(([p1, p2, color]) => {
+    drawSkeletonGlow(ctx, p1, p2, w, h, color, 2.8);
+  });
+  [bS, bE, bW, dS, dE, dW, nose].forEach((p, i) => {
+    const color = i < 3 ? bowColor : i < 6 ? drawColor : "rgba(255,108,140,0.95)";
+    drawJointNode(ctx, p, w, h, color);
   });
   if (phase === "RELEASE" || phase === "FOLLOW") {
-    ctx.strokeStyle = "#eab308"; ctx.beginPath(); ctx.arc(dW.x * w, dW.y * h, 14, 0, Math.PI * 2); ctx.stroke();
+    const rx = dW.x * w;
+    const ry = dW.y * h;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255,184,77,0.55)";
+    ctx.lineWidth = 2;
+    ctx.shadowBlur = 14;
+    ctx.shadowColor = "rgba(255,184,77,0.45)";
+    ctx.beginPath();
+    ctx.arc(rx, ry, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(255,184,77,0.95)";
+    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    ctx.arc(rx, ry, 12, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 
@@ -1529,6 +1680,11 @@ function renderFormCoachPanel(mount) {
     <div class="formVideoWrap">
       <video id="formVideo" autoplay playsinline muted></video>
       <canvas id="formOverlay"></canvas>
+      <div class="formTrailLegend" aria-hidden="true">
+        <span class="formTrailKey formTrailKey--head">頭</span>
+        <span class="formTrailKey formTrailKey--bow">弓手</span>
+        <span class="formTrailKey formTrailKey--draw">引き手</span>
+      </div>
     </div>
     <div class="formStatus" id="formStatus">準備中…</div>
     <div class="row">
