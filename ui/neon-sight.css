@@ -77,6 +77,15 @@ html.ui-refresh body{
   background-color:var(--neon-bg);
   background-size:32px 32px;
   color:var(--neon-text);
+  animation:neonGridDrift 28s linear infinite;
+}
+@keyframes neonGridDrift{
+  0%{background-position:0 0,0 0,0 0;}
+  100%{background-position:32px 32px,32px 32px,0 0;}
+}
+@keyframes neonReticlePulse{
+  0%,100%{filter:drop-shadow(0 0 9px rgba(120,243,226,.48));opacity:1;}
+  50%{filter:drop-shadow(0 0 18px rgba(120,243,226,.68));opacity:.94;}
 }
 html.ui-refresh header.app{
   position:relative;
@@ -213,7 +222,7 @@ html.ui-refresh .homeReticle{
   place-items:center;
   color:var(--neon-teal);
   filter:drop-shadow(0 0 9px rgba(120,243,226,.52));
-  animation:neonSightLock .58s cubic-bezier(.22,1,.36,1) both;
+  animation:neonSightLock .58s cubic-bezier(.22,1,.36,1) both,neonReticlePulse 4.6s ease-in-out 1.1s infinite;
   pointer-events:none;
 }
 html.ui-refresh .homeReticle .ic-svg{
@@ -482,6 +491,7 @@ html.ui-refresh .toast{
   html.ui-refresh .homeSightPanel{min-height:min(490px,calc(100dvh - 220px));}
 }
 @media (prefers-reduced-motion:reduce){
+  html.ui-refresh body{animation:none!important;}
   html.ui-refresh .homeReticle,
   html.ui-refresh nav.tabs button.on::after,
   html.ui-refresh nav.tabs button.live::after{animation:none!important;}

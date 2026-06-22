@@ -304,6 +304,7 @@ function renderActive(m){
     registerCleanup(clearActiveTimerTick);
   }
   refreshActive();
+  if(typeof mountScoreDockMotion==="function") mountScoreDockMotion();
 }
 let activeTimerTick=null;
 function clearActiveTimerTick(){

@@ -20,9 +20,9 @@ function animateMetric(el, from, to, durMs){
     const eased=1-Math.pow(1-p,3);
     const v=from+(to-from)*eased;
     el.textContent=Number.isInteger(to)?String(Math.round(v)):v.toFixed(1);
-    el.classList.add("ui-rolling");
+    el.classList.add("ui-rolling","ui-neon-metric");
     if(p<1) requestAnimationFrame(step);
-    else el.classList.remove("ui-rolling");
+    else el.classList.remove("ui-rolling","ui-neon-metric");
   };
   requestAnimationFrame(step);
 }
@@ -164,17 +164,34 @@ function pulseTabSpring(){
 function enterViewMotion(root){
   if(!uiRefreshActive()||uiReducedMotion()||!root) return;
   Array.from(root.children).forEach((el,i)=>{
-    el.classList.remove("ui-view-rise");
+    el.classList.remove("ui-view-rise","ui-neon-reveal");
     el.style.animationDelay="";
     void el.offsetWidth;
-    el.classList.add("ui-view-rise");
-    el.style.animationDelay=Math.min(i*40,80)+"ms";
+    el.classList.add("ui-view-rise","ui-neon-reveal");
+    el.style.animationDelay=Math.min(i*55,140)+"ms";
   });
 }
 function mountOverlayMotion(ovl){
   if(!ovl||!uiRefreshActive()) return;
+  ovl.classList.add("ui-neon-sheet");
   const sheet=ovl.querySelector(".sheet");
   if(sheet&&sheet.classList.contains("onboardSheet")) runOnboardStepMotion(sheet);
+}
+function mountScoreDockMotion(){
+  if(!uiRefreshActive()||uiReducedMotion()) return;
+  const dock=document.querySelector(".gridSheet.on .gridKeys");
+  if(!dock) return;
+  dock.classList.remove("ui-neon-dock-in");
+  void dock.offsetWidth;
+  dock.classList.add("ui-neon-dock-in");
+}
+function flashScoreKey(btn){
+  if(!btn||!uiRefreshActive()||uiReducedMotion()) return;
+  btn.classList.remove("ui-neon-key-flash");
+  void btn.offsetWidth;
+  btn.classList.add("ui-neon-key-flash");
+  clearTimeout(flashScoreKey._tm);
+  flashScoreKey._tm=setTimeout(()=>btn.classList.remove("ui-neon-key-flash"),280);
 }
 function runOnboardStepMotion(root){
   if(!root||!uiRefreshActive()||uiReducedMotion()) return;
@@ -218,6 +235,8 @@ if(typeof window!=="undefined"){
   window.pulseTabSpring=pulseTabSpring;
   window.enterViewMotion=enterViewMotion;
   window.mountOverlayMotion=mountOverlayMotion;
+  window.mountScoreDockMotion=mountScoreDockMotion;
+  window.flashScoreKey=flashScoreKey;
   window.runOnboardStepMotion=runOnboardStepMotion;
   window.mountBadgeRings=mountBadgeRings;
   window.uiRefreshActive=uiRefreshActive;

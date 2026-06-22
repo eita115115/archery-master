@@ -1,7 +1,50 @@
 /* 的ノート UI layer — motion (UI-P5). html.ui-refresh only. */
 @keyframes uiHudRollGlow{
-  0%{color:var(--ui-accent,var(--green));}
-  100%{color:var(--ui-label,var(--ink));}
+  0%{color:var(--ui-accent,var(--green));text-shadow:0 0 14px rgba(120,243,226,.45);}
+  100%{color:var(--ui-label,var(--ink));text-shadow:none;}
+}
+@keyframes neonFuturaRise{
+  0%{opacity:0;transform:translateY(16px) scale(.985);filter:blur(5px);}
+  70%{opacity:1;filter:blur(0);}
+  100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0);}
+}
+@keyframes neonScanSweep{
+  0%{transform:translateY(-120%);opacity:0;}
+  18%{opacity:.85;}
+  100%{transform:translateY(420%);opacity:0;}
+}
+@keyframes neonScoreDockIn{
+  0%{opacity:0;transform:translateX(-50%) translateY(22px);}
+  100%{opacity:1;transform:translateX(-50%) translateY(0);}
+}
+@keyframes neonSheetGlow{
+  0%{box-shadow:0 -18px 60px rgba(0,0,0,.55),0 0 0 rgba(120,243,226,0);}
+  45%{box-shadow:0 -18px 60px rgba(0,0,0,.55),0 0 32px rgba(120,243,226,.2);}
+  100%{box-shadow:0 -18px 60px rgba(0,0,0,.55),0 0 14px rgba(120,243,226,.08);}
+}
+@keyframes neonScorePop{
+  0%{opacity:.35;transform:scale(.8);box-shadow:0 0 0 rgba(120,243,226,0);}
+  58%{opacity:1;transform:scale(1.09);box-shadow:0 0 22px rgba(120,243,226,.38);}
+  100%{opacity:1;transform:scale(1);box-shadow:none;}
+}
+@keyframes neonMarkPop{
+  0%{opacity:.3;transform:scale(.68);filter:drop-shadow(0 0 0 rgba(120,243,226,0));}
+  62%{opacity:1;transform:scale(1.1);filter:drop-shadow(0 0 10px rgba(120,243,226,.5));}
+  100%{opacity:1;transform:scale(1);filter:drop-shadow(0 0 4px rgba(120,243,226,.2));}
+}
+@keyframes neonKeyFlash{
+  0%{box-shadow:inset 0 0 0 rgba(120,243,226,0);}
+  45%{box-shadow:inset 0 0 22px rgba(120,243,226,.42),0 0 16px rgba(120,243,226,.28);}
+  100%{box-shadow:inset 0 0 0 rgba(120,243,226,0);}
+}
+@keyframes neonEndPulse{
+  0%{transform:scale(1);box-shadow:none;}
+  42%{transform:scale(1.012);box-shadow:0 0 28px rgba(120,243,226,.16);}
+  100%{transform:scale(1);box-shadow:none;}
+}
+@keyframes neonXRing{
+  0%{transform:scale(.7);opacity:1;border-color:var(--ui-accent,var(--green));}
+  100%{transform:scale(1.35);opacity:0;border-color:var(--ui-accent,var(--green));}
 }
 @keyframes uiEndPulse{
   0%{transform:scale(1);}
@@ -65,15 +108,15 @@ html.ui-refresh .liveCell b.ui-rolling{
   animation:uiHudRollGlow .4s ease-out;
 }
 html.ui-refresh .liveHud.ui-end-pulse{
-  animation:uiEndPulse .3s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1));
+  animation:neonEndPulse .34s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1));
 }
 html.ui-refresh .sc.fresh{
-  animation:scorePop .38s cubic-bezier(.2,1.2,.2,1) both;
+  animation:neonScorePop .38s cubic-bezier(.2,1.2,.2,1) both;
 }
 html.ui-refresh .shotNew{
   transform-box:fill-box;
   transform-origin:center;
-  animation:markPop .42s cubic-bezier(.2,1.15,.2,1) both;
+  animation:neonMarkPop .42s cubic-bezier(.2,1.15,.2,1) both;
 }
 html.ui-refresh .shotNew circle{
   animation:impactFlash .42s ease-out both;
@@ -86,14 +129,20 @@ html.ui-refresh .sc.ui-x-ring::after{
   position:absolute;
   inset:-3px;
   border-radius:16px;
-  border:2px solid #d4a017;
-  animation:uiXRing .15s ease-out forwards;
+  border:2px solid var(--ui-accent,var(--green));
+  animation:neonXRing .22s ease-out forwards;
   pointer-events:none;
 }
 html.ui-refresh .shotNew.ui-x-ring circle{
-  stroke:#d4a017;
+  stroke:var(--ui-accent,var(--green));
   stroke-width:1.6;
-  animation:markPop .42s cubic-bezier(.2,1.15,.2,1) both,uiXRing .15s ease-out forwards;
+  animation:neonMarkPop .42s cubic-bezier(.2,1.15,.2,1) both,neonXRing .22s ease-out forwards;
+}
+html.ui-refresh .gridKeys button.ui-neon-key-flash{
+  animation:neonKeyFlash .26s ease-out;
+}
+html.ui-refresh .gridSheet.on .gridKeys.ui-neon-dock-in{
+  animation:neonScoreDockIn .38s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
 }
 html.ui-refresh .idlePrompt .idleIcon,
 html.ui-refresh .bootFallback .bootIcon{
@@ -131,9 +180,26 @@ html.ui-refresh .ovl{
 html.ui-refresh .ovl .sheet{
   animation:uiSheetSpring .34s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
 }
-/* M9 appRise */
+html.ui-refresh .ovl.ui-neon-sheet .sheet{
+  animation:uiSheetSpring .34s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both,neonSheetGlow .72s ease-out .08s both;
+}
+/* M9 appRise → neon futura rise */
 html.ui-refresh main > .ui-view-rise{
-  animation:appRise .32s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
+  animation:neonFuturaRise .44s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
+  position:relative;
+  overflow:hidden;
+}
+html.ui-refresh main > .ui-view-rise.ui-neon-reveal::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  top:0;
+  height:38%;
+  background:linear-gradient(180deg,transparent,rgba(120,243,226,.14),transparent);
+  animation:neonScanSweep .62s ease-out both;
+  pointer-events:none;
+  z-index:1;
 }
 /* M10 idleBreath — see .idlePrompt .idleIcon above */
 /* M11 onboardStep */
@@ -180,7 +246,11 @@ html.ui-refresh .badgeRingLabel{
   html.ui-refresh .shotNew circle,
   html.ui-refresh .liveHud.ui-end-pulse,
   html.ui-refresh .sc.ui-x-ring::after,
-  html.ui-refresh .shotNew.ui-x-ring circle{
+  html.ui-refresh .shotNew.ui-x-ring circle,
+  html.ui-refresh .gridKeys button.ui-neon-key-flash,
+  html.ui-refresh .gridSheet.on .gridKeys.ui-neon-dock-in,
+  html.ui-refresh main > .ui-view-rise.ui-neon-reveal::after,
+  html.ui-refresh .ovl.ui-neon-sheet .sheet{
     animation:none;
   }
   html.ui-refresh .liveCell b.ui-rolling,

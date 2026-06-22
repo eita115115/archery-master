@@ -38,6 +38,7 @@ function scoreGridHtml(s) {
 function bindGridInput(s) {
   const keys = $("#gridKeys");
   if (keys) keys.querySelectorAll("button").forEach((btn) => btn.onclick = () => {
+    if (typeof flashScoreKey === "function") flashScoreKey(btn);
     const value = btn.dataset.v;
     if (ui.gridCell >= 0 && s.cur[ui.gridCell]) {
       const edited=arrowFromGridValue(value);
