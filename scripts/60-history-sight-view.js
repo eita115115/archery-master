@@ -1,6 +1,8 @@
 "use strict";
 /* Archery Note: history and sight-adjustment views */
 function renderHistory(m){
+  m=m||$("#main");
+  if(!m) return;
   const allSs=[...db.sessions].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id<a.id?-1:1));
   if(!ui.histFilter) ui.histFilter={setupId:"",dist:db.settings.lastSelectedDistance?String(db.settings.lastSelectedDistance):"",round:""};
   const hf=ui.histFilter;
@@ -230,25 +232,27 @@ function openHistDetail(id){
   </div>`;
   document.body.appendChild(ovl);
   plotSession(sess, ovl.querySelector("#hPlot"));
-  ovl.querySelector("#hClose").onclick=()=>ovl.remove();
+  ovl.querySelector("#hClose").onclick=()=>removeOverlay(ovl);
   ovl.querySelector("#hEdit").onclick=()=>{
     if(db.active){ toast("記録中のセッションがあります。先に終了してください"); return; }
     const cp=JSON.parse(JSON.stringify(sess));
     cp.cur=[]; cp._edit=true;
-    db.active=cp; save(); ovl.remove(); showView("record");
+    db.active=cp; save(); removeOverlay(ovl); showView("record");
     toast("過去の記録を編集中。「セッション終了」で上書き保存されます");
   };
   ovl.querySelector("#hCard").onclick=()=>exportScorecardImage(sess);
   ovl.querySelector("#hDel").onclick=()=>{
     if(confirm("この練習記録を削除しますか？")){
       trashItem("session",`${fmtD(sess.date)} ${sess.dist}m`,sess);
-      db.sessions=db.sessions.filter(s=>s.id!==id); save({reason:"delete-session",forceSnapshot:true}); ovl.remove(); render(); toast("削除しました。設定から復元できます");
+      db.sessions=db.sessions.filter(s=>s.id!==id); save({reason:"delete-session",forceSnapshot:true}); removeOverlay(ovl); render(); toast("削除しました。設定から復元できます");
     }
   };
 }
 
 /* ---------- サイト ---------- */
 function renderSight(m){
+  m=m||$("#main");
+  if(!m) return;
   if(!ui.sightSel.setupId && db.setups[0]) ui.sightSel.setupId=db.setups[0].id;
   const sid=ui.sightSel.setupId;
   const setup=db.setups.find(x=>x.id===sid);
@@ -368,11 +372,11 @@ function openMarkForm(setupId,dist){
     <div class="btnrow"><button class="btn ghost" id="mkCancel">キャンセル</button><button class="btn" id="mkSave">保存</button></div>
   </div>`;
   document.body.appendChild(ovl);
-  ovl.querySelector("#mkCancel").onclick=()=>ovl.remove();
+  ovl.querySelector("#mkCancel").onclick=()=>removeOverlay(ovl);
   ovl.querySelector("#mkSave").onclick=()=>{
     db.sightMarks.push({id:uid(), setupId, dist, v:ovl.querySelector("#mkV").value.trim(), h:ovl.querySelector("#mkH").value.trim(),
       date:ovl.querySelector("#mkDate").value||today(), ts:Date.now(), note:ovl.querySelector("#mkNote").value.trim()});
-    save(); ovl.remove(); render(); toast("台帳に記録しました");
+    save(); removeOverlay(ovl); render(); toast("台帳に記録しました");
   };
 }
 function openCalibrationWizard(setupId){
@@ -394,7 +398,7 @@ function openCalibrationWizard(setupId){
     <div class="btnrow"><button class="btn ghost" id="calCancel">キャンセル</button><button class="btn" id="calSave">校正値を保存</button></div>
   </div>`;
   document.body.appendChild(ovl);
-  ovl.querySelector("#calCancel").onclick=()=>ovl.remove();
+  ovl.querySelector("#calCancel").onclick=()=>removeOverlay(ovl);
   ovl.querySelector("#calSave").onclick=()=>{
     const date=ovl.querySelector("#calDate").value||today();
     const note=ovl.querySelector("#calNote").value.trim()||"校正モード";
@@ -404,7 +408,7 @@ function openCalibrationWizard(setupId){
       if(v||h){ db.sightMarks.push({id:uid(),setupId,dist:d,v,h,date,ts:Date.now(),note}); n++; }
     });
     if(!n){ toast("1つ以上入力してください"); return; }
-    save({reason:"calibration",forceSnapshot:true}); ovl.remove(); render(); toast(`${n}距離の校正値を保存しました`);
+    save({reason:"calibration",forceSnapshot:true}); removeOverlay(ovl); render(); toast(`${n}距離の校正値を保存しました`);
   };
 }
 

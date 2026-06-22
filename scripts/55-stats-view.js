@@ -52,6 +52,8 @@ function statsTrendCardHtml(filtered, lineData) {
 }
 
 function renderStats(m) {
+  m=m||$("#main");
+  if(!m) return;
   const sf = ensureStatsFilter();
   const all = db.sessions || [];
   const filtered = filterSessionsByStatsFilter(all, sf);

@@ -180,7 +180,7 @@ function openCheckInModal(meta,onConfirm){
   ovl.innerHTML=checkInSheetHtml(meta);
   document.body.appendChild(ovl);
   if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
-  const legacy=pts=>{ ovl.remove(); finish(pts); };
+  const legacy=pts=>{ removeOverlay(ovl); finish(pts); };
   ovl.querySelector("#ciGo").onclick=()=>legacy(collectFocusPointsFromInputs());
   ovl.querySelector("#ciSkip").onclick=()=>legacy([]);
   ovl.onclick=e=>{ if(e.target===ovl) legacy(collectFocusPointsFromInputs()); };
@@ -329,13 +329,15 @@ function openLaunchSheet(ctx){
   ovl.innerHTML=`<div class="sheet launchSheet"><div id="launchSheetMount"></div></div>`;
   document.body.appendChild(ovl);
   const mount=ovl.querySelector("#launchSheetMount");
-  const close=()=>ovl.remove();
+  const close=()=>removeOverlay(ovl);
   renderRecordSetup(mount,Object.assign({},ctx,{
     onStart:()=>{ close(); if(ctx.onStart) ctx.onStart(); }
   }));
   ovl.addEventListener("click",e=>{ if(e.target===ovl) close(); });
 }
 function renderRecordSetup(m,ctx){
+  m=m||$("#main");
+  if(!m) return;
   ctx=ctx||{};
   const last=ctx.last||db.sessions[db.sessions.length-1];
   const defSetup=ctx.defSetup!=null?ctx.defSetup:(last?last.setupId:(db.setups[0]?db.setups[0].id:""));

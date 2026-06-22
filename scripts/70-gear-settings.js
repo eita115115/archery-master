@@ -329,6 +329,8 @@ function gearWorkbenchHtml(){
   </div>`;
 }
 function renderGear(m){
+  m=m||$("#main");
+  if(!m) return;
   m.innerHTML=`${gearWorkbenchHtml()}
   <div class="card"><h2>用具セッティング <span class="mini">${db.setups.length}件</span></h2>
     <div id="gearList">${db.setups.length? db.setups.map(s=>{

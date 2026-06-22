@@ -21,6 +21,8 @@ function analysisSummaryHtml(){
 }
 
 function renderAnalysis(m){
+  m=m||$("#main");
+  if(!m) return;
   if(!ui.analysisSub) ui.analysisSub="sight";
   const sub=ui.analysisSub;
   if(sub!=="form"&&typeof stopFormCoach==="function") stopFormCoach();

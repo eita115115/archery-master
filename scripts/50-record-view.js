@@ -660,7 +660,7 @@ function openSummary(sess,isNew,opts){
   ovl.querySelector("#sumCard").onclick=()=>exportScorecardImage(sess);
   const sumPrint=ovl.querySelector("#sumPrint");
   if(sumPrint) sumPrint.onclick=()=>{ if(typeof openScorecardPrint==="function") openScorecardPrint(sess); };
-  ovl.querySelector("#sumClose").onclick=()=>{ ovl.remove(); render(); };
+  ovl.querySelector("#sumClose").onclick=()=>{ removeOverlay(ovl); render(); };
 }
 
 /* ---------- 履歴 ---------- */

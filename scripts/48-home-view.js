@@ -112,6 +112,8 @@ function homeFeedHtml(){
   return `<section class="homeFeed" aria-label="最近の記録">${cards.join("")}</section>`;
 }
 function renderHome(m){
+  m=m||$("#main");
+  if(!m) return;
   const last=db.sessions[db.sessions.length-1];
   const defSetup=last?last.setupId:(db.setups[0]?db.setups[0].id:"");
   const defDist=last?last.dist:(db.settings.lastSelectedDistance||db.settings.defaultDistance||70);
@@ -153,6 +155,8 @@ function renderHome(m){
 }
 
 function renderRecordIdle(m){
+  m=m||$("#main");
+  if(!m) return;
   m.innerHTML=`<section class="an-emptyState card idlePrompt">
     <span class="an-emptyIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
     <p class="an-emptyTitle">記録を始める</p>
