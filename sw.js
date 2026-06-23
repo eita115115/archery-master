@@ -24,6 +24,10 @@ self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
   if (url.protocol !== "http:" && url.protocol !== "https:") return;
+  if (/\/version\.json(?:\?|$)/.test(url.pathname + url.search)) {
+    e.respondWith(fetch(e.request, { cache: "no-store" }));
+    return;
+  }
   const isAiCdn = /mediapipe|tesseract\.js/.test(url.hostname + url.pathname);
   e.respondWith(
     fetch(e.request)

@@ -23,13 +23,21 @@ function freshReload(){
   const url=new URL(location.href);
   url.searchParams.set("appv", String(Date.now()));
   const reload=()=>location.replace(url.toString());
-  if(navigator.serviceWorker && navigator.serviceWorker.getRegistrations){
-    navigator.serviceWorker.getRegistrations()
-      .then(regs=>Promise.all(regs.map(r=>r.update().catch(()=>{}))))
-      .finally(reload);
-  }else{
-    reload();
-  }
+  const purge=async()=>{
+    try{
+      if(typeof caches!=="undefined"&&caches.keys){
+        const keys=await caches.keys();
+        await Promise.all(keys.filter(k=>k.startsWith("matonote")).map(k=>caches.delete(k)));
+      }
+    }catch(e){}
+    try{
+      if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(r=>r.unregister().catch(()=>false)));
+      }
+    }catch(e){}
+  };
+  purge().finally(reload);
 }
 function showRenderFallback(){
   const m=$("#main");

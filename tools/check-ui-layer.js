@@ -80,7 +80,9 @@ function main() {
     assert(app.staticAssets && app.staticAssets.includes(rel), `app-scripts.json staticAssets missing ${rel} (UI_PARALLEL.md §3 E)`);
   }
 
-  const htmlScripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
+  const headBoot = "scripts/00-viewport-boot.js";
+  const htmlScripts = [...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]).filter((s) => s !== headBoot);
+  assert(html.includes(`<script src="${headBoot}"></script>`), "index.html missing viewport boot script in head");
   assert(htmlScripts.join(",") === app.scripts.join(","), "index.html script order must match app-scripts.json (UI_PARALLEL.md §3 C)");
 
   const init = fs.readFileSync(path.join(root, "scripts", "90-init.js"), "utf8");
