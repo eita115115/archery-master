@@ -255,6 +255,39 @@ function roundPresetMeta(roundId){
   const detail=[dist,arrows].filter(Boolean).join(" · ");
   return {indoor,arrows,detail,label:r.label};
 }
+function wireLaunchEnvPills(root){
+  if(!root) return;
+  const pills=root.querySelectorAll("[data-launch-env]");
+  const items=root.querySelectorAll("[data-round-preset]");
+  if(!pills.length||!items.length) return;
+  const apply=env=>{
+    items.forEach(item=>{
+      const id=item.dataset.roundPreset;
+      const m=roundPresetMeta(id);
+      const show=env==="all"||id==="volume"||(env==="indoor"&&m.indoor)||(env==="outdoor"&&!m.indoor&&id!=="volume");
+      item.hidden=!show;
+    });
+  };
+  pills.forEach(pill=>{
+    pill.onclick=()=>{
+      pills.forEach(x=>x.classList.remove("on"));
+      pill.classList.add("on");
+      apply(pill.dataset.launchEnv);
+    };
+  });
+  const active=root.querySelector("[data-launch-env].on");
+  apply(active?active.dataset.launchEnv:"all");
+}
+function launchSheetShellHtml(title){
+  return `<div class="sheet launchSheet ds-sheet">
+    <div class="ds-sheetGrab" aria-hidden="true"></div>
+    <div class="launchSheetChrome">
+      <h2 class="launchSheetTitle an-screenTitle" id="launchSheetTitle">${esc(title||"ラウンド")}</h2>
+      <button type="button" class="ds-sheetClose" id="launchSheetClose" aria-label="閉じる">閉じる</button>
+    </div>
+    <div class="launchSheetScroll" id="launchSheetMount"></div>
+  </div>`;
+}
 function roundPresetListHtml(limit){
   const ids=["18m60","18m60_jp","quad60_jp","70m72","50m72","30m36","field24","volume"];
   return `<section class="an-roundList" aria-label="ラウンドプリセット">
@@ -324,16 +357,32 @@ function repeatLastSession(last,ctx){
 }
 function openLaunchSheet(ctx){
   ctx=ctx||{};
+  const mode=ctx.mode||ui.recordMode||"practice";
+  const title=mode==="calibration"?"サイト値を残す練習":"ラウンド";
+  const finish=()=>{ if(ctx.onStart) ctx.onStart(); };
+  if(typeof mountOverlay==="function"){
+    const {ovl,dismiss}=mountOverlay(launchSheetShellHtml(title),{dismissOnBackdrop:true});
+    ovl.classList.add("launchSheetOvl");
+    ovl.querySelector("#launchSheetClose").onclick=dismiss;
+    renderRecordSetup(ovl.querySelector("#launchSheetMount"),Object.assign({},ctx,{
+      sheetMode:true,
+      onStart:()=>{ dismiss(); finish(); }
+    }));
+    return;
+  }
   const ovl=document.createElement("div");
-  ovl.className="ovl launchSheetOvl";
-  ovl.innerHTML=`<div class="sheet launchSheet"><div id="launchSheetMount"></div></div>`;
+  ovl.className="ovl launchSheetOvl ds-overlay";
+  ovl.innerHTML=launchSheetShellHtml(title);
   document.body.appendChild(ovl);
   if(typeof mountOverlayMotion==="function") mountOverlayMotion(ovl);
-  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{ titleEl:ovl.querySelector(".launchSheet h2") });
-  const mount=ovl.querySelector("#launchSheetMount");
+  const sheet=ovl.querySelector(".sheet");
   const close=()=>removeOverlay(ovl);
-  renderRecordSetup(mount,Object.assign({},ctx,{
-    onStart:()=>{ close(); if(ctx.onStart) ctx.onStart(); }
+  if(typeof mountSheetA11y==="function") mountSheetA11y(ovl,{titleEl:ovl.querySelector("#launchSheetTitle"),onClose:close});
+  if(typeof mountSheetSwipeDismiss==="function") ovl._dsSwipeTeardown=mountSheetSwipeDismiss(sheet,close);
+  ovl.querySelector("#launchSheetClose").onclick=close;
+  renderRecordSetup(ovl.querySelector("#launchSheetMount"),Object.assign({},ctx,{
+    sheetMode:true,
+    onStart:()=>{ close(); finish(); }
   }));
   ovl.addEventListener("click",e=>{ if(e.target===ovl) close(); });
 }
@@ -349,23 +398,25 @@ function renderRecordSetup(m,ctx){
   const defFace=ctx.defFace!=null?ctx.defFace:suggestedFaceValue(defDist,last,defBow);
   const defPerEnd=last&&last.perEnd?last.perEnd:6;
   const defEnv=last&&last.environment?last.environment:(db.settings.defaultEnvironment||"outdoor");
+  const sheet=!!ctx.sheetMode;
+  const bowEnvHtml=`<div class="quickSelects${sheet?" launchSheetBowEnv":""}">
+      <div><label class="f">弓種</label><select class="inp" id="fBow">${BOW_TYPES.map(b=>`<option value="${b.id}" ${b.id===defBow?"selected":""}>${b.label}</option>`).join("")}</select></div>
+      <div><label class="f">環境</label><select class="inp" id="fEnv">${ENV_TYPES.map(e=>`<option value="${e.id}" ${e.id===defEnv?"selected":""}>${e.label}</option>`).join("")}</select></div>
+    </div>`;
   m.innerHTML=`
-  <section class="launchPanel convergeLaunch startFirst">
-    <div class="launchHead">
+  <section class="launchPanel convergeLaunch startFirst${sheet?" launchPanel--sheet":""}">
+    ${sheet?"":`<div class="launchHead">
       <div class="launchTitle"><h2 class="an-screenTitle" style="font-size:22px">${mode==="calibration"?"サイト値を残す練習":"ラウンド"}</h2></div>
       <button class="tinyAction" id="jumpGear" type="button">用具</button>
-    </div>
+    </div>`}
     <div class="launchBody">
     <div class="an-pillRow an-pillRow--wrap" id="launchEnvPills">
       <button type="button" class="an-pill on" data-launch-env="all">すべて</button>
       <button type="button" class="an-pill" data-launch-env="indoor">インドア</button>
       <button type="button" class="an-pill" data-launch-env="outdoor">アウトドア</button>
     </div>
-    ${roundPresetListHtml(6)}
-    <div class="quickSelects">
-      <div><label class="f">弓種</label><select class="inp" id="fBow">${BOW_TYPES.map(b=>`<option value="${b.id}" ${b.id===defBow?"selected":""}>${b.label}</option>`).join("")}</select></div>
-      <div><label class="f">環境</label><select class="inp" id="fEnv">${ENV_TYPES.map(e=>`<option value="${e.id}" ${e.id===defEnv?"selected":""}>${e.label}</option>`).join("")}</select></div>
-    </div>
+    ${roundPresetListHtml(sheet?8:6)}
+    ${sheet?"":bowEnvHtml}
     <label class="f">距離</label>
     <div class="chips quickDists" id="fDistChips">
       ${[70,50,30,18].map(d=>`<div class="chip ${d===defDist?"on":""}" data-d="${d}">${d}m</div>`).join("")}
@@ -385,12 +436,12 @@ function renderRecordSetup(m,ctx){
       </select></div>
       <div><label class="f">1エンドの本数</label><select class="inp" id="fArrows">${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}" ${n===defPerEnd?"selected":""}>${n}本</option>`).join("")}</select></div>
     </div>
-    <button class="btn sec" id="fQuadJpStart" type="button">四枚40cm（小中学生）で始める</button>
+    ${sheet?"":`<button class="btn sec" id="fQuadJpStart" type="button">四枚40cm（小中学生）で始める</button>
     <details class="adv quadRulesAdv">
       <summary>四枚40cmのルール（練習用メモ）</summary>
       <div class="note">畳1枚に A・B・C・D の4枚の的。前半30射のあと<strong>上下が入れ替わり</strong>ます（上A/B → 下へ、C/D → 上へ）。</div>
       <div class="note">射る的はチップで選びます。競技では間違った的は0点 — アプリは練習記録用です。</div>
-    </details>
+    </details>`}
     <div id="fFieldCourseWrap" style="display:none">
       <label class="f">フィールドコース（練習用）</label>
       <select class="inp" id="fFieldCourse">
@@ -400,9 +451,17 @@ function renderRecordSetup(m,ctx){
       </select>
       <div class="note fieldDisclaimer">${esc(FIELD_COURSE_DISCLAIMER)}</div>
     </div>
-    <div class="btnrow"><button class="btn startPrimary" id="fStart">${mode==="calibration"?"サイト値つきで開始":"この条件で開始"}</button></div>
-    <details class="adv recordDetails" ${mode==="calibration"?"open":""}>
-      <summary>詳しく残す</summary>
+    <div class="${sheet?"launchSheetStickyCta":"btnrow"}"><button class="btn startPrimary" id="fStart">${mode==="calibration"?"サイト値つきで開始":"この条件で開始"}</button></div>
+    <details class="adv recordDetails${sheet?" launchSheetMore":""}" ${mode==="calibration"?"open":""}>
+      <summary>${sheet?"弓種・環境・詳細":"詳しく残す"}</summary>
+      ${sheet?`${bowEnvHtml}
+      <button class="btn sec" id="fQuadJpStart" type="button">四枚40cm（小中学生）で始める</button>
+      <details class="adv quadRulesAdv">
+        <summary>四枚40cmのルール（練習用メモ）</summary>
+        <div class="note">畳1枚に A・B・C・D の4枚の的。前半30射のあと<strong>上下が入れ替わり</strong>ます（上A/B → 下へ、C/D → 上へ）。</div>
+        <div class="note">射る的はチップで選びます。競技では間違った的は0点 — アプリは練習記録用です。</div>
+      </details>
+      <button class="tinyAction launchSheetGear" id="jumpGear" type="button">用具を開く</button>`:""}
       <div class="fieldBand">
         <div><label class="f">用具セッティング</label><select class="inp" id="fSetup">${setupOptions(defSetup)}</select></div>
         ${recordSetupSnapshot(defSetup,defDist)}
@@ -501,6 +560,7 @@ function renderRecordSetup(m,ctx){
       if($("#fRound")){ $("#fRound").value=roundId; applyRoundPreset(roundId); }
     };
   });
+  wireLaunchEnvPills(m);
   updateFieldCourseWrap();
   if(mode==="volume") applyRoundPreset("volume");
   document.querySelectorAll("#fLaneSpot .chip").forEach(c=>c.onclick=()=>{

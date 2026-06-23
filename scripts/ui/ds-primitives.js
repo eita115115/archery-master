@@ -54,6 +54,7 @@ function teardownOverlayA11y(ovl){
 
 function removeOverlay(ovl){
   if(!ovl) return;
+  if(typeof ovl._dsSwipeTeardown==="function") ovl._dsSwipeTeardown();
   teardownOverlayA11y(ovl);
   if(ovl.parentNode) ovl.remove();
   else clearMainInert();
@@ -73,6 +74,68 @@ function initOverlayInertGuard(){
     clearMainInert();
   });
   obs.observe(document.body,{childList:true,subtree:true});
+}
+
+function mountSheetSwipeDismiss(sheet, onDismiss){
+  if(!sheet||typeof onDismiss!=="function") return ()=>{};
+  let drag=null;
+  const THRESH=72;
+  const reset=()=>{
+    sheet.style.transform="";
+    sheet.style.transition="";
+  };
+  const finish=dy=>{
+    reset();
+    if(dy>=THRESH) onDismiss();
+  };
+  const start=(e, always)=>{
+    if(e.button!==undefined&&e.button!==0) return;
+    const p=e.touches?e.touches[0]:e;
+    if(!always&&sheet.scrollTop>2) return;
+    if(!always&&e.target.closest("input,select,textarea,button,a,label,.chip,.an-roundItem,.an-pill")) return;
+    drag={y0:p.clientY,x0:p.clientX};
+    sheet.style.transition="none";
+  };
+  const move=e=>{
+    if(!drag) return;
+    const p=e.touches?e.touches[0]:e;
+    const dy=p.clientY-drag.y0;
+    const dx=p.clientX-drag.x0;
+    if(Math.abs(dx)>Math.abs(dy)&&dy<12){ drag=null; reset(); return; }
+    if(dy<0) return;
+    if(e.cancelable) e.preventDefault();
+    sheet.style.transform=`translateY(${dy}px)`;
+  };
+  const end=e=>{
+    if(!drag) return;
+    const p=e.changedTouches?e.changedTouches[0]:e;
+    const dy=p.clientY-drag.y0;
+    drag=null;
+    finish(dy);
+  };
+  const grab=sheet.querySelector(".ds-sheetGrab");
+  const onGrabDown=e=>start(e,true);
+  const onSheetDown=e=>start(e,false);
+  const usePointer=typeof window!=="undefined"&&"PointerEvent"in window;
+  const binds=[];
+  const add=(el,type,fn,opt)=>{
+    if(!el) return;
+    el.addEventListener(type,fn,opt);
+    binds.push([el,type,fn,opt]);
+  };
+  if(usePointer){
+    add(grab,"pointerdown",onGrabDown);
+    add(sheet,"pointerdown",onSheetDown);
+    add(sheet,"pointermove",move);
+    add(sheet,"pointerup",end);
+    add(sheet,"pointercancel",end);
+  }else{
+    add(grab,"touchstart",onGrabDown,{passive:true});
+    add(sheet,"touchstart",onSheetDown,{passive:true});
+    add(sheet,"touchmove",move,{passive:false});
+    add(sheet,"touchend",end);
+  }
+  return ()=>binds.forEach(([el,type,fn,opt])=>el.removeEventListener(type,fn,opt));
 }
 
 function mountSheetA11y(ovl, opts){
@@ -136,6 +199,8 @@ function mountOverlay(html, opts){
     ovl.addEventListener("click",e=>{ if(e.target===ovl) dismiss(); });
   }
   ovl._dsDismiss=dismiss;
+  const sheet=ovl.querySelector(".sheet");
+  if(sheet) ovl._dsSwipeTeardown=mountSheetSwipeDismiss(sheet,dismiss);
   return { ovl, dismiss, teardown };
 }
 
@@ -147,6 +212,7 @@ if(typeof window!=="undefined"){
   window.clearMainInert=clearMainInert;
   window.removeOverlay=removeOverlay;
   window.mountSheetA11y=mountSheetA11y;
+  window.mountSheetSwipeDismiss=mountSheetSwipeDismiss;
   window.mountOverlay=mountOverlay;
   if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",initOverlayInertGuard);
   else initOverlayInertGuard();

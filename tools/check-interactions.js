@@ -238,7 +238,9 @@ async function runBrowserFlow(browser) {
       if (!mount) return { error: "launch sheet missing" };
       const len = mount.innerText.length;
       const launchOvl = document.querySelector(".launchSheetOvl");
-      if (launchOvl) {
+      const launchClose = document.querySelector("#launchSheetClose");
+      if (launchClose) launchClose.click();
+      else if (launchOvl) {
         const r = launchOvl.getBoundingClientRect();
         launchOvl.dispatchEvent(new MouseEvent("click", { bubbles: true, clientX: r.left + 4, clientY: r.top + 4 }));
       }

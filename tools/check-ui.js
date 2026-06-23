@@ -116,6 +116,7 @@ function staticUiChecks() {
   assert(html.includes("ui/neon-sight.css") && html.includes("scripts/00-viewport-boot.js"), "Neon Sight stylesheet link missing");
   assert(surface.includes("homeSightPanel") && surface.includes("homeReticle") && surface.includes("記録を始める"), "Neon Sight home missing");
   assert(surface.includes("neon-statusbar") && surface.includes("neon-chrome-top") && surface.includes("syncViewportChrome"), "Neon status bar chrome missing");
+  assert(surface.includes("mountSheetSwipeDismiss") && surface.includes("launchSheetChrome") && surface.includes("wireLaunchEnvPills"), "Launch sheet swipe chrome missing");
   assert(!surface.includes("今日のズレを、次の一射へ。"), "Promotional record copy remains");
   assert(!surface.includes("分布と偏移を読む"), "Promotional history hero remains");
   assert(surface.includes("compactHud") && surface.includes("inputModeBarHtml") && surface.includes("openInputMoreSheet"), "UI-P2 record missing");
