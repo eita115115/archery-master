@@ -1,13 +1,40 @@
 "use strict";
 /* Archery-master: 分析タブ — サイト調整・射形トラッキング */
 
+function analysisHasSightData(){
+  return [...db.sessions].reverse().some(s=>{
+    if(s.purpose==="volume") return false;
+    const n=(s.ends||[]).reduce((sum,e)=>sum+(e&&e.length?e.length:0),0)+(s.cur&&s.cur.length?s.cur.length:0);
+    return n>=6;
+  });
+}
+function analysisQuickStartCtaHtml(){
+  if(analysisHasSightData()) return "";
+  return `<section class="an-emptyState card an-analysisEmpty">
+    <span class="an-emptyIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+    <p class="an-emptyTitle">記録から始めましょう</p>
+    <p class="an-emptyHint">6本以上記録すると、サイト調整の提案がここに表示されます。</p>
+    <button class="btn an-emptyCta" id="analysisQuickStart" type="button">記録を始める</button>
+  </section>`;
+}
+function bindAnalysisQuickStart(){
+  const btn=$("#analysisQuickStart");
+  if(!btn) return;
+  btn.onclick=()=>{
+    if(db.active){ showView("record"); return; }
+    showView("record");
+    if(typeof buildHomeCtx==="function"&&typeof quickStartSession==="function"){
+      quickStartSession(buildHomeCtx());
+    }
+  };
+}
 function analysisSummaryHtml(){
   const last=[...db.sessions].reverse().find(s=>{
     if(s.purpose==="volume") return false;
     const n=(s.ends||[]).reduce((sum,e)=>sum+(e&&e.length?e.length:0),0)+(s.cur&&s.cur.length?s.cur.length:0);
     return n>=6;
   });
-  if(!last) return `<div class="an-limitBanner" role="status"><span aria-hidden="true">◎</span><span>6本以上記録すると、サイト調整の提案がここに表示されます。</span></div>`;
+  if(!last) return analysisQuickStartCtaHtml()||`<div class="an-limitBanner" role="status"><span aria-hidden="true">◎</span><span>6本以上記録すると、サイト調整の提案がここに表示されます。</span></div>`;
   const setup=db.setups.find(x=>x.id===last.setupId);
   const adv=typeof adviceFor==="function"?adviceFor(last,setup):null;
   const judgement=adv&&typeof judgementFor==="function"?judgementFor(adv,last):null;
@@ -49,6 +76,7 @@ function renderAnalysis(m){
   }else{
     mount.innerHTML=`<section class="an-emptyState card"><p class="an-emptyTitle">サイト調整を読み込めませんでした</p></section>`;
   }
+  bindAnalysisQuickStart();
   document.querySelectorAll("[data-analysis-sub]").forEach(btn=>{
     btn.onclick=()=>{
       if(btn.dataset.analysisSub===ui.analysisSub) return;

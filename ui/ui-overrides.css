@@ -845,6 +845,75 @@ html.ui-refresh .homeActionRow .homeAction{
   min-width:0;
   width:100%;
 }
+html.ui-refresh .homePrimaryCta{
+  display:flex;
+  align-items:center;
+  gap:var(--ui-space-3);
+  width:100%;
+  min-height:56px;
+  margin:var(--ui-space-2) 0 0;
+  padding:var(--ui-space-3) var(--ui-space-4);
+  border:1px solid var(--ui-accent);
+  border-radius:var(--ui-radius-lg);
+  background:var(--ui-accent-soft);
+  color:var(--ui-label);
+  text-align:left;
+}
+html.ui-refresh .homePrimaryCta:active{
+  background:color-mix(in srgb,var(--ui-accent-soft) 70%,var(--ui-accent-pressed));
+}
+html.ui-refresh .homeReticle{
+  flex:0 0 40px;
+  width:40px;
+  height:40px;
+}
+html.ui-refresh .homePrimaryCopy{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+  min-width:0;
+}
+html.ui-refresh .homeSightStartLabel{
+  font-size:var(--ui-font-headline);
+  font-weight:650;
+  line-height:1.25;
+}
+html.ui-refresh .homePrimaryMeta{
+  font-size:var(--ui-font-caption);
+  color:var(--ui-label-secondary);
+}
+html.ui-refresh .homeActionDock{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:var(--ui-space-2);
+  margin-top:var(--ui-space-3);
+}
+html.ui-refresh .homeDockBtn{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  min-height:48px;
+  padding:var(--ui-space-2) var(--ui-space-1);
+  border:1px solid var(--ui-separator);
+  border-radius:var(--ui-radius-md);
+  background:var(--ui-surface);
+  color:var(--ui-label);
+  font-size:12px;
+  font-weight:600;
+}
+html.ui-refresh .homeDockBtn:disabled{
+  opacity:.38;
+}
+html.ui-refresh .homeDockIcon{
+  display:grid;
+  place-items:center;
+  width:22px;
+  height:22px;
+  color:var(--ui-accent);
+}
+html.ui-refresh .homeDockIcon .ic-svg{width:20px;height:20px;}
 html.ui-refresh .homeConditions.ds-conditions{
   width:100%;
   min-width:0;
@@ -1132,10 +1201,27 @@ html.ui-refresh .recordActionBar .statbar{
   margin:0;
   padding:var(--ui-space-2);
 }
+html.ui-refresh .recordActionBar .statbar--hidden{
+  display:none!important;
+}
+html.ui-refresh .recordEndCta{
+  width:100%;
+  min-height:52px;
+  font-size:16px;
+  font-weight:700;
+  background:var(--ui-accent);
+  color:var(--ui-accent-on);
+  border-color:var(--ui-accent);
+  box-shadow:none;
+}
+html.ui-refresh .recordEndCta:active{
+  background:var(--ui-accent-pressed);
+  border-color:var(--ui-accent-pressed);
+}
 html.ui-refresh .recordActionBar .recordToolbar,
 html.ui-refresh .recordActionBar .btnrow{
   display:grid;
-  grid-template-columns:auto 1fr auto;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
   gap:var(--ui-space-2);
   align-items:stretch;
   margin:0;
@@ -1143,6 +1229,7 @@ html.ui-refresh .recordActionBar .btnrow{
 html.ui-refresh .recordActionBar .recordToolbar #bUndo,
 html.ui-refresh .recordActionBar .btnrow #bUndo{
   min-width:0;
+  min-height:44px;
   padding-inline:var(--ui-space-2);
   white-space:nowrap;
 }
@@ -1163,7 +1250,7 @@ html.ui-refresh .recordActionBar .btnrow #bEnd:active{
 }
 html.ui-refresh .recordActionBar .recordToolbar #bFinish,
 html.ui-refresh .recordActionBar .btnrow + .btnrow #bFinish{
-  min-height:40px;
+  min-height:44px;
   padding-inline:var(--ui-space-3);
   font-size:13px;
   font-weight:600;
@@ -1173,6 +1260,12 @@ html.ui-refresh .recordActionBar .btnrow + .btnrow{
   padding:0;
   border:0;
   grid-template-columns:1fr;
+}
+html.ui-refresh .recordInputModes{
+  margin:var(--ui-space-2) 0 var(--ui-space-3);
+}
+html.ui-refresh .an-analysisEmpty{
+  margin-bottom:var(--ui-space-3);
 }
 html.ui-refresh .scoreEndsDetails{
   margin:var(--ui-space-3) 0 0;

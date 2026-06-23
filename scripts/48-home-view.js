@@ -111,45 +111,72 @@ function homeFeedHtml(){
   const cards=[homeSessionCardHtml(hero,{hero:true}),...rest.map(s=>homeSessionCardHtml(s))];
   return `<section class="homeFeed" aria-label="最近の記録">${cards.join("")}</section>`;
 }
-function renderHome(m){
-  m=m||$("#main");
-  if(!m) return;
+function homeQuickStartPanelHtml(ctx,opts){
+  opts=opts||{};
+  const last=ctx.last;
+  const defDist=ctx.defDist;
+  const defFace=ctx.defFace;
+  const setup=ctx.defSetup?db.setups.find(s=>s.id===ctx.defSetup):null;
+  const condPreview=`${defDist}m · ${actionFaceLabel(defFace)}${setup?` · ${setup.name}`:` · 用具未指定`}`;
+  const title=opts.title||"今日の練習";
+  const eyebrow=opts.eyebrow||"TODAY / SESSION";
+  return `<section class="homeSightPanel homeQuickPanel" aria-labelledby="homeSightTitle">
+    <p class="homeSightEyebrow">${esc(eyebrow)}</p>
+    <h2 id="homeSightTitle">${esc(title)}</h2>
+    <button class="homePrimaryCta" id="quickStart" type="button" aria-label="記録を始める ${esc(condPreview)}">
+      <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+      <span class="homePrimaryCopy">
+        <span class="homeSightStartLabel">記録を始める</span>
+        <span class="homePrimaryMeta ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
+      </span>
+    </button>
+    <nav class="homeActionDock homeActions homeActions--compact" aria-label="すぐ使う">
+      <button class="homeDockBtn homeSightConditions" id="openConditions" type="button" aria-label="条件を変える">
+        <span class="homeDockIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-gear"/></svg></span>
+        <span>条件</span>
+      </button>
+      <button class="homeDockBtn" id="quickRepeat" type="button" ${last?"":"disabled"} aria-label="前回と同じ">
+        <span class="homeDockIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+        <span>前回</span>
+      </button>
+      <button class="homeDockBtn" id="quickHistory" type="button" aria-label="履歴">
+        <span class="homeDockIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-history"/></svg></span>
+        <span>履歴</span>
+      </button>
+    </nav>
+  </section>`;
+}
+function bindHomeQuickActions(ctx){
+  $("#quickStart").onclick=()=>quickStartSession(ctx);
+  $("#openConditions").onclick=()=>openLaunchSheet(ctx);
+  const qh=$("#quickHistory");
+  if(qh) qh.onclick=()=>showView("history");
+  if(ctx.last){
+    const qr=$("#quickRepeat");
+    if(qr) qr.onclick=()=>repeatLastSession(ctx.last,ctx);
+  }
+}
+function buildHomeCtx(){
   const last=db.sessions[db.sessions.length-1];
   const defSetup=last?last.setupId:(db.setups[0]?db.setups[0].id:"");
   const defDist=last?last.dist:(db.settings.lastSelectedDistance||db.settings.defaultDistance||70);
   const mode=ui.recordMode||"practice";
   const defFace=suggestedFaceValue(defDist,last);
-  const setup=db.setups.find(s=>s.id===defSetup);
-  const condPreview=`${defDist}m · ${actionFaceLabel(defFace)}${setup?` · ${setup.name}`:` · 用具未指定`}`;
-  const ctx={last,defSetup,defDist,defFace,mode,onStart:()=>showView("record")};
+  return {last,defSetup,defDist,defFace,mode,onStart:()=>showView("record")};
+}
+function renderHome(m){
+  m=m||$("#main");
+  if(!m) return;
+  const ctx=buildHomeCtx();
   m.innerHTML=`
-  <section class="homeSightPanel" aria-labelledby="homeSightTitle">
-    <p class="homeSightEyebrow">TODAY / SESSION</p>
-    <h2 id="homeSightTitle">今日の練習</h2>
-    <button class="homeSightConditions" id="openConditions" type="button" aria-label="条件を変える ${esc(condPreview)}">
-      <span class="homeSightConditionIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
-      <span class="homeSightConditionText ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
-      <span class="homeSightConditionArrow" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-chevron-right"/></svg></span>
-    </button>
-    <div class="homeSightStartWrap">
-      <button class="homeSightStart" id="quickStart" type="button" aria-label="記録を始める">
-        <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
-      </button>
-      <p class="homeSightStartLabel" aria-hidden="true">記録を始める</p>
-    </div>
-  </section>
+  ${homeQuickStartPanelHtml(ctx)}
   ${homeFeedHtml()}
-  ${last?recordFastActionsHtml(last,defDist,defFace,setup):""}
-  ${last?`<details class="an-advancedStats">
+  ${ctx.last?`<details class="an-advancedStats">
     <summary>週間サマリー</summary>
     ${dashCompactHtml()}
   </details>`:""}
   ${homeLocalNoticeHtml()}`;
-  $("#quickStart").onclick=()=>quickStartSession(ctx);
-  $("#openConditions").onclick=()=>openLaunchSheet(ctx);
-  const quickHistory=$("#quickHistory");
-  if(quickHistory) quickHistory.onclick=()=>showView("history");
-  if(last) $("#quickRepeat").onclick=()=>repeatLastSession(last,ctx);
+  bindHomeQuickActions(ctx);
   document.querySelectorAll("[data-open-sess]").forEach(b=>b.onclick=()=>{
     ui.histOpen=b.dataset.openSess; showView("history");
   });
@@ -159,6 +186,12 @@ function renderHome(m){
 function renderRecordIdle(m){
   m=m||$("#main");
   if(!m) return;
+  const ctx=buildHomeCtx();
+  if(typeof uiRefreshActive==="function"&&uiRefreshActive()){
+    m.innerHTML=homeQuickStartPanelHtml(ctx,{title:"記録を始める",eyebrow:"RECORD"});
+    bindHomeQuickActions(ctx);
+    return;
+  }
   m.innerHTML=`<section class="an-emptyState card idlePrompt">
     <span class="an-emptyIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
     <p class="an-emptyTitle">記録を始める</p>

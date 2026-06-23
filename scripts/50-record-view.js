@@ -120,13 +120,13 @@ function scoreProgressHtml(s){
 }
 function recordActionBarHtml(){
   if(recordUiRefresh()){
-    return `<div class="recordActionBar" id="recordActionBar">
-      <div class="statbar" id="statbar"></div>
+    return `<div class="recordActionBar recordInputSection" id="recordActionBar">
+      <button class="btn sec recordEndCta" id="bEnd" type="button">エンド確定</button>
       <div class="recordToolbar btnrow">
         <button class="btn ghost" id="bUndo" type="button">↩ 取消</button>
-        <button class="btn sec" id="bEnd" type="button">エンド確定</button>
         <button class="btn danger sm" id="bFinish" type="button">終了</button>
       </div>
+      <div class="statbar statbar--hidden" id="statbar" aria-hidden="true"></div>
     </div>`;
   }
   return `<div class="recordActionBar" id="recordActionBar">
@@ -204,13 +204,15 @@ function renderActive(m){
   if(s&&s.faceType==="quad"&&typeof ensureQuadHalf==="function") ensureQuadHalf(s);
   if(s&&s.faceType==="field"&&s.fieldCourse) applyFieldTargetToSession(s,(s.ends||[]).length);
   const setup=db.setups.find(x=>x.id===s.setupId);
+  const refresh=recordUiRefresh();
+  const recordTitle=refresh?"":`<h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini ds-truncate">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>`;
+  const recordTopChrome=refresh?recordActionBarHtml():`${recordTitle}${inputModeBarHtml()}${recordActionBarHtml()}`;
+  const recordModeTail=refresh?`<div class="recordInputModes">${inputModeBarHtml()}</div>`:"";
   m.innerHTML=`
   ${liveSessionHeroHtml(s,setup)}
   <div class="card targetFocusCard ds-recordCard">
     <div class="targetTools">
-      <h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini ds-truncate">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>
-      ${inputModeBarHtml()}
-      ${recordActionBarHtml()}
+      ${recordTopChrome}
       ${s._edit?`<div class="editMetaBar">
         <label class="f">ラウンド</label><select class="inp sm" id="editRound">${ROUND_TYPES.map(r=>`<option value="${r.id}" ${(s.round||"free")===r.id?"selected":""}>${r.label}</option>`).join("")}</select>
         <label class="f">日付</label><input class="inp sm" id="editDate" type="date" value="${esc(s.date||"")}">
@@ -231,6 +233,7 @@ function renderActive(m){
     ${s.pairMode&&typeof pairScoringPanelHtml==="function"?pairScoringPanelHtml(s):""}
     ${typeof isTeamSetRound==="function"&&isTeamSetRound(s)&&typeof teamSetPanelHtml==="function"?teamSetPanelHtml(s):""}
     ${gridSheetHtml(s)}
+    ${recordModeTail}
     <div class="tgWrap ${ui.inputMode==="grid"?"off":""}" id="tgWrap">
       ${targetMarkup(s.faceD,"tg",s.faceType,s.quadHalf||"first")}
       <div class="lens" id="lens"><svg id="lensSvg" width="122" height="122"><use href="#tgmain"/><g id="lensCross"></g></svg></div>
