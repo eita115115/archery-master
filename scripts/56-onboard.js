@@ -8,6 +8,7 @@ function syncUiRefreshClass(){
   try{ on=localStorage.getItem("uiRefreshPreview")==="1"; }catch(e){}
   if(!on&&typeof db!=="undefined"&&db.settings&&db.settings.uiRefresh) on=true;
   document.documentElement.classList.toggle("ui-refresh",!!on);
+  if(typeof syncViewportChrome==="function") syncViewportChrome();
 }
 function onboardSheetHtml(){
   return `<div class="sheet onboardSheet">

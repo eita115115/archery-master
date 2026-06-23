@@ -4,7 +4,7 @@
 const KEY="archeryNote.v1";
 const SNAP_KEY="archeryNote.snapshots.v1";
 const SCHEMA_VER=3;
-const APP_VER=86;
+const APP_VER=87;
 const TRASH_LIMIT=50;
 const STORAGE_ADAPTER_VER="storage-adapter v32";
 const ENGINE_VER="RK4-3D JS core v32";
@@ -165,9 +165,7 @@ function viewportChromePalette(){
   const neon=typeof document!=="undefined"&&document.documentElement.classList.contains("ui-refresh");
   const appearance=resolveThemeAppearance();
   if(neon){
-    return appearance==="light"
-      ?{theme:"#DCEAE7",nativeBg:"#DCEAE7",statusStyle:"LIGHT",appleBar:"default"}
-      :{theme:"#020506",nativeBg:"#020506",statusStyle:"DARK",appleBar:"black-translucent"};
+    return {theme:"#020506",nativeBg:"#020506",statusStyle:"DARK",appleBar:"black-translucent"};
   }
   return appearance==="light"
     ?{theme:"#F4F6F8",nativeBg:"#F4F6F8",statusStyle:"LIGHT",appleBar:"default"}

@@ -32,6 +32,7 @@
     "scripts/90-init.js"
   ],
   "staticAssets": [
+    "scripts/00-viewport-boot.js",
     "index.html",
     "style.css",
     "ui/ui-tokens.css",

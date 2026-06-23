@@ -1,6 +1,7 @@
 /* Neon Sight — visual layer for Archery-master. */
 html.ui-refresh{
   color-scheme:dark;
+  --neon-statusbar:#020506;
   --neon-bg:#05090b;
   --neon-bg-deep:#020506;
   --neon-chrome-top:#020506;
@@ -45,6 +46,7 @@ html.ui-refresh{
 }
 html.ui-refresh.light{
   color-scheme:light;
+  --neon-statusbar:#020506;
   --neon-bg:#eaf4f2;
   --neon-bg-deep:#dceae7;
   --neon-chrome-top:#dceae7;
@@ -66,7 +68,7 @@ html.ui-refresh.light{
   --ui-fill-secondary:#dcece8;
 }
 html.ui-refresh{
-  background-color:var(--neon-chrome-top);
+  background-color:var(--neon-statusbar);
 }
 html.ui-refresh body{
   min-height:100dvh;
@@ -103,7 +105,7 @@ html.ui-refresh header.app::before{
   left:0;
   right:0;
   height:env(safe-area-inset-top);
-  background:var(--neon-chrome-top);
+  background:var(--neon-statusbar);
   z-index:0;
   pointer-events:none;
 }

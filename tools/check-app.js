@@ -114,7 +114,9 @@ assert(appManifest.staticAssets.includes("ui/ui-tokens.css") && appManifest.stat
   const anchor="scripts/53-page-heroes.js";
   const i=appScripts.indexOf(anchor);
   assert(i>=0&&appScripts.slice(i+1,i+4).join(",")==="scripts/54-motion.js,scripts/56-onboard.js,scripts/57-ui-depth.js", "UI_PARALLEL §3 B: UI script order after 53-page-heroes");
-  const htmlScripts=[...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m=>m[1]);
+  const headBoot="scripts/00-viewport-boot.js";
+  const htmlScripts=[...html.matchAll(/<script src="([^"]+)"><\/script>/g)].map(m=>m[1]).filter(s=>s!==headBoot);
+  assert(html.includes(`<script src="${headBoot}"></script>`), "Neon viewport boot script missing in index.html head");
   assert(htmlScripts.join(",")===appScripts.join(","), "UI_PARALLEL §3 C: index.html scripts must match app-scripts.json");
 })();
 assert(scripts.includes("pageHeroHtml") && scripts.includes("liveSessionHeroHtml") && !scripts.includes('pageHeroHtml("history"') && !scripts.includes('pageHeroHtml("sight"') && !scripts.includes('pageHeroHtml("gear"') && !scripts.includes('class="pageHero statsHero"') && scripts.includes("histDetailPlot") && scripts.includes("着弾のばらつき") && scripts.includes("射形を確認"), "UI-P3 history/stats/tool views missing");
