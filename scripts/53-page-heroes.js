@@ -69,9 +69,9 @@ function liveSessionHeroHtml(s,setup){
   const stats=typeof sessionStats==="function"?sessionStats(s):aggregateSessionStats(sessionArrows(s));
   const isVolume=stats.volume||s.purpose==="volume";
   const timerRem=typeof timerRemainingSec==="function"?timerRemainingSec(s):null;
-  const remain=Math.max(0,(s.perEnd||6)-(s.cur||[]).length);
-  const r=roundMeta(s.round);
-  const roundRemain=r&&r.arrows?Math.max(0,r.arrows-stats.count):null;
+  const perEnd=s.perEnd||(isVolume?8:6);
+  const curLen=(s.cur||[]).length;
+  const remain=Math.max(0,perEnd-curLen);
   const totalEnds=roundTotalEnds(s);
   const endNum=(s.ends||[]).length+1;
   const secLabel=secondaryScoreLabel(s);
@@ -84,20 +84,26 @@ function liveSessionHeroHtml(s,setup){
   const fieldLine=s.faceType==="field"&&s.fieldCourse&&typeof fieldHudLine==="function"?` · ${fieldHudLine(s)}`:"";
   const focusLine=(s.focusPoints&&s.focusPoints.length)?`<div class="focusLine ds-truncate">${s.focusPoints.map(esc).join(" · ")}</div>`:"";
   const contextMain=s._edit?"過去記録の編集":isVolume?"本数練":`${s.dist}m · ${bowTypeLabel(s.bowType)} · ${setup?esc(setup.name):"用具未指定"}`+(fieldLine||quadLine)+(orderLbl?` · ${orderLbl}`:"")+(matchLbl?` · ${matchLbl}`:"");
-  const contextMeta=`E${endNum}${totalEnds?`/${totalEnds}`:""} · ${(s.cur||[]).length}/${s.perEnd||6}本${timerRem!=null?` · 残り ${formatTimerSec(timerRem)}`:""}${earlyCnt?` · 早期完了 ${earlyCnt}回`:""}`;
+  const timerLine=timerRem!=null?` · 残り <span class="timerHud timerCell${timerRem<=30?" warn":""}" id="timerHud"><b>${formatTimerSec(timerRem)}</b></span>`:"";
+  const contextMeta=`E${endNum}${totalEnds?`/${totalEnds}`:""} · あと${remain}本で確定${timerLine}${earlyCnt?` · 早期完了 ${earlyCnt}回`:""}`;
+  const progressPct=perEnd?Math.round(curLen/perEnd*100):0;
+  const progressBar=`<div class="scoreEndProgress" aria-hidden="true"><span style="width:${progressPct}%"></span></div>`;
+  const avgLbl=stats.count?stats.avg.toFixed(2):"—";
+  const secScoreVal=showX?stats.tenCount:secCount;
+  const hudHidden=`<b data-hud="hitCount" hidden>${stats.hitCount}</b>${showX?`<b data-hud="secScore" hidden>${secScoreVal}</b>`:""}`;
+  const scoreGrid=`<div class="liveCell"><div class="k">合計</div><b data-hud="total">${stats.total}</b></div>
+      ${showX?`<div class="liveCell"><div class="k">Xs</div><b data-hud="xCount">${stats.xCount}</b></div>`:`<div class="liveCell"><div class="k">${secLabel}</div><b data-hud="secScore">${secCount}</b></div>`}
+      <div class="liveCell"><div class="k">平均</div><b>${avgLbl}</b></div>
+      <div class="liveCell"><div class="k">エンド進捗</div><b data-hud="curEnd">${curLen}/${perEnd}本</b></div>${hudHidden}`;
+  const volumeGrid=`<div class="liveCell"><div class="k">本数</div><b data-hud="count">${stats.count}</b></div>
+      <div class="liveCell"><div class="k">エンド</div><b data-hud="endNum">${endNum}</b></div>
+      <div class="liveCell"><div class="k">現在</div><b data-hud="curEnd">${curLen}/${perEnd}</b></div>`;
   return `${indoorHalfBannerHtml(s)}<section class="liveHud compactHud ds-liveBoard card">
     <div class="liveContext"><span class="liveContextMain ds-truncate">${contextMain}</span><span class="liveContextMeta ds-truncate">${contextMeta}</span></div>
     ${focusLine}
+    ${progressBar}
     <div class="liveGrid">
-      ${isVolume?`<div class="liveCell"><div class="k">本数</div><b data-hud="count">${stats.count}</b></div>
-      <div class="liveCell"><div class="k">エンド</div><b data-hud="endNum">${s.ends.length+1}</b></div>
-      <div class="liveCell"><div class="k">現在</div><b data-hud="curEnd">${(s.cur||[]).length}/${s.perEnd||8}</b></div>`:`<div class="liveCell"><div class="k">合計</div><b data-hud="total">${stats.total}</b></div>
-      ${showX?`<div class="liveCell"><div class="k">Xs</div><b data-hud="xCount">${stats.xCount}</b></div>`:""}
-      <div class="liveCell"><div class="k">${showX?"10s":secLabel}</div><b data-hud="secScore">${showX?stats.tenCount:secCount}</b></div>
-      <div class="liveCell"><div class="k">的中</div><b data-hud="hitCount">${stats.hitCount}</b></div>`}
-      <div class="liveCell"><div class="k">${totalEnds?`E${endNum}/${totalEnds}`:"現在"}</div><b>${(s.cur||[]).length}/${s.perEnd||6}</b></div>
-      <div class="liveCell"><div class="k">残り</div><b>${roundRemain==null?`${remain}本`:roundRemain+"本"}</b></div>
-      ${timerRem!=null?`<div class="liveCell timerCell ${timerRem<=30?"warn":""}" id="timerHud"><div class="k">残り</div><b>${formatTimerSec(timerRem)}</b></div>`:""}
+      ${isVolume?volumeGrid:scoreGrid}
     </div>
   </section>`;
 }

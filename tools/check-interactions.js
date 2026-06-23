@@ -119,6 +119,7 @@ function staticAudit() {
 
   assert(appJs.includes("function removeOverlay(") && appJs.includes("function clearMainInert("), "Overlay helpers missing");
   assert(appJs.includes("initOverlayInertGuard"), "Overlay inert guard missing");
+  assert(appJs.includes("recordActionBarHtml") && appJs.includes("scoreInputZone") && appJs.includes("gridKeysPad") && appJs.includes("nextEmptyCellIndex") && appJs.includes("highlightNextGridCell") && appJs.includes("bindGridInput") && appJs.includes("scoreEndProgress") && appJs.includes("mountScoreDockMotion") && appJs.includes("flashScoreKey"), "Score input UX wiring missing");
   console.log("  static interaction audit OK");
 }
 
@@ -303,6 +304,67 @@ async function runBrowserFlow(browser) {
       if (mode === "ocr") assert(info.ocrOn, "ocr should show ocr panel");
     }
     console.log("  record input modes OK");
+
+    const gridScore = await evaluate(client, `(async () => {
+      document.querySelector("#quickStart")?.click();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (!db.active) return { error: "session not started" };
+      db.settings.expertMode = true;
+      render();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      document.querySelector('#inputModeBar .modeBtn[data-mode="grid"]')?.click();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const keys = document.querySelector("#gridKeys");
+      if (!keys) return { error: "gridKeys missing" };
+      const dockStyle = getComputedStyle(keys);
+      const before = document.querySelector('[data-hud="curEnd"]')?.textContent || "";
+      const progressBefore = document.querySelector(".scoreEndProgress span")?.style.width || "";
+      const hintBefore = document.querySelector("#scoreProgressHint")?.textContent || "";
+      const tapKey = (value) => {
+        const btn = keys.querySelector('.gridKey[data-v="' + value + '"]') || keys.querySelector('button[data-v="' + value + '"]');
+        if (!btn) return "missing score button " + value;
+        btn.click();
+        return null;
+      };
+      for (const value of ["10", "9", "8", "7"]) {
+        const err = tapKey(value);
+        if (err) return { error: err };
+        await new Promise(r => requestAnimationFrame(r));
+      }
+      const cell = document.querySelector('#scoreGrid .gridCell[data-end="0"][data-i="2"]');
+      if (!cell) return { error: "grid cell for edit missing" };
+      cell.click();
+      await new Promise(r => requestAnimationFrame(r));
+      const editErr = tapKey("6");
+      if (editErr) return { error: editErr };
+      await new Promise(r => requestAnimationFrame(r));
+      return {
+        scores: (db.active.cur || []).map(scoreLabel),
+        selectedCell: ui.gridCell,
+        curEndText: document.querySelector('[data-hud="curEnd"]')?.textContent || "",
+        progressWidth: document.querySelector(".scoreEndProgress span")?.style.width || "",
+        progressHint: document.querySelector("#scoreProgressHint")?.textContent || "",
+        filledDots: document.querySelectorAll("#scoreProgress .scoreDot.filled").length,
+        nextCell: !!document.querySelector('#scoreGrid .gridCell.next[data-end="0"]'),
+        before,
+        progressBefore,
+        hintBefore,
+        dockFixed: dockStyle.position === "fixed",
+        keysPad: keys.classList.contains("gridKeysPad"),
+        scoreInputZone: !!document.querySelector(".scoreInputZone"),
+        actionBar: !!document.querySelector("#recordActionBar #statbar"),
+        gridOn: document.querySelector("#gridSheet")?.classList.contains("on"),
+        errors: window.__interactionErrors?.slice() || [],
+      };
+    })()`);
+    if (gridScore.error) throw new Error(gridScore.error);
+    assert((gridScore.errors || []).length === 0, `grid score flow errors: ${(gridScore.errors || []).join("; ")}`);
+    assert(gridScore.gridOn && gridScore.keysPad && gridScore.dockFixed && gridScore.scoreInputZone && gridScore.actionBar, `grid score dock chrome missing: ${JSON.stringify(gridScore)}`);
+    assert(gridScore.scores.join(",") === "10,9,6,7", `grid score edit failed: ${JSON.stringify(gridScore)}`);
+    assert(gridScore.selectedCell === 4 && gridScore.nextCell, `grid should focus next empty cell after edit: ${JSON.stringify(gridScore)}`);
+    assert(gridScore.hintBefore === "あと6本でエンド確定" && gridScore.progressHint === "あと2本でエンド確定", `scoreProgressHint should advance: ${JSON.stringify(gridScore)}`);
+    assert(gridScore.filledDots === 4, `scoreProgress dots should show 4 filled: ${JSON.stringify(gridScore)}`);
+    console.log("  record grid score flow OK");
 
     const moreSheet = await evaluate(client, `(async () => {
       db.settings.expertMode = false;

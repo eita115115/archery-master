@@ -149,10 +149,23 @@ function gridKeysForSession(sess){
   if(compound||indoor) return ["10","9","8","7","6","M"];
   return GRID_SCORE_KEYS;
 }
+function gridKeyButtonHtml(v,prime){
+  const z=gridZoneStyle(v);
+  const cls=prime?"gridKey gridKey--prime":"gridKey";
+  return `<button type="button" class="${cls}" data-v="${v}" aria-label="${v}点" style="background:${z.bg};color:${z.fg}">${v}</button>`;
+}
+function gridKeysLayout(sess,keys){
+  const s=sess||{};
+  if(s.faceType==="field") return [["6","5","4"],["3","2","1","M"]];
+  if(keys.length===7&&keys[0]==="X") return [["X","10"],["9","8","7","6","M"]];
+  return [keys];
+}
 function gridKeysHtml(sess){
   const keys=gridKeysForSession(sess);
-  const cols=keys.length;
-  return `<div class="gridKeys" id="gridKeys" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${keys.map(v=>{ const z=gridZoneStyle(v); return `<button type="button" data-v="${v}" style="background:${z.bg};color:${z.fg}">${v}</button>`; }).join("")}</div>`;
+  const rows=gridKeysLayout(sess,keys);
+  const outdoorX=keys.length===7&&keys[0]==="X";
+  const rowHtml=rows.map(row=>`<div class="gridKeysRow">${row.map(v=>gridKeyButtonHtml(v,outdoorX&&(v==="X"||v==="10"))).join("")}</div>`).join("");
+  return `<div class="gridKeysPad" id="gridKeys">${rowHtml}</div>`;
 }
 function isJapanIndoorRound(sess){
   return sess&&(sess.round==="18m60_jp"||sess.round==="18m60_jp_x2"||(sess.environment==="indoor"&&sess.dist===18&&sess.faceType==="triple"));

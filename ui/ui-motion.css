@@ -37,6 +37,15 @@
   45%{box-shadow:inset 0 0 22px rgba(120,243,226,.42),0 0 16px rgba(120,243,226,.28);}
   100%{box-shadow:inset 0 0 0 rgba(120,243,226,0);}
 }
+@keyframes neonCellNextRing{
+  0%{box-shadow:0 0 0 0 rgba(120,243,226,.38);outline-color:rgba(120,243,226,.55);}
+  100%{box-shadow:0 0 0 5px rgba(120,243,226,0);outline-color:rgba(120,243,226,.15);}
+}
+@keyframes neonCellPop{
+  0%{transform:scale(1);}
+  48%{transform:scale(1.09);}
+  100%{transform:scale(1);}
+}
 @keyframes neonEndPulse{
   0%{transform:scale(1);box-shadow:none;}
   42%{transform:scale(1.012);box-shadow:0 0 28px rgba(120,243,226,.16);}
@@ -140,6 +149,15 @@ html.ui-refresh .shotNew.ui-x-ring circle{
 }
 html.ui-refresh .gridKeys button.ui-neon-key-flash{
   animation:neonKeyFlash .26s ease-out;
+}
+html.ui-refresh #scoreGrid .gridCell.ui-neon-cell-next{
+  outline:2px solid rgba(120,243,226,.4);
+  outline-offset:1px;
+  animation:neonCellNextRing .3s ease-out;
+}
+html.ui-refresh #scoreGrid .gridCell.ui-neon-cell-pop{
+  transform-origin:center;
+  animation:neonCellPop .3s cubic-bezier(.2,1.2,.2,1) both;
 }
 html.ui-refresh .gridSheet.on .gridKeys.ui-neon-dock-in{
   animation:neonScoreDockIn .38s var(--ui-ease-spring,cubic-bezier(.22,1,.36,1)) both;
@@ -248,6 +266,8 @@ html.ui-refresh .badgeRingLabel{
   html.ui-refresh .sc.ui-x-ring::after,
   html.ui-refresh .shotNew.ui-x-ring circle,
   html.ui-refresh .gridKeys button.ui-neon-key-flash,
+  html.ui-refresh #scoreGrid .gridCell.ui-neon-cell-next,
+  html.ui-refresh #scoreGrid .gridCell.ui-neon-cell-pop,
   html.ui-refresh .gridSheet.on .gridKeys.ui-neon-dock-in,
   html.ui-refresh main > .ui-view-rise.ui-neon-reveal::after,
   html.ui-refresh .ovl.ui-neon-sheet .sheet{

@@ -43,6 +43,7 @@ html.ui-refresh{
   --an-blue-soft:rgba(120,243,226,.09);
   --an-navy:#102a31;
   --an-pill-bg:#0a151a;
+  --ui-score-dock-height:110px;
 }
 html.ui-refresh.light{
   color-scheme:light;
@@ -440,10 +441,63 @@ html.ui-refresh nav.tabs{
   border-top:1px solid var(--neon-line);
   box-shadow:0 -12px 34px rgba(0,0,0,.28);
 }
-html.ui-refresh .gridSheet.on .gridKeys{
-  background:rgba(8,17,22,.96);
-  border-top-color:var(--neon-line);
-  box-shadow:0 -12px 34px rgba(0,0,0,.35),0 0 18px rgba(120,243,226,.06);
+/* ── Record: score dock, grid, HUD (neon layer) ── */
+html.ui-refresh .gridSheet.on .gridKeys,
+html.ui-refresh .gridSheet.on .gridKeysPad{
+  border-top:2px solid var(--neon-teal);
+  background:color-mix(in srgb,var(--neon-panel) 94%,transparent);
+  box-shadow:0 -12px 34px rgba(0,0,0,.35),var(--neon-glow);
+}
+html.ui-refresh .gridKey--prime:active{
+  box-shadow:var(--neon-glow),0 0 24px color-mix(in srgb,var(--neon-teal) 34%,transparent),inset 0 0 16px color-mix(in srgb,var(--neon-teal) 18%,transparent);
+  transform:scale(.985);
+}
+html.ui-refresh .scoreGrid .gridCell.next:not(.sel){
+  outline:2px solid color-mix(in srgb,var(--neon-teal) 34%,transparent);
+  outline-offset:2px;
+  box-shadow:0 0 0 0 color-mix(in srgb,var(--neon-teal) 18%,transparent);
+  animation:neonGridNextPulse 2.6s ease-in-out infinite;
+}
+html.ui-refresh .scoreEndProgress{
+  background:color-mix(in srgb,var(--neon-teal) 8%,var(--ui-fill-secondary));
+}
+html.ui-refresh .scoreEndProgress span{
+  background:linear-gradient(90deg,var(--neon-teal-strong) 0%,var(--neon-teal) 100%);
+  box-shadow:0 0 10px color-mix(in srgb,var(--neon-teal) 36%,transparent);
+}
+html.ui-refresh .recordActionBar{
+  background:linear-gradient(180deg,var(--neon-panel-hi),var(--neon-panel));
+  border-color:var(--neon-line);
+  box-shadow:var(--ui-shadow-sm);
+}
+html.ui-refresh .liveHud.compactHud.ds-liveBoard{
+  padding:var(--ui-space-2) var(--ui-space-3);
+  margin-bottom:var(--ui-space-3);
+  background:linear-gradient(180deg,var(--neon-panel-hi),var(--neon-panel));
+  border-color:var(--neon-line);
+  box-shadow:var(--ui-shadow-sm);
+}
+html.ui-refresh .liveHud.compactHud.ds-liveBoard .liveContextMeta{
+  color:var(--neon-muted);
+}
+html.ui-refresh .liveHud.compactHud.ds-liveBoard [data-hud="total"],
+html.ui-refresh .liveHud.compactHud.ds-liveBoard [data-hud="xCount"],
+html.ui-refresh .liveHud.compactHud.ds-liveBoard [data-hud="secScore"],
+html.ui-refresh .liveHud.compactHud.ds-liveBoard [data-hud="curEnd"]{
+  color:var(--neon-teal);
+}
+html.ui-refresh .liveHud.compactHud.ds-liveBoard .liveCell:first-child b{
+  color:var(--neon-teal);
+}
+@keyframes neonGridNextPulse{
+  0%,100%{
+    outline-color:color-mix(in srgb,var(--neon-teal) 26%,transparent);
+    box-shadow:0 0 0 0 color-mix(in srgb,var(--neon-teal) 14%,transparent);
+  }
+  50%{
+    outline-color:color-mix(in srgb,var(--neon-teal) 52%,transparent);
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--neon-teal) 10%,transparent);
+  }
 }
 html.ui-refresh nav.tabs button{
   position:relative;
@@ -498,4 +552,9 @@ html.ui-refresh .toast{
   html.ui-refresh nav.tabs button.on::after,
   html.ui-refresh nav.tabs button.live::after{animation:none!important;}
   html.ui-refresh .homeSightStart{transition:none!important;}
+  html.ui-refresh .scoreGrid .gridCell.next:not(.sel){
+    animation:none!important;
+    outline-color:color-mix(in srgb,var(--neon-teal) 34%,transparent);
+    box-shadow:0 0 0 3px color-mix(in srgb,var(--neon-teal) 10%,transparent);
+  }
 }

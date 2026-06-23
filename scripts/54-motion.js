@@ -36,6 +36,8 @@ function captureHudMetrics(s){
   const stats=typeof sessionStats==="function"?sessionStats(s):{total:0,xCount:0,tenCount:0,hitCount:0,count:0,volume:false};
   const showX=typeof usesXScoring==="function"&&usesXScoring(s);
   const secCount=typeof secondaryScoreCount==="function"?secondaryScoreCount(sessionArrows(s),s):0;
+  const perEnd=s.perEnd||(stats.volume?8:6);
+  const curLen=(s.cur||[]).length;
   return {
     volume:!!stats.volume,
     showX:!!showX,
@@ -44,7 +46,10 @@ function captureHudMetrics(s){
     secScore:showX?(stats.tenCount||0):secCount,
     hitCount:stats.hitCount||0,
     count:stats.count||0,
-    endNum:(s.ends||[]).length+1
+    endNum:(s.ends||[]).length+1,
+    curLen,
+    perEnd,
+    remain:Math.max(0,perEnd-curLen)
   };
 }
 function syncLiveHudMetrics(s){
@@ -55,16 +60,19 @@ function syncLiveHudMetrics(s){
   const prev=ui.hudSnap||cur;
   ui.hudSnap=cur;
   const pairs=cur.volume
-    ? [["count",cur.count,prev.count],["endNum",cur.endNum,prev.endNum]]
+    ? [["count",cur.count,prev.count],["endNum",cur.endNum,prev.endNum],["curEnd",`${cur.curLen}/${cur.perEnd}`,`${prev.curLen||0}/${prev.perEnd||cur.perEnd}`]]
     : [["total",cur.total,prev.total]]
       .concat(cur.showX?[["xCount",cur.xCount,prev.xCount]]:[])
-      .concat([["secScore",cur.secScore,prev.secScore],["hitCount",cur.hitCount,prev.hitCount]]);
+      .concat([["secScore",cur.secScore,prev.secScore],["hitCount",cur.hitCount,prev.hitCount],["curEnd",`${cur.curLen}/${cur.perEnd}本`,`${prev.curLen||0}/${prev.perEnd||cur.perEnd}本`]]);
   pairs.forEach(([key,to,from])=>{
     const el=hud.querySelector(`[data-hud="${key}"]`);
     if(!el) return;
+    if(key==="curEnd"){ el.textContent=String(to); return; }
     if(to!==from) animateMetric(el,from,to,400);
     else el.textContent=String(to);
   });
+  const bar=hud.querySelector(".scoreEndProgress span");
+  if(bar&&cur.perEnd) bar.style.width=`${Math.round(cur.curLen/cur.perEnd*100)}%`;
 }
 function celebrateX(index){
   feedbackPulse("x");
@@ -193,6 +201,24 @@ function flashScoreKey(btn){
   clearTimeout(flashScoreKey._tm);
   flashScoreKey._tm=setTimeout(()=>btn.classList.remove("ui-neon-key-flash"),280);
 }
+function highlightNextGridCell(){
+  if(!uiRefreshActive()||uiReducedMotion()) return;
+  const cell=document.querySelector("#scoreGrid .gridCell.next");
+  if(!cell) return;
+  cell.classList.remove("ui-neon-cell-next");
+  void cell.offsetWidth;
+  cell.classList.add("ui-neon-cell-next");
+  clearTimeout(highlightNextGridCell._tm);
+  highlightNextGridCell._tm=setTimeout(()=>cell.classList.remove("ui-neon-cell-next"),300);
+}
+function pulseScoreGridCell(cellEl){
+  if(!cellEl||!uiRefreshActive()||uiReducedMotion()) return;
+  cellEl.classList.remove("ui-neon-cell-pop");
+  void cellEl.offsetWidth;
+  cellEl.classList.add("ui-neon-cell-pop");
+  clearTimeout(pulseScoreGridCell._tm);
+  pulseScoreGridCell._tm=setTimeout(()=>cellEl.classList.remove("ui-neon-cell-pop"),300);
+}
 function runOnboardStepMotion(root){
   if(!root||!uiRefreshActive()||uiReducedMotion()) return;
   root.querySelectorAll(".onboardStep").forEach((el,i)=>{
@@ -237,6 +263,8 @@ if(typeof window!=="undefined"){
   window.mountOverlayMotion=mountOverlayMotion;
   window.mountScoreDockMotion=mountScoreDockMotion;
   window.flashScoreKey=flashScoreKey;
+  window.highlightNextGridCell=highlightNextGridCell;
+  window.pulseScoreGridCell=pulseScoreGridCell;
   window.runOnboardStepMotion=runOnboardStepMotion;
   window.mountBadgeRings=mountBadgeRings;
   window.uiRefreshActive=uiRefreshActive;

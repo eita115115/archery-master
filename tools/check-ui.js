@@ -120,6 +120,12 @@ function staticUiChecks() {
   assert(!surface.includes("今日のズレを、次の一射へ。"), "Promotional record copy remains");
   assert(!surface.includes("分布と偏移を読む"), "Promotional history hero remains");
   assert(surface.includes("compactHud") && surface.includes("inputModeBarHtml") && surface.includes("openInputMoreSheet"), "UI-P2 record missing");
+  assert(surface.includes("recordActionBarHtml") && surface.includes("recordToolbar") && surface.includes(".recordActionBar"), "Record compact action bar missing");
+  assert(surface.includes("scoreInputZone") && surface.includes("scoreProgressHint") && surface.includes("scoreProgressDots") && surface.includes(".scoreInputZone"), "Score input zone/progress missing");
+  assert(surface.includes("scoreEndProgress") && surface.includes('data-hud="curEnd"') && surface.includes("liveContextMeta") && surface.includes("あと${remain}本で確定") && surface.includes(".scoreEndProgress"), "Score end progress HUD missing");
+  assert(surface.includes("nextEmptyCellIndex") && surface.includes("highlightNextGridCell") && surface.includes("gridKeysPad") && surface.includes(".gridCell.next"), "Next grid cell focus / keys pad missing");
+  assert(surface.includes("mountScoreDockMotion") && surface.includes("flashScoreKey") && surface.includes("--ui-score-dock-height") && surface.includes(".gridSheet.on .gridKeysPad") && /position:\s*fixed/.test(surface), "Fixed gridKeysPad score dock missing");
+  assert(surface.includes("inputModeBarCompact") && surface.includes("inputModeBarExpert") && surface.includes("gridSheetHtml"), "Grid score input shell missing");
   assert(surface.includes("syncLiveHudMetrics") && surface.includes("celebrateBest") && surface.includes("pulseTabSpring"), "UI-P5 motion missing");
   assert(appScripts.includes("scripts/54-motion.js") && appScripts.includes("scripts/56-onboard.js") && appScripts.includes("scripts/57-ui-depth.js"), "UI layer scripts not wired");
   assert(html.includes("練習ノート"), "Header subtitle missing");
@@ -421,20 +427,54 @@ async function screenshot(browser, view) {
           }
           document.querySelector('#inputModeBar .modeBtn[data-mode="grid"]')?.click();
           await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-          for (const value of ["10", "9", "8"]) {
-            const button = document.querySelector('#gridKeys button[data-v="' + value + '"]');
-            if (!button) return { error: "missing score button " + value };
+          const sheet = document.querySelector("#gridSheet");
+          const dock = document.querySelector("#gridKeys");
+          const ux = {
+            actionBar: !!document.querySelector("#recordActionBar"),
+            statbar: !!document.querySelector("#recordActionBar #statbar"),
+            toolbar: !!document.querySelector("#recordActionBar .recordToolbar"),
+            scoreInputZone: !!document.querySelector(".scoreInputZone"),
+            scoreProgress: !!document.querySelector("#scoreProgress"),
+            gridKeysPad: dock?.classList.contains("gridKeysPad"),
+            gridSheetOn: sheet?.classList.contains("on"),
+            scoreEndProgress: !!document.querySelector(".scoreEndProgress"),
+            curEndHud: !!document.querySelector('[data-hud="curEnd"]'),
+          };
+          if (dock) {
+            const dockStyle = getComputedStyle(dock);
+            ux.dockFixed = dockStyle.position === "fixed";
+          }
+          const tapKey = (value) => {
+            const button = document.querySelector('#gridKeys .gridKey[data-v="' + value + '"]')
+              || document.querySelector('#gridKeys button[data-v="' + value + '"]');
+            if (!button) return "missing score button " + value;
             button.click();
+            return null;
+          };
+          for (const value of ["10", "9", "8"]) {
+            const err = tapKey(value);
+            if (err) return { error: err, ux };
             await new Promise(resolve => requestAnimationFrame(resolve));
           }
           document.querySelector('#scoreGrid .gridCell[data-end="0"][data-i="1"]')?.click();
-          document.querySelector('#gridKeys button[data-v="7"]')?.click();
           await new Promise(resolve => requestAnimationFrame(resolve));
-          document.querySelector('#gridKeys button[data-v="6"]')?.click();
+          let err = tapKey("7");
+          if (err) return { error: err, ux };
           await new Promise(resolve => requestAnimationFrame(resolve));
+          err = tapKey("6");
+          if (err) return { error: err, ux };
+          await new Promise(resolve => requestAnimationFrame(resolve));
+          const progress = document.querySelector(".scoreEndProgress span");
+          const nextCell = document.querySelector('#scoreGrid .gridCell.next[data-end="0"]');
           return {
             scores: (db.active?.cur || []).map(scoreLabel),
             selectedCell: ui.gridCell,
+            curEndText: document.querySelector('[data-hud="curEnd"]')?.textContent || "",
+            progressHint: document.querySelector("#scoreProgressHint")?.textContent || "",
+            filledDots: document.querySelectorAll("#scoreProgress .scoreDot.filled").length,
+            progressWidth: progress ? progress.style.width : "",
+            nextCellIndex: nextCell ? +nextCell.dataset.i : -1,
+            ux,
           };
         })()`,
         awaitPromise: true,
@@ -442,8 +482,16 @@ async function screenshot(browser, view) {
       });
       const inputValue = recordInput.result.value;
       assert(!inputValue.error, `${view.name} record input failed: ${inputValue.error}`);
+      assert(inputValue.ux.actionBar && inputValue.ux.statbar && inputValue.ux.toolbar, `${view.name} recordActionBar chrome missing: ${JSON.stringify(inputValue.ux)}`);
+      assert(inputValue.ux.scoreInputZone && inputValue.ux.scoreProgress, `${view.name} score input zone missing: ${JSON.stringify(inputValue.ux)}`);
+      assert(inputValue.ux.gridKeysPad && inputValue.ux.gridSheetOn && inputValue.ux.dockFixed, `${view.name} fixed gridKeysPad dock missing: ${JSON.stringify(inputValue.ux)}`);
+      assert(inputValue.ux.scoreEndProgress && inputValue.ux.curEndHud, `${view.name} score end progress HUD missing: ${JSON.stringify(inputValue.ux)}`);
       assert(inputValue.scores.join(",") === "10,7,8,6", `${view.name} score buttons must advance after entry and a cell edit: ${JSON.stringify(inputValue)}`);
-      assert(inputValue.selectedCell === -1, `${view.name} score entry should not leave the last cell in edit mode: ${JSON.stringify(inputValue)}`);
+      assert(inputValue.selectedCell === 4, `${view.name} grid focus should land on next empty cell: ${JSON.stringify(inputValue)}`);
+      assert(inputValue.nextCellIndex === 4, `${view.name} next grid cell highlight missing: ${JSON.stringify(inputValue)}`);
+      assert(inputValue.progressHint === "あと2本でエンド確定", `${view.name} scoreProgressHint stale: ${JSON.stringify(inputValue)}`);
+      assert(inputValue.filledDots === 4, `${view.name} scoreProgress dots should show 4 filled: ${JSON.stringify(inputValue)}`);
+      assert(inputValue.ux.curEndHud, `${view.name} compact HUD curEnd marker should exist: ${JSON.stringify(inputValue)}`);
     }
     return { file: shot, ...size };
   } finally {

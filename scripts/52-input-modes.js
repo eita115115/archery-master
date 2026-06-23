@@ -3,6 +3,34 @@
 
 let scanSession = null;
 
+function nextEmptyCellIndex(s) {
+  const per = s.perEnd || 6;
+  const cur = s.cur || [];
+  for (let i = 0; i < per; i++) {
+    if (!cur[i]) return i;
+  }
+  return cur.length;
+}
+
+function gridCellAfterInput(s) {
+  const next = nextEmptyCellIndex(s);
+  return next < (s.perEnd || 6) ? next : -1;
+}
+
+function ensureGridCellFocus(s) {
+  if (ui.gridCell >= 0) return false;
+  const next = gridCellAfterInput(s);
+  if (next < 0) return false;
+  ui.gridCell = next;
+  return true;
+}
+
+function gridScoreFeedback(arrow, index) {
+  if (typeof onArrowScored === "function") onArrowScored(arrow, index);
+  else if (typeof feedbackPulse === "function") feedbackPulse("score");
+  else nativePulse("light");
+}
+
 function scoreGridReadOnlyHtml(s) {
   const per = s.perEnd || 6;
   return (s.ends || []).map((end, i) => {
@@ -20,15 +48,18 @@ function scoreGridReadOnlyHtml(s) {
 
 function scoreGridHtml(s) {
   const per = s.perEnd || 6;
+  const nextIdx = nextEmptyCellIndex(s);
   const rows = [...s.ends.map((end, i) => ({ end, i, cur: false })), { end: s.cur || [], i: s.ends.length, cur: true }];
   return rows.map((row) => {
     const cells = Array.from({ length: per }, (_, ci) => {
       const a = row.end[ci];
       const sel = row.cur && ui.gridCell === ci;
-      if (!a) return `<div class="gridCell empty ${sel ? "sel" : ""}" data-end="${row.i}" data-i="${ci}">·</div>`;
+      const next = row.cur && nextIdx === ci && nextIdx < per;
+      const cls = [sel ? "sel" : "", next ? "next" : ""].filter(Boolean).join(" ");
+      if (!a) return `<div class="gridCell empty${cls ? " " + cls : ""}" data-end="${row.i}" data-i="${ci}">·</div>`;
       const label = scoreLabel(a);
       const z = gridZoneStyle(label);
-      return `<div class="gridCell ${sel ? "sel" : ""}" data-end="${row.i}" data-i="${ci}" style="background:${z.bg};color:${z.fg}">${label}</div>`;
+      return `<div class="gridCell${cls ? " " + cls : ""}" data-end="${row.i}" data-i="${ci}" style="background:${z.bg};color:${z.fg}">${label}</div>`;
     }).join("");
     const sum = row.end.reduce((a, x) => a + (x.s || 0), 0);
     return `<div class="gridRow"><div class="gridRowHead">E${row.i + 1}</div><div class="gridCells">${cells}</div><div class="gridRowSum">${sum || "—"}</div></div>`;
@@ -36,17 +67,24 @@ function scoreGridHtml(s) {
 }
 
 function bindGridInput(s) {
+  const focused = ensureGridCellFocus(s);
+  const grid = $("#scoreGrid");
+  if (focused && grid) grid.innerHTML = scoreGridHtml(s);
   const keys = $("#gridKeys");
   if (keys) keys.querySelectorAll("button").forEach((btn) => btn.onclick = () => {
     if (typeof flashScoreKey === "function") flashScoreKey(btn);
     const value = btn.dataset.v;
     if (ui.gridCell >= 0 && s.cur[ui.gridCell]) {
+      const scoredIdx = ui.gridCell;
       const edited=arrowFromGridValue(value);
       Object.assign(s.cur[ui.gridCell], edited);
-      if(typeof onArrowScored==="function") onArrowScored(s.cur[ui.gridCell],ui.gridCell);
-      else nativePulse("light");
+      gridScoreFeedback(s.cur[ui.gridCell], ui.gridCell);
       ui.gridCell = -1;
       save(); refreshActive();
+      if (typeof pulseScoreGridCell === "function") {
+        const cell = $("#scoreGrid")?.querySelector(`.gridCell[data-end="${s.ends.length}"][data-i="${scoredIdx}"]`);
+        if (cell) pulseScoreGridCell(cell);
+      }
       return;
     }
     if (!guardEndCapacity(s)) return;
@@ -56,21 +94,23 @@ function bindGridInput(s) {
     if (typeof isTeamSetRound === "function" && isTeamSetRound(s) && typeof tagTeamArrow === "function") tagTeamArrow(arrow, s.cur.length);
     s.cur.push(arrow);
     ui.freshArrow = s.cur.length - 1;
-    ui.gridCell = -1;
-    if(typeof onArrowScored==="function") onArrowScored(arrow,ui.freshArrow);
-    else nativePulse("light");
+    ui.gridCell = gridCellAfterInput(s);
+    gridScoreFeedback(arrow, ui.freshArrow);
     save(); refreshActive();
+    if (typeof pulseScoreGridCell === "function") {
+      const cell = $("#scoreGrid")?.querySelector(`.gridCell[data-end="${s.ends.length}"][data-i="${ui.freshArrow}"]`);
+      if (cell) pulseScoreGridCell(cell);
+    }
   });
-  const grid = $("#scoreGrid");
   if (grid) grid.querySelectorAll(".gridCell").forEach((cell) => cell.onclick = () => {
     const endIdx = +cell.dataset.end;
     const idx = +cell.dataset.i;
     if (endIdx !== s.ends.length) return;
-    if (!s.cur[idx] && cell.classList.contains("empty")) return;
     ui.gridCell = idx; ui.selArrow = -1; refreshActive();
   });
   const memo = $("#gridMemo");
   if (memo) memo.oninput = (e) => { s.note = e.target.value.trim(); save("grid-memo"); };
+  if (typeof highlightNextGridCell === "function") highlightNextGridCell();
 }
 
 function visionHitsToArrows(result, s) {

@@ -95,9 +95,94 @@ function openInputMoreSheet(){
   });
   ovl.onclick=e=>{ if(e.target===ovl) removeOverlay(ovl); };
 }
+function recordUiRefresh(){
+  return typeof uiRefreshActive==="function"&&uiRefreshActive();
+}
+function scoreProgressHintText(s){
+  const per=s.perEnd||6;
+  const cur=(s.cur||[]).length;
+  const remain=Math.max(0,per-cur);
+  if(!remain) return "エンド確定できます";
+  return `あと${remain}本でエンド確定`;
+}
+function scoreProgressHtml(s){
+  const per=s.perEnd||6;
+  const cur=s.cur||[];
+  const dots=Array.from({length:per},(_,i)=>{
+    const a=cur[i];
+    if(a){
+      const z=zoneStyle(a.s,a.X,s.faceType);
+      return `<span class="scoreDot filled" style="background:${z.bg};border-color:${z.bg}" aria-hidden="true"></span>`;
+    }
+    return `<span class="scoreDot empty" aria-hidden="true"></span>`;
+  }).join("");
+  return `<div class="scoreProgressDots" role="img" aria-label="現在のエンド ${cur.length}/${per}本">${dots}</div>`;
+}
+function recordActionBarHtml(){
+  if(recordUiRefresh()){
+    return `<div class="recordActionBar" id="recordActionBar">
+      <div class="statbar" id="statbar"></div>
+      <div class="recordToolbar btnrow">
+        <button class="btn ghost" id="bUndo" type="button">↩ 取消</button>
+        <button class="btn sec" id="bEnd" type="button">エンド確定</button>
+        <button class="btn danger sm" id="bFinish" type="button">終了</button>
+      </div>
+    </div>`;
+  }
+  return `<div class="recordActionBar" id="recordActionBar">
+    <div class="statbar" id="statbar"></div>
+    <div class="btnrow">
+      <button class="btn ghost" id="bUndo" type="button">↩ 1本取消</button>
+      <button class="btn sec" id="bEnd" type="button">エンド確定</button>
+    </div>
+    <div class="btnrow"><button class="btn danger" id="bFinish" type="button">セッション終了</button></div>
+  </div>`;
+}
+function gridSpotChipsHtml(s){
+  const quad=s.faceType==="quad"?`<div class="chips quadHalfChips" id="quadHalfChips">${[["first","前半"],["second","後半"]].map(([h,lb])=>`<div class="chip ${(s.quadHalf||"first")===h?"on":""}" data-half="${h}">${lb}</div>`).join("")}<span class="mini">${quadHalfLabel(s.quadHalf||"first")} — ${(s.quadHalf||"first")==="second"?"上C/D・下A/B":"上A/B・下C/D"}</span></div>`:"";
+  const spot=isJapanIndoorRound(s)||s.faceType==="quad"?`<div class="chips spotIdChips" id="spotIdChips">${["A","B","C","D"].map(id=>`<div class="chip ${(s.curSpotId||s.laneSpot||"A")===id?"on":""}" data-spot="${id}">${id}</div>`).join("")}<span class="mini">${s.faceType==="quad"?"射る的を選ぶ":"射る位置"}</span></div>`:"";
+  return quad+spot;
+}
+function gridMemoFieldHtml(s){
+  return `<label class="f">メモ</label><input class="inp" id="gridMemo" placeholder="任意" value="${esc(s.note||"")}">`;
+}
+function gridSheetHtml(s){
+  const on=ui.inputMode==="grid"?"on":"";
+  const pairOff=s.pairMode?"pairOff":"";
+  const grid=s.pairMode?"":`<div class="scoreGrid" id="scoreGrid">${scoreGridHtml(s)}</div>`;
+  if(recordUiRefresh()){
+    return `<div class="gridSheet ${on} ${pairOff}" id="gridSheet">
+      <div class="scoreInputZone">
+        <p class="scoreProgressHint" id="scoreProgressHint">${scoreProgressHintText(s)}</p>
+        <div class="scoreProgress" id="scoreProgress">${scoreProgressHtml(s)}</div>
+        ${grid}
+        ${gridSpotChipsHtml(s)}
+      </div>
+      ${gridKeysHtml(s)}
+      <details class="adv scoreMemoDetails">
+        <summary>メモ</summary>
+        ${gridMemoFieldHtml(s)}
+      </details>
+    </div>`;
+  }
+  return `<div class="gridSheet ${on} ${pairOff}" id="gridSheet">
+    <div class="gridHeader">エンド ${s.ends.length+1} <span>${s.purpose==="volume"?`本数 ${sessionArrowCount(s)}本`:`合計 ${sessionStats(s).total}点`}</span></div>
+    ${grid}
+    ${gridKeysHtml(s)}
+    ${gridSpotChipsHtml(s)}
+    ${gridMemoFieldHtml(s)}
+  </div>`;
+}
+function scoreEndsSectionHtml(s){
+  if(recordUiRefresh()){
+    return `<details class="adv scoreEndsDetails"><summary id="scoreEndsSummary">確定済みエンド (${s.ends.length})</summary><div id="endsTbl"></div></details>`;
+  }
+  return `<div class="card"><h2>エンド一覧</h2><div id="endsTbl"></div></div>`;
+}
 function activeGuideHtml(){
   if(db.settings.activeGuideSeen) return "";
-  return `<details class="adv activeGuide" open>
+  const openAttr=recordUiRefresh()?"":" open";
+  return `<details class="adv activeGuide"${openAttr}>
     <summary>初回の操作ガイド</summary>
     <div class="guideLine"><b>数字</b><span>X/10/9…ボタンで素早く入力。セルをタップすると修正できます。</span></div>
     <div class="guideLine"><b>的</b><span>的をタップすると、その場所に1本入ります。少しずれたら矢チップを選びます。</span></div>
@@ -125,14 +210,7 @@ function renderActive(m){
     <div class="targetTools">
       <h2>記録中${s._edit?"（過去記録の編集）":""} <span class="mini ds-truncate">${fmtD(s.date)} ・ ${s.dist}m ・ ${faceLabel(s)} ・ ${setup?esc(setup.name):"セッティング未指定"}</span></h2>
       ${inputModeBarHtml()}
-      <div class="recordActionBar" id="recordActionBar">
-        <div class="statbar" id="statbar"></div>
-        <div class="btnrow">
-          <button class="btn ghost" id="bUndo">↩ 1本取消</button>
-          <button class="btn sec" id="bEnd">エンド確定</button>
-        </div>
-        <div class="btnrow"><button class="btn danger" id="bFinish">セッション終了</button></div>
-      </div>
+      ${recordActionBarHtml()}
       ${s._edit?`<div class="editMetaBar">
         <label class="f">ラウンド</label><select class="inp sm" id="editRound">${ROUND_TYPES.map(r=>`<option value="${r.id}" ${(s.round||"free")===r.id?"selected":""}>${r.label}</option>`).join("")}</select>
         <label class="f">日付</label><input class="inp sm" id="editDate" type="date" value="${esc(s.date||"")}">
@@ -152,14 +230,7 @@ function renderActive(m){
     </div>
     ${s.pairMode&&typeof pairScoringPanelHtml==="function"?pairScoringPanelHtml(s):""}
     ${typeof isTeamSetRound==="function"&&isTeamSetRound(s)&&typeof teamSetPanelHtml==="function"?teamSetPanelHtml(s):""}
-    <div class="gridSheet ${ui.inputMode==="grid"?"on":""} ${s.pairMode?"pairOff":""}" id="gridSheet">
-      <div class="gridHeader">エンド ${s.ends.length+1} <span>${s.purpose==="volume"?`本数 ${sessionArrowCount(s)}本`:`合計 ${sessionStats(s).total}点`}</span></div>
-      ${s.pairMode?"":`<div class="scoreGrid" id="scoreGrid">${scoreGridHtml(s)}</div>`}
-      ${gridKeysHtml(s)}
-      ${s.faceType==="quad"?`<div class="chips quadHalfChips" id="quadHalfChips">${[["first","前半"],["second","後半"]].map(([h,lb])=>`<div class="chip ${(s.quadHalf||"first")===h?"on":""}" data-half="${h}">${lb}</div>`).join("")}<span class="mini">${quadHalfLabel(s.quadHalf||"first")} — ${(s.quadHalf||"first")==="second"?"上C/D・下A/B":"上A/B・下C/D"}</span></div>`:""}
-      ${isJapanIndoorRound(s)||s.faceType==="quad"?`<div class="chips spotIdChips" id="spotIdChips">${["A","B","C","D"].map(id=>`<div class="chip ${(s.curSpotId||s.laneSpot||"A")===id?"on":""}" data-spot="${id}">${id}</div>`).join("")}<span class="mini">${s.faceType==="quad"?"射る的を選ぶ":"射る位置"}</span></div>`:""}
-      <label class="f">メモ</label><input class="inp" id="gridMemo" placeholder="任意" value="${esc(s.note||"")}">
-    </div>
+    ${gridSheetHtml(s)}
     <div class="tgWrap ${ui.inputMode==="grid"?"off":""}" id="tgWrap">
       ${targetMarkup(s.faceD,"tg",s.faceType,s.quadHalf||"first")}
       <div class="lens" id="lens"><svg id="lensSvg" width="122" height="122"><use href="#tgmain"/><g id="lensCross"></g></svg></div>
@@ -186,7 +257,7 @@ function renderActive(m){
       <button class="btn sm ghost" id="nudgeDone">選択解除</button>
     </div>
   </div>
-  <div class="card"><h2>エンド一覧</h2><div id="endsTbl"></div></div>`;
+  ${scoreEndsSectionHtml(s)}`;
   if(ui.inputMode!=="grid") attachTargetInput(s);
   document.querySelectorAll("#inputModeBar .modeBtn").forEach(btn=>btn.onclick=()=>{
     if(btn.dataset.mode==="more"){ openInputMoreSheet(); return; }
@@ -347,6 +418,10 @@ function refreshActive(){
       const grid=$("#scoreGrid");
       if(grid) grid.innerHTML=scoreGridHtml(s);
     }
+    const hint=$("#scoreProgressHint");
+    if(hint) hint.textContent=scoreProgressHintText(s);
+    const prog=$("#scoreProgress");
+    if(prog) prog.innerHTML=scoreProgressHtml(s);
     const header=document.querySelector(".gridHeader span");
     if(header) header.textContent=s.purpose==="volume"?`本数 ${sessionArrowCount(s)}本`:`合計 ${sessionStats(s).total}点`;
     if(s.pairMode){
@@ -414,22 +489,27 @@ function refreshActive(){
     <div class="stat"><b>${perfectScoreCount(all,s)}</b><span>${perfectScoreLabel(s)}</span></div>
     <div class="stat"><b>${secondaryScoreCount(all,s)}</b><span>${secondaryScoreLabel(s)}</span></div>`;
   }
+  const endsSum=$("#scoreEndsSummary");
+  if(endsSum) endsSum.textContent=`確定済みエンド (${s.ends.length})`;
   // ends table
-  $("#endsTbl").innerHTML = s.ends.length? `<table class="tbl"><tr><th>#</th><th>得点</th><th class="right">計</th><th></th></tr>`+
-    s.ends.map((end,i)=>{
-      const sorted=[...end].sort((a,b)=>b.s-a.s || (b.X?1:0)-(a.X?1:0));
-      return `<tr><td><span class="histChip" style="background:${ENDCOLORS[i%ENDCOLORS.length]}"></span>${i+1}</td>
-        <td>${sorted.map(scoreLabel).join("・")}</td>
-        <td class="right"><b>${end.reduce((a,x)=>a+x.s,0)}</b></td>
-        <td class="right"><button class="btn sm ghost" data-open="${i}" style="padding:4px 8px">✏</button></td></tr>`;
-    }).join("")+`</table>` : `<div class="empty">確定したエンドはまだありません</div>`;
-  document.querySelectorAll("#endsTbl [data-open]").forEach(b=>b.onclick=()=>{
-    if(s.cur.length){ toast("先に現在のエンドを確定（または取消）してください"); return; }
-    s.editIndex=+b.dataset.open;
-    s.cur=s.ends.splice(s.editIndex,1)[0];
-    ui.selArrow=-1; save(); refreshActive();
-    toast(`エンド${s.editIndex+1}を編集中（確定で戻ります）`);
-  });
+  const endsTbl=$("#endsTbl");
+  if(endsTbl){
+    endsTbl.innerHTML = s.ends.length? `<table class="tbl"><tr><th>#</th><th>得点</th><th class="right">計</th><th></th></tr>`+
+      s.ends.map((end,i)=>{
+        const sorted=[...end].sort((a,b)=>b.s-a.s || (b.X?1:0)-(a.X?1:0));
+        return `<tr><td><span class="histChip" style="background:${ENDCOLORS[i%ENDCOLORS.length]}"></span>${i+1}</td>
+          <td>${sorted.map(scoreLabel).join("・")}</td>
+          <td class="right"><b>${end.reduce((a,x)=>a+x.s,0)}</b></td>
+          <td class="right"><button class="btn sm ghost" data-open="${i}" style="padding:4px 8px">✏</button></td></tr>`;
+      }).join("")+`</table>` : `<div class="empty">確定したエンドはまだありません</div>`;
+    document.querySelectorAll("#endsTbl [data-open]").forEach(b=>b.onclick=()=>{
+      if(s.cur.length){ toast("先に現在のエンドを確定（または取消）してください"); return; }
+      s.editIndex=+b.dataset.open;
+      s.cur=s.ends.splice(s.editIndex,1)[0];
+      ui.selArrow=-1; save(); refreshActive();
+      toast(`エンド${s.editIndex+1}を編集中（確定で戻ります）`);
+    });
+  }
   if(typeof syncLiveHudMetrics==="function") syncLiveHudMetrics(s);
 }
 function nudgeArrow(dirKey){
