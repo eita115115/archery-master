@@ -278,6 +278,116 @@ function wireLaunchEnvPills(root){
   const active=root.querySelector("[data-launch-env].on");
   apply(active?active.dataset.launchEnv:"all");
 }
+function launchSheetUiPrefs(){
+  const s=db.settings;
+  if(!s.sheetUi) s.sheetUi={kind:"standard",cell:"ring",color:"pastel",sharePublic:false};
+  return s.sheetUi;
+}
+function launchChipStripHtml(id,items,defVal,dataKey){
+  return `<div class="launchChipStrip" id="${id}">${items.map(it=>{
+    const v=it.value!=null?it.value:it.id;
+    const on=String(v)===String(defVal)?" on":"";
+    return `<button type="button" class="launchChip${on}" data-${dataKey}="${esc(String(v))}">${esc(it.label)}</button>`;
+  }).join("")}</div>`;
+}
+function launchMiniGridHtml(kind,color){
+  const palette={
+    pastel:["#f2dc7a","#f4a4b8","#8ecae6","#e07a7a","#c9e4ca"],
+    wa:["#ffd60a","#d62828","#003049","#f1faee","#a8dadc"],
+    vivid:["#ffea00","#ff006e","#3a86ff","#fb5607","#8338ec"]
+  };
+  const cols=palette[color]||palette.pastel;
+  return `<div class="launchMiniGrid launchMiniGrid--${kind}" aria-hidden="true">${Array.from({length:25},(_,i)=>{
+    const bg=kind==="simple"?cols[i%3]:cols[i%cols.length];
+    const mark=kind==="standard"&&i%11===4?"X":"";
+    return `<span class="launchMiniCell" style="background:${bg}">${mark}</span>`;
+  }).join("")}</div>`;
+}
+function launchSheetDetailHtml(prefs){
+  const kinds=[
+    {id:"standard",label:"標準"},
+    {id:"simple",label:"シンプル"},
+    {id:"detail",label:"詳細"}
+  ];
+  const cells=[
+    {id:"fill",label:"マス全体を塗る",icon:"▣"},
+    {id:"ring",label:"数字を丸で囲む",icon:"◎"},
+    {id:"plain",label:"色なし",icon:"Tt"}
+  ];
+  const colors=[
+    {id:"pastel",label:"パステル",dots:["#f2dc7a","#f4a4b8","#8ecae6"]},
+    {id:"wa",label:"WA 公式",dots:["#ffd60a","#d62828","#003049"]},
+    {id:"vivid",label:"ビビッド",dots:["#ffea00","#ff006e","#3a86ff"]}
+  ];
+  return `<details class="adv launchSheetDetailAdv" open>
+    <summary class="launchSheetDetailSummary">
+      <span class="launchSettingIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-gear"/></svg></span>
+      <span class="launchSheetDetailHead">
+        <span class="launchSettingLabel">詳細設定</span>
+        <span class="launchSettingSub">シート形式・見た目・カラーセット</span>
+      </span>
+    </summary>
+    <div class="launchSheetDetailBody">
+      <p class="launchDetailK">シート種類</p>
+      <div class="launchKindRow" id="fSheetKind">${kinds.map(k=>`<button type="button" class="launchKindCard${prefs.kind===k.id?" on":""}" data-sheet-kind="${k.id}">
+        ${launchMiniGridHtml(k.id,prefs.color)}
+        <span>${esc(k.label)}</span>
+      </button>`).join("")}</div>
+      <p class="launchDetailK">セル表示</p>
+      <div class="launchSegRow" id="fCellDisplay">${cells.map(c=>`<button type="button" class="launchSegBtn${prefs.cell===c.id?" on":""}" data-cell-display="${c.id}"><span aria-hidden="true">${c.icon}</span><span>${esc(c.label)}</span></button>`).join("")}</div>
+      <p class="launchDetailK">カラーセット</p>
+      <div class="launchColorList" id="fColorSet">${colors.map(c=>`<button type="button" class="launchColorRow${prefs.color===c.id?" on":""}" data-color-set="${c.id}">
+        <span class="launchColorDots">${c.dots.map(d=>`<span style="background:${d}"></span>`).join("")}</span>
+        <span>${esc(c.label)}</span>
+        <span class="launchColorCheck" aria-hidden="true">✓</span>
+      </button>`).join("")}</div>
+      <button type="button" class="launchPreviewRow" id="launchSheetPreview">
+        <span class="launchSettingIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-analysis"/></svg></span>
+        <span>プレビュー</span>
+      </button>
+    </div>
+  </details>`;
+}
+function wireLaunchChipStrip(root,chipSel,hiddenSel,onPick){
+  const chips=root.querySelectorAll(chipSel);
+  const hidden=hiddenSel?root.querySelector(hiddenSel):null;
+  chips.forEach(chip=>{
+    chip.onclick=()=>{
+      chips.forEach(c=>c.classList.remove("on"));
+      chip.classList.add("on");
+      const val=chip.dataset.bow||chip.dataset.env||chip.dataset.face||chip.dataset.arrows||chip.dataset.d;
+      if(hidden&&val!=null){
+        hidden.value=val;
+        hidden.dispatchEvent(new Event("change"));
+      }
+      if(onPick) onPick(chip,val);
+    };
+  });
+}
+function wireLaunchSheetDetail(root,prefs){
+  root.querySelectorAll("[data-sheet-kind]").forEach(btn=>btn.onclick=()=>{
+    prefs.kind=btn.dataset.sheetKind;
+    root.querySelectorAll("[data-sheet-kind]").forEach(b=>b.classList.toggle("on",b===btn));
+    save("sheet-ui");
+  });
+  root.querySelectorAll("[data-cell-display]").forEach(btn=>btn.onclick=()=>{
+    prefs.cell=btn.dataset.cellDisplay;
+    root.querySelectorAll("[data-cell-display]").forEach(b=>b.classList.toggle("on",b===btn));
+    save("sheet-ui");
+  });
+  root.querySelectorAll("[data-color-set]").forEach(btn=>btn.onclick=()=>{
+    prefs.color=btn.dataset.colorSet;
+    root.querySelectorAll("[data-color-set]").forEach(b=>b.classList.toggle("on",b===btn));
+    root.querySelectorAll(".launchKindCard").forEach(card=>{
+      const kind=card.dataset.sheetKind;
+      const grid=card.querySelector(".launchMiniGrid");
+      if(grid&&kind) grid.outerHTML=launchMiniGridHtml(kind,prefs.color);
+    });
+    save("sheet-ui");
+  });
+  const preview=root.querySelector("#launchSheetPreview");
+  if(preview) preview.onclick=()=>toast(`プレビュー: ${prefs.kind} / ${prefs.cell} / ${prefs.color}`);
+}
 function launchSheetShellHtml(title){
   return `<div class="sheet launchSheet ds-sheet">
     <div class="ds-sheetGrab" aria-hidden="true"></div>
@@ -358,7 +468,7 @@ function repeatLastSession(last,ctx){
 function openLaunchSheet(ctx){
   ctx=ctx||{};
   const mode=ctx.mode||ui.recordMode||"practice";
-  const title=mode==="calibration"?"サイト値を残す練習":"ラウンド";
+  const title=mode==="calibration"?"サイト値を残す練習":"スコアシート設定";
   const finish=()=>{ if(ctx.onStart) ctx.onStart(); };
   if(typeof mountOverlay==="function"){
     const {ovl,dismiss}=mountOverlay(launchSheetShellHtml(title),{dismissOnBackdrop:true});
@@ -386,10 +496,163 @@ function openLaunchSheet(ctx){
   }));
   ovl.addEventListener("click",e=>{ if(e.target===ovl) close(); });
 }
+function renderLaunchSheetSettings(m,ctx){
+  m=m||$("#main");
+  if(!m) return;
+  ctx=ctx||{};
+  const last=ctx.last||db.sessions[db.sessions.length-1];
+  const defSetup=ctx.defSetup!=null?ctx.defSetup:(last?last.setupId:(db.setups[0]?db.setups[0].id:""));
+  const defDist=ctx.defDist!=null?ctx.defDist:(last?last.dist:70);
+  const mode=ctx.mode||ui.recordMode||"practice";
+  const defBow=last&&last.bowType?last.bowType:(db.settings.defaultBowType||"recurve");
+  const defFace=ctx.defFace!=null?ctx.defFace:suggestedFaceValue(defDist,last,defBow);
+  const defPerEnd=last&&last.perEnd?last.perEnd:6;
+  const defEnv=last&&last.environment?last.environment:(db.settings.defaultEnvironment||"outdoor");
+  const prefs=launchSheetUiPrefs();
+  const faceItems=[
+    ...[122,80,60,48,40].map(f=>({value:String(f),label:`${f}cm`})),
+    {value:"T40",label:"三つ目"},
+    {value:"Q40",label:"四枚"}
+  ];
+  m.innerHTML=`
+  <section class="launchPanel launchPanel--sheet launchPanel--settings">
+    <div class="launchBody">
+      <p class="launchSettingKicker">設定</p>
+      <div class="launchSettingRow">
+        <span class="launchSettingIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+        <div class="launchSettingBody">
+          <p class="launchSettingLabel">弓の種類</p>
+          ${launchChipStripHtml("fBowChips",BOW_TYPES.map(b=>({value:b.id,label:b.label})),defBow,"bow")}
+          <select id="fBow" hidden>${BOW_TYPES.map(b=>`<option value="${b.id}" ${b.id===defBow?"selected":""}>${b.label}</option>`).join("")}</select>
+        </div>
+      </div>
+      <div class="launchSettingRow">
+        <span class="launchSettingIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+        <div class="launchSettingBody">
+          <p class="launchSettingLabel">距離</p>
+          <div class="chips quickDists launchDistChips" id="fDistChips">
+            ${[70,50,30,18].map(d=>`<div class="chip ${d===defDist?"on":""}" data-d="${d}">${d}m</div>`).join("")}
+            <div class="chip" data-d="custom">カスタム</div>
+          </div>
+          <div id="fDistCustomWrap" style="display:none"><label class="f">距離 (m)</label><input class="inp" type="number" id="fDistCustom" min="5" max="90" step="1" placeholder="例: 60"></div>
+        </div>
+      </div>
+      ${launchSheetDetailHtml(prefs)}
+      <p class="launchSettingKicker">プライバシー設定</p>
+      <div class="launchSettingRow launchPrivacyRow">
+        <div class="launchSettingBody">
+          <p class="launchSettingLabel">スコアの公開設定</p>
+          <p class="launchSettingSub">スコアを他のユーザーと共有する</p>
+        </div>
+        <label class="launchToggle"><input type="checkbox" id="fSharePublic" ${prefs.sharePublic?"checked":""}><span class="launchToggleTrack" aria-hidden="true"></span></label>
+      </div>
+      <button type="button" class="launchPhotoCard" id="launchPhotoImport">
+        <span class="launchSettingIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-cloud"/></svg></span>
+        <span class="launchPhotoCopy">
+          <span class="launchSettingLabel">写真から取り込み</span>
+          <span class="launchSettingSub">カメラで撮影、またはアルバムから選択して自動入力できます。</span>
+        </span>
+        <span class="homeSightConditionArrow" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-chevron-right"/></svg></span>
+      </button>
+      <details class="adv launchSheetMore">
+        <summary>弓種・環境・的の詳細</summary>
+        <p class="launchSettingLabel">環境</p>
+        ${launchChipStripHtml("fEnvChips",ENV_TYPES.map(e=>({value:e.id,label:e.label})),defEnv,"env")}
+        <select id="fEnv" hidden>${ENV_TYPES.map(e=>`<option value="${e.id}" ${e.id===defEnv?"selected":""}>${e.label}</option>`).join("")}</select>
+        <p class="launchSettingLabel">的</p>
+        ${launchChipStripHtml("fFaceChips",faceItems,defFace,"face")}
+        <select id="fFace" hidden>${faceItems.map(f=>`<option value="${f.value}" ${String(defFace)===String(f.value)?"selected":""}>${f.label}</option>`).join("")}</select>
+        <p class="launchSettingLabel">1エンドの本数</p>
+        ${launchChipStripHtml("fArrowsChips",[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>({value:String(n),label:`${n}本`})),defPerEnd,"arrows")}
+        <select id="fArrows" hidden>${[1,2,3,4,5,6,7,8,9,10,11,12].map(n=>`<option value="${n}" ${n===defPerEnd?"selected":""}>${n}本</option>`).join("")}</select>
+        <div class="fieldBand">
+          <p class="launchSettingLabel">用具セッティング</p>
+          <select class="inp" id="fSetup">${setupOptions(defSetup)}</select>
+          ${recordSetupSnapshot(defSetup,defDist)}
+        </div>
+        <input type="date" id="fDate" hidden value="${today()}">
+        <select id="fRound" hidden>${ROUND_TYPES.map(r=>`<option value="${r.id}">${r.label}</option>`).join("")}</select>
+        <input id="fSightV" hidden><input id="fSightH" hidden>
+        <select id="fWx" hidden><option value=""></option></select>
+        <input id="fNote" hidden><select id="fWindDir" hidden><option value=""></option></select>
+        <input id="fWindSpeed" hidden>
+      </details>
+      <div class="launchSheetStickyCta"><button class="btn startPrimary" id="fStart">→ 次へ</button></div>
+    </div>
+  </section>`;
+  bindLaunchSheetSettingsForm(m,ctx,prefs);
+}
+function bindLaunchSheetSettingsForm(m,ctx,prefs){
+  const distState={d:ctx.defDist!=null?ctx.defDist:(db.sessions[db.sessions.length-1]?db.sessions[db.sessions.length-1].dist:70)};
+  const faceSel=m.querySelector("#fFace");
+  const suggestFace=d=>{
+    if(!faceSel||String(faceSel.value).startsWith("F")) return;
+    const bow=m.querySelector("#fBow").value||"recurve";
+    faceSel.value=bow==="compound"&&d===50?"48":(d>=60?122:(d<=18?40:80));
+    const chip=m.querySelector(`#fFaceChips [data-face="${faceSel.value}"]`);
+    if(chip){
+      m.querySelectorAll("#fFaceChips .launchChip").forEach(c=>c.classList.remove("on"));
+      chip.classList.add("on");
+    }
+  };
+  function updateQuickStartMeta(){
+    const meta=document.querySelector("#quickStartMeta");
+    if(meta&&distState.d&&faceSel) meta.textContent=`${distState.d}m · ${actionFaceLabel(faceSel.value)}`;
+  }
+  wireLaunchChipStrip(m,"#fBowChips .launchChip","#fBow",()=>{ if(distState.d) suggestFace(distState.d); updateQuickStartMeta(); });
+  wireLaunchChipStrip(m,"#fEnvChips .launchChip","#fEnv");
+  wireLaunchChipStrip(m,"#fFaceChips .launchChip","#fFace",()=>updateQuickStartMeta());
+  wireLaunchChipStrip(m,"#fArrowsChips .launchChip","#fArrows");
+  wireLaunchSheetDetail(m,prefs);
+  const share=m.querySelector("#fSharePublic");
+  if(share) share.onchange=()=>{ prefs.sharePublic=share.checked; save("sheet-ui"); };
+  const photo=m.querySelector("#launchPhotoImport");
+  if(photo) photo.onclick=()=>{ ctx.photoImport=true; toast("記録開始後に「紙を読み取り」モードを選べます"); };
+  document.querySelectorAll("#fDistChips .chip").forEach(c=>c.onclick=()=>{
+    document.querySelectorAll("#fDistChips .chip").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");
+    const wrap=m.querySelector("#fDistCustomWrap");
+    if(c.dataset.d==="custom"){ if(wrap) wrap.style.display="block"; distState.d=null; }
+    else{ if(wrap) wrap.style.display="none"; distState.d=+c.dataset.d; suggestFace(distState.d); }
+    updateQuickStartMeta();
+  });
+  const distCustom=m.querySelector("#fDistCustom");
+  if(distCustom) distCustom.oninput=e=>{ distState.d=+e.target.value||null; if(distState.d) suggestFace(distState.d); updateQuickStartMeta(); };
+  m.querySelector("#fStart").onclick=()=>{
+    const d=distState.d;
+    if(!d){ toast("距離を入力してください"); return; }
+    const fv=faceSel.value;
+    const face=parseFaceChoice(fv);
+    const launchOpts={
+      dist:d, face,
+      bowType:m.querySelector("#fBow").value||"recurve",
+      environment:m.querySelector("#fEnv").value||"outdoor",
+      roundId:"free",
+      date:today(),
+      setupId:m.querySelector("#fSetup")?.value||null,
+      perEnd:+m.querySelector("#fArrows").value,
+      purpose:ui.recordMode==="volume"?"volume":"practice",
+      onStart:ctx.onStart
+    };
+    if(ctx.photoImport) launchOpts.inputMode="ocr";
+    openCheckInModal({
+      dist:d,
+      faceLabel:actionFaceLabel(fv),
+      roundLabel:"練習",
+      focusPoints:[]
+    },pts=>{
+      launchOpts.focusPoints=pts;
+      launchActiveSession(launchOpts);
+      if(ctx.photoImport) ui.inputMode="ocr";
+    });
+  };
+  updateQuickStartMeta();
+}
 function renderRecordSetup(m,ctx){
   m=m||$("#main");
   if(!m) return;
   ctx=ctx||{};
+  if(ctx.sheetMode) return renderLaunchSheetSettings(m,ctx);
   const last=ctx.last||db.sessions[db.sessions.length-1];
   const defSetup=ctx.defSetup!=null?ctx.defSetup:(last?last.setupId:(db.setups[0]?db.setups[0].id:""));
   const defDist=ctx.defDist!=null?ctx.defDist:(last?last.dist:70);

@@ -123,15 +123,19 @@ function homeQuickStartPanelHtml(ctx,opts){
   return `<section class="homeSightPanel homeQuickPanel" aria-labelledby="homeSightTitle">
     <p class="homeSightEyebrow">${esc(eyebrow)}</p>
     <h2 id="homeSightTitle">${esc(title)}</h2>
-    <button class="homePrimaryCta" id="quickStart" type="button" aria-label="記録を始める ${esc(condPreview)}">
-      <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
-      <span class="homePrimaryCopy">
-        <span class="homeSightStartLabel">記録を始める</span>
-        <span class="homePrimaryMeta ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
-      </span>
+    <button class="homeSightConditions" id="openConditions" type="button" aria-label="条件を変える ${esc(condPreview)}">
+      <span class="homeSightConditionIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-gear"/></svg></span>
+      <span class="homeSightConditionText ds-truncate" id="quickStartMeta">${esc(condPreview)}</span>
+      <span class="homeSightConditionArrow" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-chevron-right"/></svg></span>
     </button>
+    <div class="homeSightStartWrap">
+      <button class="homeSightStart" id="quickStart" type="button" aria-label="記録を始める ${esc(condPreview)}">
+        <span class="homeReticle" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-record"/></svg></span>
+      </button>
+      <p class="homeSightStartLabel">記録を始める</p>
+    </div>
     <nav class="homeActionDock homeActions homeActions--compact" aria-label="すぐ使う">
-      <button class="homeDockBtn homeSightConditions" id="openConditions" type="button" aria-label="条件を変える">
+      <button class="homeDockBtn" id="openConditionsDock" type="button" aria-label="条件を変える">
         <span class="homeDockIcon" aria-hidden="true"><svg class="ic-svg" viewBox="0 0 24 24"><use href="ui/icons.svg#ic-gear"/></svg></span>
         <span>条件</span>
       </button>
@@ -148,7 +152,10 @@ function homeQuickStartPanelHtml(ctx,opts){
 }
 function bindHomeQuickActions(ctx){
   $("#quickStart").onclick=()=>quickStartSession(ctx);
-  $("#openConditions").onclick=()=>openLaunchSheet(ctx);
+  const openCond=()=>openLaunchSheet(ctx);
+  $("#openConditions").onclick=openCond;
+  const dockCond=$("#openConditionsDock");
+  if(dockCond) dockCond.onclick=openCond;
   const qh=$("#quickHistory");
   if(qh) qh.onclick=()=>showView("history");
   if(ctx.last){
