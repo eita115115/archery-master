@@ -198,7 +198,8 @@ html.ui-refresh .homeSightStart{
   display:grid;
   place-items:center;
   align-self:center;
-  width:min(82vw,360px);
+  width:max(min(82vw,360px),280px);
+  height:max(min(82vw,360px),280px);
   aspect-ratio:1;
   margin:0;
   padding:0;
@@ -575,7 +576,7 @@ html.ui-refresh .toast{
 @media (max-width:390px){
   html.ui-refresh main{padding-inline:16px;}
   html.ui-refresh .homeSightConditionText{font-size:13px;}
-  html.ui-refresh .homeSightStart{width:min(76vw,300px);}
+  html.ui-refresh .homeSightStart{width:max(min(76vw,300px),280px);height:max(min(76vw,300px),280px);}
   html.ui-refresh .homeSightPanel{min-height:min(490px,calc(100dvh - 220px));}
 }
 @media (prefers-reduced-motion:reduce){

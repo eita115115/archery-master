@@ -396,6 +396,7 @@ function launchSheetShellHtml(title){
       <button type="button" class="ds-sheetClose" id="launchSheetClose" aria-label="閉じる">閉じる</button>
     </div>
     <div class="launchSheetScroll" id="launchSheetMount"></div>
+    <div class="launchSheetStickyCta" id="launchSheetFooter"></div>
   </div>`;
 }
 function roundPresetListHtml(limit){
@@ -577,9 +578,11 @@ function renderLaunchSheetSettings(m,ctx){
         <input id="fNote" hidden><select id="fWindDir" hidden><option value=""></option></select>
         <input id="fWindSpeed" hidden>
       </details>
-      <div class="launchSheetStickyCta"><button class="btn startPrimary" id="fStart">→ 次へ</button></div>
     </div>
   </section>`;
+  const sheetRoot=m.closest(".launchSheet");
+  const footer=sheetRoot?sheetRoot.querySelector("#launchSheetFooter"):null;
+  if(footer) footer.innerHTML=`<button class="btn startPrimary" id="fStart" type="button">→ 次へ</button>`;
   bindLaunchSheetSettingsForm(m,ctx,prefs);
 }
 function bindLaunchSheetSettingsForm(m,ctx,prefs){
@@ -618,7 +621,9 @@ function bindLaunchSheetSettingsForm(m,ctx,prefs){
   });
   const distCustom=m.querySelector("#fDistCustom");
   if(distCustom) distCustom.oninput=e=>{ distState.d=+e.target.value||null; if(distState.d) suggestFace(distState.d); updateQuickStartMeta(); };
-  m.querySelector("#fStart").onclick=()=>{
+  const sheetRoot=m.closest(".launchSheet");
+  const startBtn=sheetRoot?.querySelector("#fStart")||m.querySelector("#fStart");
+  if(startBtn) startBtn.onclick=()=>{
     const d=distState.d;
     if(!d){ toast("距離を入力してください"); return; }
     const fv=faceSel.value;

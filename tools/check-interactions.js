@@ -171,6 +171,8 @@ async function runBrowserFlow(browser) {
         mainInert: document.querySelector("#main")?.hasAttribute("inert"),
         overlayCount: document.querySelectorAll(".ovl").length,
         hasQuickStart: !!document.querySelector("#quickStart"),
+        homeSightStart: !!document.querySelector(".homeSightStart"),
+        homeReticleH: document.querySelector(".homeSightStart")?.getBoundingClientRect().height || 0,
         view,
         effective: db?.active ? "record" : view,
       };
@@ -179,6 +181,8 @@ async function runBrowserFlow(browser) {
     assert(!boot.mainInert, "main should not be inert on boot");
     assert(boot.overlayCount === 0, `stale overlays on boot: ${boot.overlayCount}`);
     assert(boot.hasQuickStart, "home quickStart missing");
+    assert(boot.homeSightStart, "home large reticle button missing");
+    assert(boot.homeReticleH >= 280, `home reticle too small: ${boot.homeReticleH}px`);
     console.log("  boot state OK");
 
     const tabs = await evaluate(client, `(async () => {
@@ -237,7 +241,38 @@ async function runBrowserFlow(browser) {
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const mount = document.querySelector("#launchSheetMount");
       if (!mount) return { error: "launch sheet missing" };
-      const len = mount.innerText.length;
+      const text = mount.innerText || "";
+      const detailAdv = document.querySelector(".launchSheetDetailAdv");
+      const kindCards = document.querySelectorAll(".launchKindCard").length;
+      const miniGrids = document.querySelectorAll(".launchMiniGrid").length;
+      const segBtns = document.querySelectorAll(".launchSegBtn").length;
+      const colorRows = document.querySelectorAll(".launchColorRow").length;
+      const bowChips = document.querySelectorAll("#fBowChips .launchChip").length;
+      const selectsOpen = [...mount.querySelectorAll("select:not([hidden])")].filter((s) => {
+        const det = s.closest("details");
+        return !det || det.open;
+      }).length;
+      const detailOpen = !!detailAdv?.open;
+      const kindCardH = document.querySelector(".launchKindCard")?.getBoundingClientRect().height || 0;
+      const photo = document.querySelector(".launchPhotoCard");
+      const cta = document.querySelector("#launchSheetFooter");
+      const scrollEl = document.querySelector(".launchSheetScroll");
+      const footerOutsideMount = cta ? !mount.contains(cta) : false;
+      if (photo) photo.scrollIntoView({ block: "nearest" });
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const photoAboveCta = photo && cta ? photo.getBoundingClientRect().bottom <= cta.getBoundingClientRect().top + 2 : false;
+      const barebow = document.querySelector('#fBowChips [data-bow="barebow"]');
+      if (barebow) barebow.click();
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const bowVal = document.querySelector("#fBow")?.value || "";
+      const more = document.querySelector(".launchSheetMore");
+      if (more) more.open = true;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight;
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const envChips = document.querySelector("#fEnvChips");
+      const envAboveCta = envChips && cta ? envChips.getBoundingClientRect().bottom <= cta.getBoundingClientRect().top + 4 : false;
+      const htmlSnippet = mount.innerHTML.slice(0, 420);
       const launchOvl = document.querySelector(".launchSheetOvl");
       const launchClose = document.querySelector("#launchSheetClose");
       if (launchClose) launchClose.click();
@@ -247,14 +282,41 @@ async function runBrowserFlow(browser) {
       }
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       return {
-        len,
+        text,
+        htmlSnippet,
+        kindCards,
+        miniGrids,
+        segBtns,
+        colorRows,
+        bowChips,
+        selectsOpen,
+        detailOpen,
+        kindCardH,
+        bowVal,
+        footerOutsideMount,
+        photoAboveCta,
+        envAboveCta,
         overlays: document.querySelectorAll(".ovl").length,
         inert: document.querySelector("#main")?.hasAttribute("inert"),
         errors: window.__interactionErrors?.slice() || [],
       };
     })()`);
     if (launch.error) throw new Error(launch.error);
-    assert(launch.len > 30, "launch sheet empty");
+    assert(launch.kindCards >= 3, `launch sheet kind cards missing: ${launch.kindCards}`);
+    assert(launch.miniGrids >= 3, `launch sheet mini grids missing: ${launch.miniGrids}`);
+    assert(launch.segBtns >= 3, `launch sheet seg buttons missing: ${launch.segBtns}`);
+    assert(launch.colorRows >= 3, `launch sheet color rows missing: ${launch.colorRows}`);
+    assert(launch.bowChips >= 3, `launch bow chips missing: ${launch.bowChips}`);
+    assert(launch.selectsOpen === 0, `launch sheet has visible selects: ${launch.selectsOpen}`);
+    assert(launch.detailOpen, "launch sheet detail section not open");
+    assert(launch.kindCardH >= 48, `launch kind card too small: ${launch.kindCardH}`);
+    assert(launch.text.includes("詳細設定") && launch.text.includes("シート種類"), "launch sheet detail labels missing");
+    assert(launch.text.includes("プライバシー設定") && launch.text.includes("写真から取り込み"), "launch sheet privacy/photo missing");
+    assert(launch.text.includes("カラーセット"), "launch sheet color set missing");
+    assert(launch.bowVal === "barebow", `launch bow chip select failed: ${launch.bowVal}`);
+    assert(launch.footerOutsideMount, "launch CTA must be outside scroll mount");
+    assert(launch.photoAboveCta, `photo card overlapped by CTA: ${JSON.stringify(launch)}`);
+    assert(launch.envAboveCta, `expanded env chips overlapped by CTA: ${JSON.stringify(launch)}`);
     assert(launch.overlays === 0, "launch sheet overlay stuck");
     assert(!launch.inert, "main inert after launch sheet");
     console.log("  launch sheet OK");
